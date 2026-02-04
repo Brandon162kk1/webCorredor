@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid steelblue;
+            padding: 6px 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: steelblue;
+            color: white;
+        }
+
+        #sinMarco, #sinMarco td {
+            border: none;
+        }
+
+        .encabezado-derecha {
+            font-size: 12px;
+            color: #7a7a7a;
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        #sinMarco img {
+            filter: grayscale(100%); /* logo en plomo */
+            -webkit-filter: grayscale(100%);
+        }
+
+        .ende1 {
+            font-size: 14px;
+            color: #7a7a7a;
+        }
+
+        .ende2 {
+            font-size: 14px;
+            color: #7a7a7a;
+        }
+
+        .logo-izquierda {
+            color: #7a7a7a;
+            text-align: left;
+        }
+
+        .fecha-derecha {
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .firmas {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+            .firmas td {
+                width: 33.33%;
+                text-align: center;
+                vertical-align: top;
+                padding: 0;
+            }
+
+        .firma-img {
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 5px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .firma-linea {
+            margin: 5px 0;
+        }
+
+        .firma-nombre, .firma-cargo {
+            font-weight: bold;
+            margin: 2px 0;
+        }
+
+        .espacio-firma {
+            height: 60px; /* Altura similar a la imagen */
+            margin-bottom: 5px;
+        }
+
+        .info-table {
+            font-family: monospace;
+            border-collapse: collapse;
+        }
+
+            .info-table td {
+                padding: 4px 8px;
+                vertical-align: top;
+            }
+
+        .linea {
+            display: table;
+            width: 100%;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+
+        .label, .colon, .value {
+            display: table-cell;
+            vertical-align: top;
+            padding: 2px 4px;
+        }
+
+        .label {
+            width: 240px;
+            text-align: left;
+        }
+
+        .colon {
+            width: 10px;
+            text-align: center;
+        }
+
+        .value {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <!-- Encabezado -->
+    <table id="sinMarco" style="margin-top:0; border-collapse:collapse; border-spacing:0;">
+        <tr>
+            <td class="logo-izquierda" style="width:40%; padding:0; margin:0;">
+                <img src="{{logo}}" alt="Logo" style="width:150px; display:block; margin:0; padding:0;">
+            </td>
+            <td class="encabezado-derecha" style="width:60%; padding:0; margin:0;">
+                <p class="ende1" style="margin:0; padding:0;">{{encabezado_logo | safe}}</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

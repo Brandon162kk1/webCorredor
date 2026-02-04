@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 6px 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: steelblue;
+            color: white;
+        }
+
+        #sinMarco, #sinMarco td {
+            border: none;
+        }
+
+        .encabezado-derecha {
+            font-size: 12px;
+            color: #7a7a7a;
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        .firmas {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .firmas td {
+            width: 33.33%;
+            text-align: center;
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .firma-img {
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 5px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .firma-linea {
+            margin: 5px 0;
+        }
+
+        .firma-nombre, .firma-cargo {
+            font-weight: bold;
+            margin: 2px 0;
+        }
+
+        .espacio-firma {
+            height: 60px; /* Altura similar a la imagen */
+            margin-bottom: 5px;
+        }
+
+        .info-table {
+            font-family: monospace;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+
+        .linea {
+            display: table;
+            width: 100%;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+
+        .label, .colon, .value {
+            display: table-cell;
+            vertical-align: top;
+            padding: 2px 4px;
+        }
+
+        .label {
+            width: 240px;
+            text-align: left;
+        }
+
+        .colon {
+            width: 10px;
+            text-align: center;
+        }
+
+        .value {
+            text-align: left;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado -->
+    <!--<table id="sinMarco" style="margin-top: 80px;">
+        <tr>
+            <td style="width: 40%;">
+                <img src="{{logo}}" alt="Logo" style="width:150px;">
+            </td>
+            <td class="encabezado-derecha" style="width: 60%;">
+                {{encabezado_logo | safe}}
+            </td>
+        </tr>
+    </table>
+    <br />-->
+
+    <p>{{fecha_texto}}</p>
+
+    <center><p><strong>{{titulo_html}}</strong></p></center>
+    <br />
+
+    <div class="linea">
+        <div class="label">POLIZA N°</div>
+        <div class="colon">:</div>
+        <div class="value">{{poliza}}</div>
+    </div>
+
+    <div class="linea">
+        <div class="label">PRODUCTO</div>
+        <div class="colon">:</div>
+        <div class="value">{{producto}}</div>
+    </div>
+
+    <div class="linea">
+        <div class="label">CONTRATANTE</div>
+        <div class="colon">:</div>
+        <div class="value">{{contratante}}</div>
+    </div>
+
+    <div class="linea">
+        <div class="label">TRAMITE</div>
+        <div class="colon">:</div>
+        <div class="value">{{tramite}}</div>
+    </div>
+
+    <p><strong>_______________________________________________________________________________________________</strong></p>
+
+    <p>{{descripcion_html}} {{rango_fech}}.</p>
+
+    <p><strong>{{subtitulo_html}}</strong></p>
+    <center>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nro.</th>
+                    <th>Nombres</th>
+                    <th>Apellido Paterno</th>
+                    <th>Apellido Materno</th>
+                    <th>Nro. Documento</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for persona in datos_tabla %}
+                <tr>
+                    <td>{{ persona['N°'] }}</td>
+                    <td>{{ persona['Nombres'] }}</td>
+                    <td>{{ persona['ApPaterno'] }}</td>
+                    <td>{{ persona['ApMaterno'] }}</td>
+                    <!--<td>DNI: {{ persona['NumDocumento'] }}</td>-->
+                    <td>
+                        {% if persona['NumDocumento']|string|length == 8 %}
+                        DNI: {{ persona['NumDocumento'] }}
+                        {% else %}
+                        CE: {{ persona['NumDocumento'] }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </center>
+
+    <p style="margin-top: 30px;">Atentamente,</p>
+
+    <!-- Firmas -->
+    <table id="sinMarco" class="firmas" style="margin-top: 60px;">
+        <tr>
+            <td>
+                <img src="{{firma_ger_op}}" alt="Firma" class="firma-img">
+                <p class="firma-linea">________________________</p>
+                <p class="firma-nombre">LUIS E. ASMAT CUSTODIO</p>
+                <p class="firma-cargo">Gerente de Operaciones</p>
+                <p class="firma-cargo">CRECER SEGUROS</p>
+            </td>
+            <td>
+                <img src="{{firma_vic}}" alt="Firma" class="firma-img">
+                <p class="firma-linea">________________________</p>
+                <p class="firma-nombre">JUAN CARLOS ORDOÑEZ</p>
+                <p class="firma-cargo">Vicepresidente Comercial</p>
+                <p class="firma-cargo">CRECER SEGUROS</p>
+            </td>
+            <td>
+                <div class="espacio-firma"></div>
+                <p class="firma-linea">________________________</p>
+                <p class="firma-nombre">CONTRATANTE</p>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

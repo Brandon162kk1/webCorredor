@@ -1,0 +1,21 @@
+services:
+  rpa_solicitudes:
+    image: web_corredor
+    container_name: webhookCorredor
+    build: .
+    env_file:
+      - "C:/Users/Brandon/Desktop/DOC_INCLUSIONES_RENOVACIONES/produccion.env"
+    ports:
+      - "6084:6084"
+    volumes:
+      - ./Codigo:/app/Codigo
+      - "C:/Users/Brandon/Downloads:/app/Downloads"
+      - volumen_sync:/app/sync
+    restart: always
+    command: supervisord -c /etc/supervisord.conf
+
+volumes:
+  volumen_sync:
+    external: true
+
+# Comando: docker build --no-cache -t web_corredor .
