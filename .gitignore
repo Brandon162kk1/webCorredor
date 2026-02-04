@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # --- Visual Studio (evitar errores de .vsidx) ---
 .vs/
 *.vsidx
@@ -32,3 +33,76 @@ volumen_codigo/
 # Ignorar docker-compose (si realmente no quieres subirlo)
 #docker-compose.yml
 
+=======
+# -- Visual Studio / .NET build --------------------------------------------------------
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vsidx
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]*/
+bld/
+[Ll]og/
+[Bb]uild[Ll]og.*
+*.binlog
+# -- NuGet artefacts (no packages/ en .NET moderno) --------------------------------
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+# -- Configuracion sensible (no versionar secretos) --------------------------------
+appsettings.json
+appsettings.*.json
+*.env
+secrets.json
+connectionstrings.json
+Properties/launchSettings.json
+# -- Archivos de usuario / IDE ------------------------------------------------------
+*.rsuser
+*.userprefs
+*.usertasks
+.idea/
+*.sln.iml
+.cr/personal
+.localhistory/
+.mfractor/
+# -- SO / miscelaneo -----------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+# -- Python (si aparece tooling) ----------------------------------------------------
+__pycache__/
+*.pyc
+# -- Node.js -------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# Mantener SOLO el package-lock.json de la raiz;
+# ignorar lockfiles de vendors/plantillas dentro de wwwroot.
+wwwroot/**/package-lock.json
+# -- Publicacion / perfiles y dependencias de servicio -----------------------------
+Properties/PublishProfiles/
+Properties/ServiceDependencies/
+*.pubxml.user
+*.csproj.user
+*.vbproj.user
+*.vcxproj.user
+# -- Contenido subido por usuarios --------------------------------------------------
+wwwroot/uploads/
+uploads/
+# -- Entity Framework ---------------------------------------------------------------
+# Si USTEDES versionan las migraciones (lo mas comun), QUITA la linea de abajo.
+Migrations/
+>>>>>>> c425504bf3ee901a7c35c948385d9b4fa669bd5a
