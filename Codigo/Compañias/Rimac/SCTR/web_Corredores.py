@@ -1,12 +1,10 @@
 ﻿#   --- Froms ----
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-
 #   --- Imports ----
 import time
 import os
 import logging
-
 
 #----- Variables de Entorno -------
 urlRimacCorredores = os.getenv("urlRimacCorredores")

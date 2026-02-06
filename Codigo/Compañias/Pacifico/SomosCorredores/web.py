@@ -10,11 +10,6 @@ import logging
 import time
 import subprocess
 
-# --- Variables de Entorno ---
-url_pacifico = os.getenv("url_pacifico")
-correo = os.getenv("remitente")
-password = os.getenv("passwordCorreo")
-
 def click_descarga_documento(driver,boton_descarga,nombre_documento):
     
     try:
@@ -285,7 +280,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
     tipoError = ""
     detalleError = ""
 
-    driver.get(url_pacifico) 
+    driver.get("google.com") 
     logging.info("⌛ Cargando la Web de Pacifico")
            
     mi_portafolio = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Mi portafolio')]")))
@@ -298,7 +293,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
     user_input = wait.until(EC.element_to_be_clickable((By.ID, "i0116")))
     user_input.clear()
-    user_input.send_keys(correo)
+    user_input.send_keys("example@gmail.com")
     logging.info("✅ Digitando el Correo")
 
     boton_next = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
@@ -307,7 +302,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         
     pass_input = wait.until(EC.element_to_be_clickable((By.ID, "i0118")))
     pass_input.clear()
-    pass_input.send_keys(password)
+    pass_input.send_keys("132")
     logging.info("✅ Digitando el Password")
 
     ingresar_btn = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))

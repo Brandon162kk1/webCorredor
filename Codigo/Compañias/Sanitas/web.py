@@ -32,9 +32,6 @@ def esperar_ventana(nombre, timeout=30):
         time.sleep(0.5)
     return False
 
-# def normalizar(texto):
-#     return unicodedata.normalize('NFKD', texto.lower()).encode('ascii', 'ignore').decode('utf-8')
-
 def normalizar(texto):
 
     if not texto:
@@ -127,10 +124,11 @@ def click_descarga_documento(driver,boton_descarga,nombre_documento,impresion):
         logging.info("❌ Error durante el flujo de descarga:", ex)
         return False
 
-def detectar_constancia_en_tabla(driver):
+def detectar_constancia_en_tabla(wait):
 
     """Detecta qué tipo de constancia aparece realmente en la tabla con prioridad."""
-    filas = driver.find_elements(By.XPATH, "//table[@id='createdDocumentsTable']//tr")
+    #filas = driver.find_elements(By.XPATH, "//table[@id='createdDocumentsTable']//tr")
+    filas = wait.until(EC.presence_of_element_located((By.ID, "createdDocumentsTable")))
 
     encontrada_salud = False
     encontrada_pension = False
@@ -383,8 +381,8 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 # Modal de Retroactividad para autorizar no siniestros
                 modal_advertencia = WebDriverWait(driver,5).until(EC.visibility_of_element_located((By.ID, "ConfirmationMessageBox")))
                 logging.warning(f"⚠️ Apareció el modal con advertencia de retroactividad.")
-                boton_si = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'btn-primary') and contains(text(), 'Sí')]")))
-                boton_si.click()
+                btn_si = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@onclick, \"data-dialog-response', 'YES'\")]")))
+                btn_si.click()
                 logging.info("🖱️ Se hizo clic en el botón 'Sí'.")
             except TimeoutException:
                 logging.info("✅ No se detectó el modal de Retroactividad. Continuando flujo.")
@@ -398,7 +396,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             ruta_imagen = os.path.join(ruta_archivos_x_inclu,f"{get_timestamp()}_verDocumentos.png")
             driver.save_screenshot(ruta_imagen)
 
-            tipo_constancia = detectar_constancia_en_tabla(driver)
+            tipo_constancia = detectar_constancia_en_tabla(wait)
             documentos_a_descargar = []
 
             logging.info(f"🔎 Tipo de constancia detectada en la tabla: {tipo_constancia}")

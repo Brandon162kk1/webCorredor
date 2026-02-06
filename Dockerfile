@@ -46,7 +46,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /app/Downloads
 
 # Copiar supervisord.conf
-COPY supervisord.conf /etc/supervisord.conf
+COPY supervisord.conf /app/supervisord.conf
 
 ENV PYTHONUNBUFFERED=1
 

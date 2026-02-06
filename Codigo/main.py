@@ -1,9 +1,8 @@
 ﻿# -*- coding: utf-8 -*-
 # -- Froms ---
 #from jinja2.utils import
-from numpy import iinfo
 from Compañias.Mapfre.web import realizar_solicitud_mapfre
-from Compañias.Pacifico.web import realizar_solicitud_pacifico
+from Compañias.Pacifico.EnLinea.web import realizar_solicitud_pacifico
 from Compañias.Positiva.web import realizar_solicitud_la_positiva
 from Compañias.Sanitas.web import realizar_solicitud_sanitas,procesar_solicitud_san_protecta_vl,procesar_solicitud_san_crecer_vl
 from Compañias.Rimac.VidaLey.web_sas import realizar_solicitud_SAS
@@ -211,8 +210,8 @@ def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_me
 
     def ejecutar_pacifico():
         logging.info("✅ Compañía: Pacifico")
-        return realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
-                                           tipo_proceso,palabra_clave,ejecutivo_responsable,ba_codigo,ramo)
+        return realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
+                                           ruc_empresa,ejecutivo_responsable,ba_codigo,ramo)
 
     dispatch = {
         'SANI': ejecutar_sanitas,
@@ -457,6 +456,7 @@ def main():
             }
         ]
 
+        descargas_esperadas = 0
         logging.info("-----------------------------")
         #-- Para descargar las tramas ---
         for r in PRE_RAMOS:
@@ -468,32 +468,55 @@ def main():
 
             # Trama principal
             if ctx_ramo.trama:
+
+                descargas_esperadas += 1
                 logging.info(f"⌛ Descargando trama {r['nombre']}")
 
                 driver.get(ctx_ramo.trama)
 
                 if click_descarga_documento():
                     logging.info(f"✅ Trama {r['nombre']} descargada")
-                else:
-
-                    raise Exception(f"No se pudo descargar la trama {r['nombre']}")
 
                 time.sleep(1)
 
             # Trama 97 (si aplica)
             if ctx_ramo.trama_97:
+
+                descargas_esperadas += 1
                 logging.info(f"⌛ Descargando trama 97 {r['nombre']}")
 
                 driver.get(ctx_ramo.trama_97)
 
                 if click_descarga_documento():
                     logging.info(f"✅ Trama 97 {r['nombre']} descargada")
-                else:
-                    raise Exception(f"No se pudo descargar la trama {r['nombre']}")
 
                 time.sleep(1)
         
+        def contar_archivos(ruta):
+            return len([
+                f for f in os.listdir(ruta)
+                if os.path.isfile(os.path.join(ruta, f))
+            ])
+
+        archivos_descargados = contar_archivos(ruta_archivos_x_inclu)
+
+        if (archivos_descargados - 1 ) != descargas_esperadas :
+
+            tipoErrorSCTR = "Fallas en la Trama con Azure"
+            detalleErrorSCTR = "Trama no descargada"
+            tipoErrorVL = "Fallas en la Trama con Azure"
+            detalleErrorVL = "Trama no descargada"
+
+            raise Exception(
+                f"Descargas incompletas -> "
+                f"esperadas = {descargas_esperadas}, "
+                f"en carpeta = {archivos_descargados - 1 }"
+            )
+
         logging.info("-----------------------------")
+        logging.info(f"✅ Validación OK : {archivos_descargados - 1} archivos descargados correctamente")
+        logging.info("-----------------------------")
+
         # --- Enviando puerto a Birlik (solo una vez) ---
         if any(r["ctx"].id_poliza and not r["ctx"].activo for r in PRE_RAMOS):
             enviar_puerto_por_ramos(PRE_RAMOS, puerto)
@@ -516,6 +539,8 @@ def main():
                 logging.info(f"✅ {ctx.pension}")
 
             if polizas_sctr:
+
+                logging.info("-----------------------------")
                 logging.info(f"⌛ Procesando {palabra_clave} en SCTR ({' y '.join(polizas_sctr)})")
 
                 contexto_sctr = ctx.salud if ctx.salud.debe_procesarse() else ctx.pension
@@ -525,10 +550,10 @@ def main():
                     ruta_archivos_x_inclu, ctx.ruc, ctx.correo, tipo_proc,
                     palabra_clave, ctx.giro, ctx.cliente, contexto_sctr
                 )
-
-                #logging.info(f"TipoErrorSCTR : {tipoErrorSCTR} y DetalleErrorSCTR {detalleErrorSCTR}")
            
             if ctx.vida.debe_procesarse():
+
+                logging.info("-----------------------------")
                 logging.info(f"⌛ Procesando {palabra_clave} en VIDA LEY - póliza {ctx.vida.poliza}")
                 logging.info(f"✅ {ctx.vida}")
 
@@ -542,10 +567,6 @@ def main():
          
     except Exception as e:
         logging.error(f"⚠️ Conclusión: {e}")
-        tipoErrorSCTR = "Fallas en la Trama con Azure"
-        detalleErrorSCTR = "Trama no descargada"
-        tipoErrorVL = "Fallas en la Trama con Azure"
-        detalleErrorVL = "Trama no descargada"
     finally:
 
         RAMOS = [
