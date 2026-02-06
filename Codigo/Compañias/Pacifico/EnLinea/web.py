@@ -8,179 +8,265 @@ from Tiempo.fechas_horas import get_timestamp
 import os
 import logging
 import time
-import subprocess
 
-# --- Variables de Entorno ---
-url_pacifico = os.getenv("url_pacifico")
-correo = os.getenv("remitente")
-password = os.getenv("passwordCorreo")
+def seleccionar_radio(id_radio,opcion,wait,driver):
+    radio = wait.until(EC.element_to_be_clickable((By.ID, id_radio)))
+    driver.execute_script("arguments[0].click();", radio)
 
-def realizar_solicitud_vl(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,ejecutivo_responsable,fVigenciaInicio,fVigenciaFin,bab_codigo):
+    # esperar postback → el radio vuelva a existir y esté marcado
+    wait.until(lambda d: d.find_element(By.ID, id_radio).is_selected())
+
+    logging.info(f"✅ Radio {opcion} seleccionado")
+
+def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,
+                          palabra_clave,ruc_empresa,ejecutivo_responsable,bab_codigo,ramo):
     
     numero_poliza = list_polizas[0]
     tipoError = ""
     detalleError = ""
+  
+    try:
 
-    driver.get(url_pacifico) 
-    logging.info("⌛ Cargando la Web de Pacifico")
+        driver.get("https://www0.pacificoseguros.com/loginPacifico/login.aspx") 
+        logging.info("⌛ Cargando la Web de Pacifico en Linea")
            
-    mi_portafolio = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Mi portafolio')]")))
-    mi_portafolio.click()
-    logging.info("🖱️ Clic en Portafolio.")
+        user_input = wait.until(EC.element_to_be_clickable((By.ID, "txtNumero")))
+        user_input.clear()
+        user_input.send_keys(ramo.usuario)
+        logging.info("⌨️ Digitando el Usuario")
+    
+        pass_input = wait.until(EC.element_to_be_clickable((By.ID, "txtClave")))
+        pass_input.clear()
+        pass_input.send_keys(ramo.clave)
+        logging.info("⌨️ Digitando el Password")
 
-    somos_corredores = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), 'Somos Corredores')]")))
-    somos_corredores.click()
-    logging.info("🖱️ Clic en Somos Corredores")
+        buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "imbIngresar2")))
+        driver.execute_script("arguments[0].click();", buscar_btn)
+        logging.info(f"🖱️ Clic en 'Ingresar'")
 
-    user_input = wait.until(EC.element_to_be_clickable((By.ID, "i0116")))
-    user_input.clear()
-    user_input.send_keys(correo)
-    logging.info("✅ Digitando el Correo")
+        #id_ramo = "imgbtn_EPS" if ba_codigo != '4' else "imgbtn_VIDA"
 
-    boton_next = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
-    boton_next.click()
-    logging.info("🖱️ Clic en 'Next'.")
-        
-    pass_input = wait.until(EC.element_to_be_clickable((By.ID, "i0118")))
-    pass_input.clear()
-    pass_input.send_keys(password)
-    logging.info("✅ Digitando el Password")
+        seguro_vida = wait.until(EC.element_to_be_clickable((By.ID, "imgbtn_EPS")))
+        driver.execute_script("arguments[0].click();", seguro_vida)
 
-    ingresar_btn = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
-    ingresar_btn.click()
-    logging.info("🖱️ Se hizo clic en 'Ingresar'.")
+        logging.info("✅ Login exitoso detectado ")
+        logging.info("🖱️ Clic en 'Seguros de Salud'")
 
-    sms_option = wait.until(EC.element_to_be_clickable((By.XPATH,"//div[@class='table' and @data-value='OneWaySMS']")))
-    driver.execute_script("arguments[0].click();", sms_option)
-    logging.info("🖱️ Clic en 'Enviar un mensaje de texto'.")
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Menu")))
 
-    codigo_path = "/shared/codigo.txt"
+        # Expandir carpeta
+        folder = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@id='spn_5']//img")))
+        driver.execute_script("arguments[0].click();", folder)
+        time.sleep(0.5)
 
-    while not os.path.exists(codigo_path):
-        #print("⏳ Esperando que se cree codigo.txt...")
-        time.sleep(2)
+        # Click real
+        link = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@id='spn_5']//a[contains(.,'Renovación')]")))
+        driver.execute_script("arguments[0].click();", link)
+        logging.info("🖱️ Clic en 'Renovación / Inlclusión'")
 
-    with open(codigo_path, "r") as f:
-        codigo = f.read().strip()
+        driver.switch_to.default_content()
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Principal")))
 
-    logging.info(f"✅ Código recibido desde volumen: {codigo}")
+        logging.info("🔀 Cambiado al frame 'Principal'")
 
-    clave_sms = wait.until(EC.element_to_be_clickable((By.ID, "idTxtBx_SAOTCC_OTC")))
-    clave_sms.clear()
-    clave_sms.send_keys(codigo)
-    logging.info("✅ Digitando el código")
+        ruc_input = wait.until(EC.presence_of_element_located((By.ID, "txtNumDoc")))
+        ruc_input.clear()
+        ruc_input.send_keys(ruc_empresa)
+        logging.info(f"✅ Se ingresó el RUC '{ruc_empresa}'")
 
-    # --- Eliminar el archivo después de usarlo ---
-    try:
-        os.remove(codigo_path)
-        #logging.info("🧹 Archivo codigo.txt eliminado del volumen.")
-    except FileNotFoundError:
-        logging.warning("⚠️ No se encontró codigo.txt al intentar eliminarlo (ya fue borrado).")
-    except Exception as e:
-        logging.error(f"❌ Error al eliminar codigo.txt: {e}")
+        buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "btnBusqueda")))
+        buscar_btn.click()
+        logging.info("🖱️ Clic en Buscar")
 
-    ingresar_btn = wait.until(EC.element_to_be_clickable((By.ID, "idSubmit_SAOTCC_Continue")))
-    ingresar_btn.click()
-    logging.info("🖱️ Verificando el código.")
+        buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "dgClientes_hlLink_0")))
+        driver.execute_script("arguments[0].click();", buscar_btn)
+        logging.info(f"🖱️ Clic en el cliente")
 
-    try:
-        boton_conf = WebDriverWait(driver,5).until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
-        boton_conf.click()
-        logging.info("🖱️ Clic en 'Yes'.")
-    except TimeoutException:
-        ruta_imagen2 = os.path.join(ruta_archivos_x_inclu,f"{get_timestamp()}.png")
-        driver.save_screenshot(ruta_imagen2)
-        pass
-
-    for i in range(2):
         try:
-            btn_aceptar = WebDriverWait(driver,1.5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.pga-alert-close")))
-            btn_aceptar.click()
-            time.sleep(3)
-            logging.info("🖱️ Se detectó modal y se hizo clic en 'Aceptar'.")
-            break
+            WebDriverWait(driver,5).until(EC.alert_is_present())
+            alert = driver.switch_to.alert
+            logging.info(f"⚠️ Texto de la alerta: {alert.text}")
+            alert.accept()
+            logging.info("✅ Alerta Aceptada")
+
+            # MUY IMPORTANTE
+            driver.switch_to.default_content()
+
         except TimeoutException:
-            pass
+            logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
 
-    poliza_input = wait.until(EC.presence_of_element_located((By.ID, "inputBuscador")))
-    poliza_input.clear()
-    poliza_input.send_keys(numero_poliza)
-    logging.info(f"✅ Póliza ingresada: {numero_poliza}")
+        wait.until(EC.presence_of_element_located((By.NAME, "Menu")))
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Menu")))
 
-    buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "busqueda")))
-    buscar_btn.click()
-    logging.info("🖱️ Se hizo clic en 'Buscar'.")
+        folder = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='spn_5']//img")))
 
-    wait.until(EC.visibility_of_element_located((By.ID,"tablaPoliza")))
-    logging.info("⌛ Esperando que cargue la tabla...")
+        if "folder.gif" in folder.get_attribute("src").lower():
+            driver.execute_script("arguments[0].click();", folder)
+            time.sleep(0.5)
 
-    # select_elem = wait.until(EC.presence_of_element_located((By.NAME, "tablaPoliza_length")))
-    # Select(select_elem).select_by_value("100")
-    # print("🖱️ Se seleccionó '100' registros para mostrar más filas.")
+        link = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@id='spn_5']//a[contains(.,'Renovación')]")))
 
-    try:
-        wait.until(lambda d: len(d.find_elements(By.XPATH, "//table[@id='tablaPoliza']//tr")) > 1)
-        logging.info("✅ La tabla tiene al menos 1 fila.")
-    except TimeoutException:
-        logging.warning("⏰ No se cargaron las filas en el tiempo esperado.")
+        driver.execute_script("arguments[0].click();", link)
+        logging.info("🖱️ Clic en 'Renovación / Inclusión' nuevamente")
 
-    table = driver.find_element(By.ID, "tablaPoliza")
-    rows = table.find_elements(By.XPATH, ".//tbody//tr")
+        #input("Esperar")
+        driver.switch_to.default_content()
 
-    fila_encontrada = False
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Principal")))
+        #logging.info("🔀 En frame Principal (Renovación cargada)")
 
-    for i, row in enumerate(rows):
+        #frames = driver.find_elements(By.TAG_NAME, "frame")
+        #logging.info(f"🧩 Frames detectados: {[f.get_attribute('name') for f in frames]}")
 
-        cells = row.find_elements(By.TAG_NAME, "td")
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Tab")))
+        #logging.info("🔀 Cambiado al frame 'Tab'")
 
-        if len(cells) < 11:
-            logging.warning(f"⚠️ Fila {i} ignorada (tiene {len(cells)} columnas)")
-            continue
-     
-        poliza_cia = cells[3].text.strip()
-        inicio_vigencia_cia = cells[5].text.strip()
-        fin_vigencia_cia = cells[6].text.strip()
-        estado_cia = cells[9].text.strip()
-       
-        if numero_poliza == poliza_cia:
+        id_li = "rptTab_hlkTab_0" if bab_codigo != '4' else "rptTab_hlkTab_1"
 
-            logging.info(f"✅ Fila encontrada: Poliza='{poliza_cia}', Estado='{estado_cia}', Inicio de Vigencia='{inicio_vigencia_cia}', Fin de Vigencia='{fin_vigencia_cia}'.")
-        
-            enlace_poliza = cells[3].find_element(By.TAG_NAME, "a")
-            wait.until(EC.element_to_be_clickable(enlace_poliza))
-            driver.execute_script("arguments[0].click();", enlace_poliza)
-            logging.info("🖱️ Clic (por JS) en la póliza")
+        li_tab = wait.until(EC.element_to_be_clickable((By.ID, id_li)))
+        driver.execute_script("arguments[0].click();", li_tab)
 
-            fila_encontrada = True
+        logging.info(f"🖱️ Clic REAL en pestaña {'SCTR' if bab_codigo != '4' else 'Vida Ley'}")
+    
+        driver.switch_to.default_content()
 
-            break
+        #frames2 = driver.find_elements(By.TAG_NAME, "frame")
+        #logging.info(f"🧩 Frames detectados: {[f.get_attribute('name') for f in frames2]}")
 
-    if not fila_encontrada:
-        raise Exception(f"❌ No se encontró la póliza {numero_poliza} en la tabla.")   #Mejorar esta logica
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Principal")))
+        #logging.info("🔀 Cambiado al frame 'Principal'")
 
-    try:
-        wait.until(EC.visibility_of_element_located((By.ID, "ajax-loading")))
-    except TimeoutException:
-        pass
-    logging.info("⌛ Cargando...")
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Contenido")))
+        #logging.info("🔀 Entré a frame Contenido")
 
-    wait.until(EC.invisibility_of_element_located((By.ID, "ajax-loading")))
-    logging.info("⌛ Loader desapareció, continuando...")
+        # Guardar handles antes de abrir la segunda ventana
+        ventana_principal = driver.current_window_handle
+        handles_ventana_principal = set(driver.window_handles)
 
-    if bab_codigo in ['1', '2', '3']:
+        buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "imgBuscarCliente")))
+        driver.execute_script("arguments[0].click();", buscar_btn)
+        logging.info("🖱️ Clic en la Lupa del cliente")
+
+        # Esperar y cambiar a la segunda ventana
+        wait.until(lambda d: len(d.window_handles) > len(handles_ventana_principal))
+        nueva_ventana2 = (set(driver.window_handles) - handles_ventana_principal).pop()
+        driver.switch_to.window(nueva_ventana2)
+        logging.info("--- Ventana 2---------🌐")
+
+        time.sleep(3)
+
+        id_ruc_input_2 = "txtDocumento" if bab_codigo != '4' else "txtNroDocumento"
+
+        ruc_input2 = wait.until(EC.presence_of_element_located((By.ID, id_ruc_input_2))) 
+        ruc_input2.clear()
+        ruc_input2.send_keys(ruc_empresa)
+        logging.info(f"✅ Se ingresó el RUC '{ruc_empresa}'")
+
+        id_buscar_btn_2 = "btnBuscar" if bab_codigo != '4' else "btnBuscarCliente"
+
+        buscar_btn2 = wait.until(EC.element_to_be_clickable((By.ID, id_buscar_btn_2)))
+        buscar_btn2.click()
+        logging.info("🖱️ Clic en Buscar")
+  
+        id_cod_cliente = "fr_DevolverCodigo" if bab_codigo != '4' else "seleccionarCliente"
+
+        cliente = wait.until(EC.element_to_be_clickable((By.XPATH, f"""(//a[contains(@onclick,'{id_cod_cliente}')]|//td[contains(@onclick,'{id_cod_cliente}')])[1]""")))
+
+        cliente.click()
+        logging.info("🖱️ Clic en primer cliente encontrado")
+
+        driver.switch_to.window(ventana_principal) #Cambia de VENTANA o PESTAÑA del navegador
+        logging.info("🔙 Regresando a la ventana principal")
 
         try:
-            solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,fVigenciaInicio,fVigenciaFin,bab_codigo)
-            return True, tipoError, detalleError
-        except Exception as e:
-            logging.error(f"❌ Error en Pacifico (SCTR) - {tipo_mes}: {e}")
-            return False, f"PACI-SCTR-{tipo_mes}", e
+            WebDriverWait(driver,10).until(EC.alert_is_present())
+            alert = driver.switch_to.alert
+            texto_alerta = alert.text   # 👈 guardar antes
+            alert.accept()
+            logging.info(f"⚠️ Texto de la alerta: {texto_alerta}")
+            logging.info("✅ Alerta Aceptada")
+            raise Exception(texto_alerta)
+        except TimeoutException:
+            logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
 
-    else:
+        if bab_codigo == '4':
+
+            buscar_lupa_poliza = wait.until(EC.element_to_be_clickable((By.ID, "imgBuscarPoliza")))
+            driver.execute_script("arguments[0].click();", buscar_lupa_poliza)
+            logging.info("🖱️ Clic en la Lupa de la Póliza")
+
+            # Esperar y cambiar a la tecera ventana
+            wait.until(lambda d: len(d.window_handles) > len(handles_ventana_principal))
+            nueva_ventana3 = (set(driver.window_handles) - handles_ventana_principal).pop()
+            driver.switch_to.window(nueva_ventana3)
+            logging.info("--- Ventana 3---------🌐")
+
+            cliente_vl = wait.until(EC.element_to_be_clickable((By.ID, "grvPoliza_ctl03_NroPoliza")))
+            cliente_vl.click()
+            logging.info("🖱️ Clic en la primer poliza encontrada")
+
+            driver.switch_to.window(ventana_principal) #Cambia de VENTANA o PESTAÑA del navegador
+            logging.info("🔙 Regresando a la ventana principal")
+
+        # 🔑 REENTRAR A LOS FRAMES
+        driver.switch_to.default_content() #Sale de TODOS los frames / iframes
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Principal")))
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Contenido")))
+        #----------------------------
+
+        if bab_codigo == '2':  # Pensión
+            seleccionar_radio("rblProducto_1","Pension",wait,driver)
+
+        elif bab_codigo == '3':  # Ambos
+            seleccionar_radio("rblProducto_2","Ambos",wait,driver)
+
+        if tipo_proceso == 'IN':
+            seleccionar_radio("rdbTipoMov_1","Inclusión",wait,driver)
+
+        ruta_archivo = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}_97.xls")
+
+        input_file = wait.until(EC.presence_of_element_located((By.ID, "filArchivo")))
+        input_file.send_keys(ruta_archivo)
+        logging.info(f"✅ Trama {ramo.poliza}_97.xls subida")
+
+        btnCargar= wait.until(EC.element_to_be_clickable((By.ID, "btnCargar")))
+        driver.execute_script("arguments[0].click();", btnCargar)
+        logging.info("🖱️ Clic en Cargar la trama")
 
         try:
-            solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,fVigenciaInicio,fVigenciaFin,bab_codigo)
-            return True, tipoError, detalleError
-        except Exception as e:
-            logging.error(f"❌ Error en Pacifico (VL) - {tipo_mes}: {e}")
-            return False, f"PACI-VL-{tipo_mes}", e
+            WebDriverWait(driver,10).until(EC.alert_is_present())
+            alert = driver.switch_to.alert
+            texto_alerta = alert.text   # 👈 guardar antes
+
+            if texto_alerta.startswith("Ingreso de planilla de trabajadores, satisfactorio."):
+                alert.accept()
+                logging.info(f"⚠️ Texto de la alerta: {texto_alerta}")
+                logging.info("✅ Alerta Aceptada")
+            else:
+                raise Exception(f"{texto_alerta}")
+
+        except TimeoutException:
+            logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
+
+        btn_procesar = wait.until(EC.element_to_be_clickable((By.ID, "btnGrabar")))
+        driver.execute_script("arguments[0].scrollIntoView(true);", btn_procesar)
+        logging.info("✅ Scroll hasta btn Procesar")
+        #btn_procesar.click()
+
+        # try:
+        #     WebDriverWait(driver,10).until(EC.alert_is_present())
+        #     alert = driver.switch_to.alert
+        #     logging.info(f"⚠️ Texto de la alerta: {alert.text}")
+        #     alert.accept()
+        #     logging.info("✅ Alerta Aceptada")
+        # except TimeoutException:
+        #     raise Exception(f"No apareció ninguna alerta de confirmación")
+
+        #clic en ver constancia
+
+        #if es MA ver liquidacion
+
+    except Exception as e:
+        logging.error(f"Error: {e}")
+    finally:
+        input("Esperar")

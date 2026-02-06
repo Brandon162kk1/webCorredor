@@ -3,13 +3,17 @@ import logging
 import os
 import json
 
+#base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
+base_url = "http://192.168.0.201:64328/api/movimiento/"
+
 def enviar_puerto(id_movimiento,puerto):
 
-    base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
+
     url = f"{base_url}{id_movimiento}/puerto-host"
 
     payload = {
-        "puertoHost": f"https://webcorredor.azurewebsites.net:{puerto}"
+        #"puertoHost": f"https://webcorredor.azurewebsites.net:{puerto}"
+        "puertoHost": f"http://192.168.0.201:{puerto}"
     }
 
     try:
@@ -28,7 +32,6 @@ def enviar_puerto(id_movimiento,puerto):
         return False
  
 def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma):
-    base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
     url = f"{base_url}{id_movimiento}/estaca-ramo"
 
     payload = {
@@ -53,7 +56,7 @@ def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma
         return False
 
 def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error):
-    base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
+
     url = f"{base_url}{id_movimiento}/error"
 
     payload = {
@@ -79,7 +82,6 @@ def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error):
 
 def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
    
-    base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
     url = f"{base_url}{id_movimiento}/subir-documentos"
 
     try:
