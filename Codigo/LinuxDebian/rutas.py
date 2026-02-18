@@ -25,8 +25,10 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
 
     if tipo_proceso == 'IN':
         nombre_carpeta_dia = f"Inclusiones_{get_dia()}_{get_mes()}"
-    else:
+    elif tipo_proceso == 'RE':
         nombre_carpeta_dia = f"Renovaciones_{get_dia()}_{get_mes()}"
+    else:
+        nombre_carpeta_dia = f"DescargasConstancias_{get_dia()}_{get_mes()}"
 
     carpeta_dia = os.path.join(download_path, nombre_carpeta_dia)
 

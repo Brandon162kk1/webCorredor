@@ -3,8 +3,17 @@ import logging
 import os
 import json
 
-#base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
-base_url = "http://192.168.0.201:64328/api/movimiento/"
+base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
+#base_url = "http://192.168.0.201:64328/api/movimiento/"
+
+# --- Variables de Entorno ---
+API_KEY = os.getenv("API_KEY")
+
+#-- Header Global para autenticación (si es necesario) --
+headers = {
+    #"Content-Type": "application/json",
+    "X-Api-Key": API_KEY 
+}
 
 def enviar_puerto(id_movimiento,puerto):
 
@@ -12,12 +21,12 @@ def enviar_puerto(id_movimiento,puerto):
     url = f"{base_url}{id_movimiento}/puerto-host"
 
     payload = {
-        #"puertoHost": f"https://webcorredor.azurewebsites.net:{puerto}"
-        "puertoHost": f"http://192.168.0.201:{puerto}"
+        "puertoHost": f"https://webcorredor.azurewebsites.net:{puerto}"
+        #"puertoHost": f"http://192.168.0.201:{puerto}"
     }
 
     try:
-        response = requests.put(url,json=payload,timeout=30)
+        response = requests.put(url,json=payload,headers=headers,timeout=30)
 
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ Puerto enviado registrado correctamente | Movimiento {id_movimiento}")
@@ -27,7 +36,6 @@ def enviar_puerto(id_movimiento,puerto):
             return False
 
     except Exception as e:
-        #logging.exception(f"❌ Error conectando al API para registrar puerto | Movimiento {id_movimiento}")
         logging.error(f"❌ Error conectando al API para registrar puerto | Movimiento {id_movimiento} | {e}")
         return False
  
@@ -41,7 +49,7 @@ def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma
     }
 
     try:
-        response = requests.put(url,json=payload,timeout=30)
+        response = requests.put(url,json=payload,headers=headers,timeout=30)
 
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ Registro actualizado correctamente | Movimiento {id_movimiento} | Ramo {ramo}")
@@ -66,7 +74,7 @@ def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error):
     }
 
     try:
-        response = requests.put(url,json=payload,timeout=30)
+        response = requests.put(url,json=payload,headers=headers,timeout=30)
 
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ Error registrado correctamente | Movimiento {id_movimiento} | Ramo {ramo}")
@@ -112,6 +120,7 @@ def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
             response = requests.put(
                 url,
                 files=files,
+                headers=headers,
                 data=data,
                 timeout=30
             )

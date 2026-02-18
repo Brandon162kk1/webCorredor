@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <style>
+
         body {
             font-family: Arial, sans-serif;
             font-size: 12pt;
+            /*margin: 10px 20px 10px 20px;*/
+            /* arriba | derecha | abajo | izquierda */
         }
 
         table {
@@ -15,7 +18,7 @@
         }
 
         th, td {
-            border: 1px solid black;
+            border: 1px solid steelblue;
             padding: 6px 10px;
             text-align: center;
         }
@@ -36,17 +39,36 @@
             line-height: 1.4;
         }
 
+        .ende1 {
+            font-size: 14px;
+            color: #7a7a7a;
+        }
+        .ende2 {
+            font-size: 14px;
+            color: #7a7a7a;
+        }
+
+        .logo-izquierda {
+            color: #7a7a7a;
+            text-align: left;
+        }
+
+        .fecha-derecha {
+            font-size: 14px;
+            text-align: right;
+        }
+
         .firmas {
             width: 100%;
             table-layout: fixed;
         }
 
-        .firmas td {
-            width: 33.33%;
-            text-align: center;
-            vertical-align: top;
-            padding: 0;
-        }
+            .firmas td {
+                width: 33.33%;
+                text-align: center;
+                vertical-align: top;
+                padding: 0;
+            }
 
         .firma-img {
             height: 60px;
@@ -76,10 +98,10 @@
             border-collapse: collapse;
         }
 
-        .info-table td {
-            padding: 4px 8px;
-            vertical-align: top;
-        }
+            .info-table td {
+                padding: 4px 8px;
+                vertical-align: top;
+            }
 
         .linea {
             display: table;
@@ -112,81 +134,70 @@
 </head>
 <body>
 
-    <!-- Encabezado -->
-    <!--<table id="sinMarco" style="margin-top: 80px;">
-        <tr>
-            <td style="width: 40%;">
-                <img src="{{logo}}" alt="Logo" style="width:150px;">
-            </td>
-            <td class="encabezado-derecha" style="width: 60%;">
-                {{encabezado_logo | safe}}
-            </td>
-        </tr>
-    </table>
-    <br />-->
+    <p class="fecha-derecha">Lima, 10 de Febrero del 2026</p>
 
-    <p>{{fecha_texto}}</p>
-
-    <center><p><strong>{{titulo_html}}</strong></p></center>
-    <br />
+    <center><p><strong>CONSTANCIA - SEGURO VIDA LEY TRABAJADORES</strong></p></center>
+    <center><p><strong>CODIGO SBS N° VI1787300005</strong></p></center>
 
     <div class="linea">
-        <div class="label">POLIZA N°</div>
+        <div class="label">PÓLIZA</div>
         <div class="colon">:</div>
-        <div class="value">{{poliza}}</div>
+        <div class="value">810860000028906</div>
     </div>
-
-    <div class="linea">
-        <div class="label">PRODUCTO</div>
-        <div class="colon">:</div>
-        <div class="value">{{producto}}</div>
-    </div>
-
     <div class="linea">
         <div class="label">CONTRATANTE</div>
         <div class="colon">:</div>
-        <div class="value">{{contratante}}</div>
+        <div class="value">CONSORCIO VIAL PUCAHUASI</div>
     </div>
-
     <div class="linea">
-        <div class="label">TRAMITE</div>
+        <div class="label">RUC</div>
         <div class="colon">:</div>
-        <div class="value">{{tramite}}</div>
+        <div class="value">20606878657</div>
+    </div>
+    <div class="linea">
+        <div class="label">TRÁMITE</div>
+        <div class="colon">:</div>
+        <div class="value">RENOVACION</div>
+    </div>
+    <div class="linea">
+        <div class="label">SEDE O LUGAR DE TRABAJO</div>
+        <div class="colon">:</div>
+        <div class="value">OROYA</div>
     </div>
 
     <p><strong>_______________________________________________________________________________________________</strong></p>
 
-    <p>{{descripcion_html}} {{rango_fech}}.</p>
+    <p>Por medio del presente endoso se deja constancia que, a solicitud del Contratante,
+            se procede a renovar al (los) siguientes Asegurados a partir del 10/02/2026 al 01/03/2026.</p>
 
-    <p><strong>{{subtitulo_html}}</strong></p>
+    <p><strong>ASEGURADOS:</strong></p>
     <center>
         <table>
             <thead>
                 <tr>
-                    <th>Nro.</th>
-                    <th>Nombres</th>
+                    <th>N°</th>
                     <th>Apellido Paterno</th>
                     <th>Apellido Materno</th>
+                    <th>Primer Nombre</th>
+                    <th>Segundo Nombre</th>
                     <th>Nro. Documento</th>
                 </tr>
             </thead>
             <tbody>
-                {% for persona in datos_tabla %}
+                
                 <tr>
-                    <td>{{ persona['N°'] }}</td>
-                    <td>{{ persona['Nombres'] }}</td>
-                    <td>{{ persona['Ap. Paterno'] }}</td>
-                    <td>{{ persona['Ap. Materno'] }}</td>
-                    <!--<td>DNI: {{ persona['N° Documento'] }}</td>-->
+                    <td>1</td>
+                    <td>RODRIGUEZ</td>
+                    <td>ROCHA</td>
+                    <td>BRANDON</td>
+                    <td></td>
                     <td>
-                        {% if persona['N° Documento']|string|length == 8 %}
-                        DNI: {{ persona['N° Documento'] }}
-                        {% else %}
-                        CE: {{ persona['N° Documento'] }}
-                        {% endif %}
+                        
+                        DNI: 72534406
+                        
                     </td>
                 </tr>
-                {% endfor %}
+                
             </tbody>
         </table>
     </center>
@@ -197,14 +208,14 @@
     <table id="sinMarco" class="firmas" style="margin-top: 60px;">
         <tr>
             <td>
-                <img src="{{firma_ger_op}}" alt="Firma" class="firma-img">
+                <img src="file:///app/Codigo/Plantillas/Crecer/Renovaciones/ger_ope_vl_crecer.jpg" alt="Firma" class="firma-img">
                 <p class="firma-linea">________________________</p>
                 <p class="firma-nombre">LUIS E. ASMAT CUSTODIO</p>
                 <p class="firma-cargo">Gerente de Operaciones</p>
                 <p class="firma-cargo">CRECER SEGUROS</p>
             </td>
             <td>
-                <img src="{{firma_vic}}" alt="Firma" class="firma-img">
+                <img src="file:///app/Codigo/Plantillas/Crecer/Renovaciones/vice_com_vl_crecer.jpg" alt="Firma" class="firma-img">
                 <p class="firma-linea">________________________</p>
                 <p class="firma-nombre">JUAN CARLOS ORDOÑEZ</p>
                 <p class="firma-cargo">Vicepresidente Comercial</p>
