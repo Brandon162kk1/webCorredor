@@ -34,3 +34,5 @@ volumen_codigo/
 
 #Imagenes bases
 Dockerfile.base
+
+#.dockerignore

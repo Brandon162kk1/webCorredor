@@ -1,8 +1,8 @@
 ﻿# -*- coding: utf-8 -*-
 # -- Froms ---
-from reportlab.platypus import SimpleDocTemplate, Image
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import utils
+# from reportlab.platypus import SimpleDocTemplate, Image
+# from reportlab.lib.pagesizes import A4
+# from reportlab.lib import utils
 # -- Imports --
 import logging
 import pdfplumber
