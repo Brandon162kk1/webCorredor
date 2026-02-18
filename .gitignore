@@ -32,3 +32,5 @@ volumen_codigo/
 # Ignorar docker-compose (si realmente no quieres subirlo)
 #docker-compose.yml
 
+#Imagenes bases
+Dockerfile.base
