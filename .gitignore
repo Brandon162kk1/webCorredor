@@ -110,4 +110,9 @@ Migrations/
 =======
 #Imagenes bases
 Dockerfile.base
+<<<<<<< HEAD
 >>>>>>> 143f662da6eec2dafc6b3246d57a15a58402695f
+=======
+
+#.dockerignore
+>>>>>>> 8a6ab0a93002dc943afde0a475f4630ddf899210

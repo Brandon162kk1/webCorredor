@@ -3,11 +3,12 @@ import logging
 import os
 import json
 
-base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
+#base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
 #base_url = "http://192.168.0.201:64328/api/movimiento/"
 
 # --- Variables de Entorno ---
 API_KEY = os.getenv("API_KEY")
+base_url = os.getenv("API_BASE_URL") 
 
 #-- Header Global para autenticación (si es necesario) --
 headers = {
@@ -18,10 +19,10 @@ headers = {
 def enviar_puerto(id_movimiento,puerto):
 
 
-    url = f"{base_url}{id_movimiento}/puerto-host"
+    url = f"{base_url}/api/movimiento/{id_movimiento}/puerto-host"
 
     payload = {
-        "puertoHost": f"https://webcorredor.azurewebsites.net:{puerto}"
+        "puertoHost": f"{base_url}:{puerto}"
         #"puertoHost": f"http://192.168.0.201:{puerto}"
     }
 
