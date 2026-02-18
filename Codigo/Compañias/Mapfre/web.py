@@ -3,42 +3,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from LinuxDebian.ventana import esperar_ventana
 from Tiempo.fechas_horas import tipo_vigencia
+from LinuxDebian.ventana import esperar_archivos_nuevos
 #---- Import ---
 import os
 import logging
 import time
 import shutil
-import subprocess
 import pandas as pd
-
-def click_descarga_documento(driver,boton_descarga,nombre_documento):
-    
-    try:
-
-        driver.execute_script("arguments[0].click();", boton_descarga)
-        logging.info("✅ Se hizo clic con JS en el botón de descarga")
-
-        logging.info("⌛ Esperando la ventana descarga de Linux Debian")
-
-        if not esperar_ventana("Save File"):
-            raise Exception("No apareció la ventana de descarga")
-
-        subprocess.run(["xdotool", "search", "--name", "Save File", "windowactivate", "windowfocus"])
-        logging.info("💡 Se hizo FOCO en la nueva ventana de dialogo de Linux Debian")
-        subprocess.run(["xdotool", "type","--delay", "100", nombre_documento])
-        logging.info("📄 Se cambio el nombre del documento")
-        time.sleep(2)
-        subprocess.run(["xdotool", "key", "Return"])
-        logging.info("🖱️ Se presionó 'Enter' para confirmar la descarga")
-        time.sleep(2)
-        return True
-
-    except Exception as ex:
-        logging.error(f"❌ Error durante el flujo de descarga: {ex}")
-        driver.close()
-        return False
 
 def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,
                                      ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
@@ -386,10 +358,27 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
                 # Buscar el botón Descargar dentro de la fila
                 descargar_btn = item.find_element(By.XPATH, ".//a[contains(text(), 'Descargar')]")
             
-                # Intentar descargar usando tu función personalizada
-                if click_descarga_documento(driver, descargar_btn, nombre_guardar):
-                    time.sleep(2)  # espera para no saturar la web
-                    logging.info(f"✅ Descargado: Fila {idx}, Tipo: {tipo_doc}")
+                # Guardar archivos antes del clic
+                archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
+                driver.execute_script("arguments[0].click();", descargar_btn)
+                logging.info("🖱 Clic con JS en el botón de descarga")
+
+                archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+                logging.info(f"✅ Archivo '{tipo_doc}' descargado exitosamente")
+
+                if archivo_nuevo:
+                    ruta_original = os.path.join(ruta_archivos_x_inclu, archivo_nuevo)
+                    ruta_final = os.path.join(ruta_archivos_x_inclu, f"{nombre_guardar}.pdf")
+                    os.rename(ruta_original, ruta_final)
+                    logging.info(f"🔄 Archivo renombrado a '{nombre_guardar}.pdf'")
+                else:
+                    raise Exception("No se encontró archivo después de la descarga")
+
+                # # Intentar descargar usando tu función personalizada
+                # if descargar_documento(driver, descargar_btn, nombre_guardar, impresion=False,pestaña=True):
+                #     time.sleep(2)  # espera para no saturar la web
+                #     logging.info(f"✅ Descargado: Fila {idx}, Tipo: {tipo_doc}")
 
             except Exception as e:
                 logging.error(f"❌ Error en fila {idx} ({tipo_doc if 'tipo_doc' in locals() else 'Desconocido'}): {e}")
@@ -533,6 +522,21 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
             logging.error(f"❌ Error al eliminar codigo.txt: {e}")
 
         try:
+        
+            # Esperar a que aparezca el texto del modal
+            mensaje_elemento = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.c-modal p.txt")))
+            mensaje = mensaje_elemento.text.strip()
+            print(f"⚠️ Modal detectado: {mensaje}")
+
+            boton = wait.until(EC.presence_of_element_located((By.XPATH, "//button[.//span[contains(text(),'Cerrar')]]")))
+
+            driver.execute_script("arguments[0].click();", boton)
+            print("✅ Modal cerrado correctamente")
+
+        except TimeoutException:
+            pass
+
+        try:
             boton_ok = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(), 'Ok')]]")))
             boton_ok.click()
             logging.info("🖱️ Clic en 'Ok'")
@@ -554,8 +558,8 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
         return True,True,tipoError,detalleError
     except Exception as e:
 
-        ramo = "SCTR" if all(c == '3' for c in (ba_codigo, bab_codigo)) else "VL"
-        logging.error(f"❌ Error en Mapfre {ramo} - {tipo_mes}: {e}")
+        ramo_s = "SCTR" if all(c == '3' for c in (ba_codigo, bab_codigo)) else "VL"
+        logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
         try:
             ok_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
             ok_btn.click()
@@ -568,7 +572,7 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
             except:
                 pass
 
-        return constancia,proforma,f"MAPF-{ramo}-{tipo_mes}",f"{e}"
+        return constancia,proforma,f"MAPF-{ramo_s}-{tipo_mes}",f"{e}"
     finally:
         time.sleep(3)
         link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[span[text()='Constancias SCTR y VL']]")))  

@@ -6,9 +6,9 @@ from selenium.common.exceptions import TimeoutException,NoAlertPresentException
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy,get_pos_fecha_dmy
+from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
 from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda
-from LinuxDebian.ventana import esperar_ventana
+from LinuxDebian.ventana import esperar_archivos_nuevos
 #---- Import ---
 import os
 import re
@@ -20,32 +20,6 @@ import shutil
 
 # --- Variables globales ---
 ventana_menu_positiva = None
-
-def click_descarga_documento(driver,boton_descarga,nombre_documento):
-    
-    try:
-
-        driver.execute_script("arguments[0].click();", boton_descarga)
-        logging.info("✅ Se hizo clic con JS en el botón de descarga.")
-
-        logging.info("⌛ Esperando la ventana descarga de Linux Debian...")
-
-        if not esperar_ventana("Save File"):
-            raise Exception("No apareció la ventana de descarga")
-
-        subprocess.run(["xdotool", "search", "--name", "Save File", "windowactivate", "windowfocus"])
-        logging.info("💡 Se hizo FOCO en la nueva ventana de dialogo de Linux Debian")
-        subprocess.run(["xdotool", "type","--delay", "100", nombre_documento])
-        logging.info("📄 Se cambio el nombre del documento")
-        time.sleep(2)
-        subprocess.run(["xdotool", "key", "Return"])
-        logging.info("🖱️ Se presionó 'Enter' para confirmar la descarga.")
-        time.sleep(2)
-        return True
-
-    except Exception as ex:
-        logging.error(f"❌ Error durante el flujo de descarga: {ex}")
-        return False
 
 def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
     
@@ -64,10 +38,16 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     time.sleep(3)
 
+    try:
+        WebDriverWait(driver,7).until(EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")))
+        raise Exception("Lo sentimos, ha ocurrido un error inesperado")
+    except TimeoutException:
+        pass
+
     poliza_input = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtNroPoliza")))
     poliza_input.clear()
-    poliza_input.send_keys(list_polizas[0])
-    logging.info(f"✅ Se Ingresó la póliza '{list_polizas[0]}' en el campo")
+    poliza_input.send_keys(ramo.poliza)
+    logging.info(f"✅ Se Ingresó la póliza '{ramo.poliza}' en el campo")
 
     buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnBuscar")))
     buscar_btn.click()
@@ -77,7 +57,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado")))
         logging.info("⌛ Esperando la tabla con los campos...")
     except Exception as e:
-        raise Exception(f"No se encontró la póliza {list_polizas[0]} en la compañía")
+        raise Exception(f"No se encontró la póliza {ramo.poliza} en la compañía")
 
     # Obtener la fecha de vigencia (formato: dd/mm/yyyy)
     fecha_vigencia_element =wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaVigencia_0")))
@@ -99,10 +79,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     except Exception as e:
         raise Exception(f"Error al parsear la fecha de vigencia,Motivo - {e}")
 
-    if list_polizas[0] == 0 : 
-        motivo = f"Fuera del rango permitido, máximo son 2 días de diferencia para la {palabra_clave}."
-        raise Exception(f"{motivo}")
-
+    if ramo.poliza == '0' : 
+        raise Exception(f"Fuera del rango permitido, máximo son 2 días de diferencia para la {palabra_clave}")
     else:
 
         radio_seleccion = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_gvResultado_rbSeleccion_0")))
@@ -155,7 +133,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             else:
                 logging.info(f"📅 Vigencia de Inicio ingresada: {ramo.f_inicio}")
 
-            if list_polizas[0] == '9231375':
+            if ramo.poliza == '9231375':
 
                 select_tipo_calculo = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_cboTipoCalculoEspecial")))
                 select_tp = Select(select_tipo_calculo)
@@ -185,7 +163,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             # Solo para este cliente: P & Q TELECOM EIRL en particular Salud: 9231375 Pensión: 30358377 
             # pq las otras polizas se ponen por defecto 1 mes
-            if list_polizas[0] == '9231375':
+            if ramo.poliza == '9231375':
 
                 fecha_str = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))).get_attribute("value")
 
@@ -212,13 +190,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         time.sleep(2)
 
-        file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.xlsx")) 
+        file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsx")) 
 
         if not os.path.exists(file_path):
-            raise Exception (f"Archivo {list_polizas[0]}.xlsx no encontrado")
+            raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
         else:
             input_file.send_keys(file_path)
-            logging.info(f"✅ Se subió el archivo: '{list_polizas[0]}.xlsx' para validar.")
+            logging.info(f"✅ Se subió el archivo '{ramo.poliza}.xlsx' para validar")
 
         wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
         logging.info("⌛ Esperando que cargue")
@@ -340,9 +318,9 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 try:
                     # Esperar que aparezca la lupa (por cualquiera de los dos tipos) -- Esto puede fallar si solo es una póliza
                     if len(list_polizas) == 1 and ba_codigo == '1':
-                        selector_xpath = (f"//img[@data-nropolizasalud='{list_polizas[0]}']")
+                        selector_xpath = (f"//img[@data-nropolizasalud='{ramo.poliza}']")
                     elif len(list_polizas) == 1 and ba_codigo == '2':
-                        selector_xpath = (f"//img[@data-nropolizapension='{list_polizas[0]}']")
+                        selector_xpath = (f"//img[@data-nropolizapension='{ramo.poliza}']")
                     else:
                         selector_xpath = (f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']")
 
@@ -351,10 +329,10 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                     driver.execute_script("arguments[0].scrollIntoView(true);", lupa_element)
                     lupa_element.click()
 
-                    logging.info(f"🔎 Lupa encontrada y clickeada para póliza {list_polizas[0]}")
+                    logging.info(f"🔎 Lupa encontrada y clickeada para póliza {ramo.poliza}")
 
                 except TimeoutException:
-                    raise Exception(f"No se encontró la lupa asociada a la póliza {list_polizas[0]}.")
+                    raise Exception(f"No se encontró la lupa asociada a la póliza {ramo.poliza}")
                 except Exception as e:
                     raise Exception(f"Error al hacer clic en la lupa: {e}")
 
@@ -365,7 +343,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             try:
 
                 WebDriverWait(driver,5).until(EC.element_to_be_clickable((By.ID, "btnAceptarError")))
-
                 raise Exception (f"Se detecto una advertencia, el código para descagar el documento en la compañía es {prefijo}-{numero_doc}.")
 
             except TimeoutException:
@@ -379,46 +356,47 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
 
-            constancia_path = f"{list_polizas[0]}"
-            msj = f"✅ Constancia {list_polizas[0]}.pdf descargado exitosamente"
+            # Guardar archivos antes del clic
+            archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
 
-            if click_descarga_documento(driver,boton_guardar,constancia_path):
+            driver.execute_script("arguments[0].click();", boton_guardar)
+            logging.info("🖱 Clic con JS en el botón de descarga")
 
-                time.sleep(2)
-                logging.info(msj)
+            archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+            logging.info(f"✅ Archivo descargado exitosamente")
 
+            if archivo_nuevo:
+                ruta_original = archivo_nuevo[0]  # ya es ruta completa
+                ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+                os.rename(ruta_original, ruta_final)
+                logging.info(f"🔄 Constancia renombrado a '{ramo.poliza}.pdf'")
             else:
-                mensaje_descarga = "No se logró descargar la constancia. Verifica manualmente."
-                raise Exception (f"{mensaje_descarga}")
+                raise Exception("No se encontró constancia después de la descarga")
 
             if tipo_mes == 'MA':
 
                 logging.info("----------------------------")
 
-                # # Esperar que el iframe aparezca en el DOM
-                # iframe = wait.until(
-                #     EC.presence_of_element_located((By.ID, "ifContenedorPDFMaster"))
-                # )
-
-                driver.switch_to.frame("ifContenedorPDFMaster")   #iframe     
-            
-                if len(list_polizas) == 1:
-                    endoso_path = f"endoso_{list_polizas[0]}"
-                    msj2 = f"✅ Endoso_{list_polizas[0]}.pdf descargado exitosamente"
-                else:
-                    endoso_path = f"endoso_{list_polizas[0]}"                         
-                    msj2 = f"✅ Endoso {list_polizas[0]}.pdf descargado exitosamente"   
-
+                driver.switch_to.frame("ifContenedorPDFMaster")#iframe     
+                                
                 boton_embebido = wait.until(EC.element_to_be_clickable((By.ID, "open-button")))
 
-                if click_descarga_documento(driver,boton_embebido,endoso_path):
+                # Guardar archivos antes del clic
+                archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
 
-                    time.sleep(3)
-                    logging.info(msj2)
+                driver.execute_script("arguments[0].click();", boton_embebido)
+                logging.info("🖱 Clic con JS en el botón de descarga")
 
+                archivo_nuevo_2 = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_2,".pdf",cantidad=1)
+                logging.info(f"✅ Archivo descargado exitosamente")
+
+                if archivo_nuevo:
+                    ruta_original = archivo_nuevo_2[0]  # ya es ruta completa
+                    ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
+                    os.rename(ruta_original, ruta_final)
+                    logging.info(f"🔄 Endoso renombrado a 'endoso_{ramo.poliza}.pdf'")
                 else:
-                    mensaje_endoso = "No se logró descargar el Endoso. Verifica manualmente."
-                    raise Exception (f"{mensaje_endoso}")
+                    raise Exception("No se encontró endoso después la descarga")
 
                 driver.switch_to.default_content()
             
@@ -439,16 +417,18 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
                 logging.info("----------------------------")
 
-                ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[0]}.pdf")
-                ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[1]}.pdf")
+                if tipo_mes == 'MA':
 
-                if os.path.exists(ruta_endoso_salud):
-                    shutil.copy2(ruta_endoso_salud,ruta_endoso_pension)
-                    logging.info(f"📄 Copia creada para el endoso de Pensión")
-                else:
-                    logging.error(f"❌ No existe el archivo base Endoso Salud")
+                    ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[0]}.pdf")
+                    ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[1]}.pdf")
 
-                logging.info("----------------------------")
+                    if os.path.exists(ruta_endoso_salud):
+                        shutil.copy2(ruta_endoso_salud,ruta_endoso_pension)
+                        logging.info(f"📄 Copia creada para el endoso de Pensión")
+                    else:
+                        logging.error(f"❌ No existe el archivo base Endoso Salud")
+
+                    logging.info("----------------------------")
 
             #btnPDFCancelarM,btnPDFEnviarM
             btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
@@ -746,6 +726,9 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     input_archivo.send_keys(ruta_trama_final)
     logging.info(f"📤 Se subió el archivo: {ramo.poliza}.xlsx")
 
+    # Guardar archivos antes del clic
+    archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
     btn_registrar = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#dtRegistrar a")))
     btn_registrar.click()
     logging.info("🖱️ Clic en 'Enviar' realizado correctamente.")
@@ -753,7 +736,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # Primero verificar si aparece un alert
     try:
 
-        WebDriverWait(driver,5).until(EC.alert_is_present())
+        #WebDriverWait(driver,5).until(EC.alert_is_present())
+        wait.until(EC.alert_is_present())
         alert1 = driver.switch_to.alert
         logging.info(f"⚠️ Alerta #1 presente: ¿{alert1.text}?")
         alert1.accept()
@@ -809,61 +793,80 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     try:
 
-        logging.info("⌛ Esperando la ventana descarga de Linux Debian...")
-        time.sleep(2)
-        subprocess.run(["xdotool", "search", "--name", "Save File", "windowactivate", "windowfocus"])
-        logging.info("Se hizo FOCO en la nueva ventana de dialogo de Linux Debian")
-        time.sleep(2)   
-        subprocess.run(["xdotool", "type", "--delay", "150", ramo.poliza])
-        logging.info("📄 Se cambio el nombre del documento")
-        time.sleep(2)
-        subprocess.run(["xdotool", "key", "Return"])
-        logging.info("🖱️ Se presionó Enter para confirmar la descarga.")
-        time.sleep(2)
+        archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+        logging.info(f"✅ Archivo descargado exitosamente")
+
+        if archivo_nuevo:
+            ruta_original = archivo_nuevo[0]
+            ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+            os.rename(ruta_original, ruta_final)
+            logging.info(f"🔄 Constancia renombrado a '{ramo.poliza}.pdf'")
+        else:
+            raise Exception(" No se encontró archivo nuevo después de descargar")
 
     except Exception as e:
-        mensaje_descarga = f"Error al descargar el documento: {e}"
         driver.save_screenshot(os.path.join(ruta_archivos_x_inclu, f"{get_timestamp()}.png"))
-        raise Exception(f"{mensaje_descarga}")
+        raise Exception(f"{e}")
 
-    # Verificar que ya no esté la ventana "Save File"
     try:
-        salida = subprocess.check_output(["xdotool", "search", "--name", "Save File"])
-        if salida.strip():
-            logging.warning("⚠️ La ventana 'Save File' sigue abierta, puede que falle la descarga.")
-    except subprocess.CalledProcessError:
-        logging.info("✅ La ventana 'Save File' ya no está, se cerró correctamente.")
 
-    aviso_alerta_2 = ""
-    try:
-        WebDriverWait(driver,7).until(EC.alert_is_present())
-        alert_ok  = driver.switch_to.alert
-        aviso_alerta_2 = alert_ok.text
+        wait.until(EC.alert_is_present())
+        alert = driver.switch_to.alert
+        mensaje = alert.text.strip()
 
-        if aviso_alerta_2.startswith("Corregir errores encontrados en la Trama."):
-            raise Exception(f"{aviso_alerta_2}")
+        logging.info(f"⚠️ Alerta detectada: {mensaje}")
 
-        #-- Se ha registrado la solicitud correctamente. o Corregir errores encontrados en la Trama.
-        logging.info(f"⚠️ Alerta #2 presente : {aviso_alerta_2}")
-        alert_ok .accept() #---Corregir
-        logging.info("✅ Alerta aceptada") #Ok
+        # ---- Evaluación del mensaje ----
+        if mensaje.startswith("Corregir errores encontrados en la Trama."):
+            alert.accept()
+            logging.info("✅ Alerta aceptada")
+            raise Exception(mensaje)
+
+        elif mensaje.startswith("Se ha registrado la solicitud correctamente."):
+            alert.accept()
+            logging.info("✅ Alerta aceptada")
+
+        elif mensaje.startswith("Desea ver el formulario en PDF para su impresión"):
+            alert.dismiss()
+            logging.info("✅ Alerta Cancelada")
+
+        else:
+            logging.warning("⚠️ Alerta no contemplada, se acepta por defecto")
+            alert.accept()
+
     except TimeoutException:
-        logging.info("❌ No apareció la segunda alerta") 
+        logging.info("❌ No apareció ninguna alerta")
 
-    try:
-        WebDriverWait(driver,7).until(EC.alert_is_present())
-        alert3 = driver.switch_to.alert
-        logging.info(f"⚠️ Alerta #3 presente: ¿{alert3.text}?") #-- ¿Desea ver el formulario en PDF para su impresión?
-        alert3.dismiss()
-        logging.info("✅ Alerta Cancelada")
-    except TimeoutException:
-        logging.info("❌ No apareció la tercera alerta")
-        raise Exception(f"{aviso_alerta_2}")
+    # aviso_alerta_2 = ""
+    # try:
+    #     WebDriverWait(driver,7).until(EC.alert_is_present())
+    #     alert_ok  = driver.switch_to.alert
+    #     aviso_alerta_2 = alert_ok.text
+
+    #     if aviso_alerta_2.startswith("Corregir errores encontrados en la Trama."):
+    #         raise Exception(f"{aviso_alerta_2}")
+
+    #     #-- Se ha registrado la solicitud correctamente. o Corregir errores encontrados en la Trama.
+    #     logging.info(f"⚠️ Alerta : {aviso_alerta_2}")
+    #     alert_ok.accept() #---Corregir
+    #     logging.info("✅ Alerta aceptada") #Ok
+    # except TimeoutException:
+    #     logging.info("❌ No apareció la segunda alerta") 
+
+    # try:
+    #     WebDriverWait(driver,7).until(EC.alert_is_present())
+    #     alert3 = driver.switch_to.alert
+    #     logging.info(f"⚠️ Alerta : {alert3.text}") #-- ¿Desea ver el formulario en PDF para su impresión?
+    #     alert3.dismiss()
+    #     logging.info("✅ Alerta Cancelada")
+    # except TimeoutException:
+    #     logging.info("❌ No apareció la tercera alerta")
+    #     raise Exception(f"{aviso_alerta_2}")
     
     try:
         nombre_imagen_ok = f"tramite_{get_timestamp()}.png"
-        ruta_imagen0 = os.path.join(ruta_archivos_x_inclu, nombre_imagen_ok)
-        driver.save_screenshot(ruta_imagen0)
+        ruta_tramite = os.path.join(ruta_archivos_x_inclu, nombre_imagen_ok)
+        driver.save_screenshot(ruta_tramite)
     except:
         pass
 
@@ -1085,34 +1088,66 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     boton_descargar = wait.until(EC.element_to_be_clickable((By.XPATH,"//span[normalize-space()='Descargar documentos']/ancestor::a")))
     driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"solicitud_{get_timestamp()}.png"))
 
-    if click_descarga_documento(driver,boton_descargar,ramo.poliza):
-        logging.info(f"✅ Constancia {ramo.poliza}.pdf obtenida.")
+    archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
+    driver.execute_script("arguments[0].click();", boton_descargar)
+    logging.info("🖱 Clic con JS en el botón de descarga")
+
+    archivos_nuevos = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=2)
+    logging.info("✅ Documentos descargados correctamente")
+
+    if archivos_nuevos:
+        # Ordenarlos por fecha de creación (más seguro)
+        archivos_nuevos = sorted(
+            archivos_nuevos,
+            key=os.path.getctime
+        )
+
+        nombre_1 = os.path.join(
+            ruta_archivos_x_inclu,
+            f"{ramo.poliza}.pdf"
+        )
+
+        nombre_2 = os.path.join(
+            ruta_archivos_x_inclu,
+            f"endoso_{ramo.poliza}.pdf"
+        )
+
+        os.rename(archivos_nuevos[0], nombre_1)
+        logging.info(f"✅ Constancia '{ramo.poliza}.pdf' renombrado correctamente")
+        os.rename(archivos_nuevos[1], nombre_2)
+        logging.info(f"✅ Endoso 'endoso_{ramo.poliza}.pdf' renombrado correctamente")
     else:
-        raise Exception ("Error al descargar la constancia")
+        logging.error("❌ No se detectaron los 2 archivos")
 
-    time.sleep(5)
-    endoso_poliza = f"endoso_{ramo.poliza}"
+    # if descargar_documento(driver,boton_descargar,ramo.poliza,impresion=False,pestaña=False):
+    #     logging.info(f"✅ Constancia {ramo.poliza}.pdf obtenida")
+    # else:
+    #     raise Exception ("No se logró descargar la Constancia")
 
-    try:
+    # time.sleep(5)
+    # endoso_poliza = f"endoso_{ramo.poliza}"
 
-        logging.info("⌛ Esperando la segunda ventana descarga de Linux Debian")
+    # try:
 
-        if not esperar_ventana("Save File"):
-            raise Exception("No apareció la ventana de descarga")
+    #     logging.info("⌛ Esperando la segunda ventana descarga de Linux Debian")
 
-        subprocess.run(["xdotool", "search", "--name", "Save File", "windowactivate", "windowfocus"])
-        logging.info("💡 Se hizo FOCO en la nueva ventana de dialogo de Linux Debian")
-        subprocess.run(["xdotool", "type","--delay", "100", endoso_poliza])
-        logging.info("📄 Se cambio el nombre del documento")
-        time.sleep(2)
-        subprocess.run(["xdotool", "key", "Return"])
-        logging.info("🖱️ Se presionó 'Enter' para confirmar la descarga")
-        time.sleep(2)
+    #     if not esperar_ventana("Save File"):
+    #         raise Exception("No apareció la ventana de descarga")
 
-    except Exception as e:
-        raise Exception(f"Error al descargar el endoso, Motivo -> {e}")
+    #     subprocess.run(["xdotool", "search", "--name", "Save File", "windowactivate", "windowfocus"])
+    #     logging.info("💡 Se hizo FOCO en la nueva ventana de dialogo de Linux Debian")
+    #     subprocess.run(["xdotool", "type","--delay", "100", endoso_poliza])
+    #     logging.info("📄 Se cambio el nombre del documento")
+    #     time.sleep(2)
+    #     subprocess.run(["xdotool", "key", "Return"])
+    #     logging.info("🖱️ Se presionó 'Enter' para confirmar la descarga")
+    #     time.sleep(2)
 
-    logging.info(f"✅ Endoso de {palabra_clave} obtenida, Documento : {endoso_poliza}.pdf")
+    # except Exception as e:
+    #     raise Exception(f"Error al descargar el endoso, Motivo -> {e}")
+
+    # logging.info(f"✅ Endoso de {palabra_clave} obtenida, Documento : {endoso_poliza}.pdf")
 
     boton_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Aceptar')]")))
     boton_aceptar.click()
@@ -1123,8 +1158,6 @@ def realizar_solicitud_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo
   
     global ventana_menu_positiva
 
-    constancia = False
-    proforma = False
     tipoError = ""
     detalleError = ""
 
@@ -1210,17 +1243,16 @@ def realizar_solicitud_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo
 
     except Exception as e:
         logging.error(f"❌ Error inesperado entrando a la url: {e}")
-        return constancia,proforma,"Login Fallido", e
-
+        return False,False,"Login Fallido", e
 
     if bab_codigo in ['1', '2', '3']:
 
         try:
             solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo)
-            return True, True, tipoError, detalleError
+            return True, True if tipo_mes == 'MA' else False, tipoError, detalleError
         except Exception as e:
             logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {e}")
-            return constancia,proforma,f"LAPO-SCTR-{tipo_mes}", e
+            return False,False,f"LAPO-SCTR-{tipo_mes}", e
         finally:
             driver.close()
             logging.info("✅ Cerrando la Pestaña SED Positiva-SCTR")
@@ -1239,7 +1271,7 @@ def solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,e
 
         try:
             solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
-            return True,True,tipoError,detalleError
+            return True,False,tipoError,detalleError
         except Exception as e:
             logging.error(f"❌ Error en La Positiva (Vida Ley) - MV: {e}")
             return False,False,f"LAPO-VIDALEY-{tipo_mes}",e

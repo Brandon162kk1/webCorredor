@@ -1,12 +1,10 @@
 services:
-  rpa_solicitudes:
+  webCorredor:
     image: web_corredor
-    #container_name: webhookCorredor
     build: .
     volumes:
       - ./Codigo:/app/Codigo
-      - ${HOST_DOWNLOADS_PATH:-./Downloads}:/app/Downloads
-    restart: always
-    #command: supervisord -c /etc/supervisord.conf
 
 # Comando: docker build --no-cache -t web_corredor .
+# Comando: docker compose build
+# Comando para crear una imagen base : docker build -f Dockerfile.base -t rpa-base:chrome145 .

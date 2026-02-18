@@ -186,15 +186,15 @@
                 {% for persona in datos_tabla %}
                 <tr>
                     <td>{{ persona['N°'] }}</td>
-                    <td>{{ persona['ApPaterno'] }}</td>
-                    <td>{{ persona['ApMaterno'] }}</td>
-                    <td>{{ persona['Nombre1'] }}</td>
-                    <td>{{ persona['Nombre2'] }}</td>
+                    <td>{{ persona['Ap. Paterno'] }}</td>
+                    <td>{{ persona['Ap. Materno'] }}</td>
+                    <td>{{ persona['Nombre 1'] }}</td>
+                    <td>{{ persona['Nombre 2'] }}</td>
                     <td>
-                        {% if persona['NumDocumento']|string|length == 8 %}
-                        DNI: {{ persona['NumDocumento'] }}
+                        {% if persona['N° Documento']|string|length == 8 %}
+                        DNI: {{ persona['N° Documento'] }}
                         {% else %}
-                        CE: {{ persona['NumDocumento'] }}
+                        CE: {{ persona['N° Documento'] }}
                         {% endif %}
                     </td>
                 </tr>

@@ -116,49 +116,50 @@
     <!--<table id="sinMarco" style="margin-top: 80px;">
         <tr>
             <td style="width: 40%;">
-                <img src="{{logo}}" alt="Logo" style="width:150px;">
+                <img src="" alt="Logo" style="width:150px;">
             </td>
             <td class="encabezado-derecha" style="width: 60%;">
-                {{encabezado_logo | safe}}
+                Crecer Seguros S.A. Compañía de Seguros – RUC: 20600098633<br>Av. Jorge Basadre 310, piso 2, San Isidro, Lima – Perú<br>T: Lima (01) 4174400 / Provincia (0801) 17440<br>gestionalcliente@crecerseguros.pe
             </td>
         </tr>
     </table>
     <br />-->
 
-    <p>{{fecha_texto}}</p>
+    <p>Lima, 11 de Febrero del 2026</p>
 
-    <center><p><strong>{{titulo_html}}</strong></p></center>
+    <center><p><strong>ENDOSO DE INCLUSION DE ASEGURADOS</strong></p></center>
     <br />
 
     <div class="linea">
         <div class="label">POLIZA N°</div>
         <div class="colon">:</div>
-        <div class="value">{{poliza}}</div>
+        <div class="value">810860000028906</div>
     </div>
 
     <div class="linea">
         <div class="label">PRODUCTO</div>
         <div class="colon">:</div>
-        <div class="value">{{producto}}</div>
+        <div class="value">VIDA LEY</div>
     </div>
 
     <div class="linea">
         <div class="label">CONTRATANTE</div>
         <div class="colon">:</div>
-        <div class="value">{{contratante}}</div>
+        <div class="value">CONSORCIO VIAL PUCAHUASI</div>
     </div>
 
     <div class="linea">
         <div class="label">TRAMITE</div>
         <div class="colon">:</div>
-        <div class="value">{{tramite}}</div>
+        <div class="value">INCLUSION DE ASEGURADOS</div>
     </div>
 
     <p><strong>_______________________________________________________________________________________________</strong></p>
 
-    <p>{{descripcion_html}} {{rango_fech}}.</p>
+    <p>Por medio del presente endoso se deja constancia que, a solicitud del Contratante, 
+        se procede a incluir al (los) siguientes Asegurados a partir del 10/02/2026 al 01/03/2026.</p>
 
-    <p><strong>{{subtitulo_html}}</strong></p>
+    <p><strong>ASEGURADOS INCLUIDOS:</strong></p>
     <center>
         <table>
             <thead>
@@ -171,22 +172,20 @@
                 </tr>
             </thead>
             <tbody>
-                {% for persona in datos_tabla %}
+                
                 <tr>
-                    <td>{{ persona['N°'] }}</td>
-                    <td>{{ persona['Nombres'] }}</td>
-                    <td>{{ persona['Ap. Paterno'] }}</td>
-                    <td>{{ persona['Ap. Materno'] }}</td>
-                    <!--<td>DNI: {{ persona['N° Documento'] }}</td>-->
+                    <td>1</td>
+                    <td>BRANDON</td>
+                    <td>RODRIGUEZ</td>
+                    <td>ROCHA</td>
+                    <!--<td>DNI: 72534406</td>-->
                     <td>
-                        {% if persona['N° Documento']|string|length == 8 %}
-                        DNI: {{ persona['N° Documento'] }}
-                        {% else %}
-                        CE: {{ persona['N° Documento'] }}
-                        {% endif %}
+                        
+                        DNI: 72534406
+                        
                     </td>
                 </tr>
-                {% endfor %}
+                
             </tbody>
         </table>
     </center>
@@ -197,14 +196,14 @@
     <table id="sinMarco" class="firmas" style="margin-top: 60px;">
         <tr>
             <td>
-                <img src="{{firma_ger_op}}" alt="Firma" class="firma-img">
+                <img src="file:///app/Codigo/Plantillas/Crecer/Inclusiones/ger_ope_vl_crecer.jpg" alt="Firma" class="firma-img">
                 <p class="firma-linea">________________________</p>
                 <p class="firma-nombre">LUIS E. ASMAT CUSTODIO</p>
                 <p class="firma-cargo">Gerente de Operaciones</p>
                 <p class="firma-cargo">CRECER SEGUROS</p>
             </td>
             <td>
-                <img src="{{firma_vic}}" alt="Firma" class="firma-img">
+                <img src="file:///app/Codigo/Plantillas/Crecer/Inclusiones/vice_com_vl_crecer.jpg" alt="Firma" class="firma-img">
                 <p class="firma-linea">________________________</p>
                 <p class="firma-nombre">JUAN CARLOS ORDOÑEZ</p>
                 <p class="firma-cargo">Vicepresidente Comercial</p>

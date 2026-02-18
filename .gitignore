@@ -33,6 +33,7 @@ volumen_codigo/
 # Ignorar docker-compose (si realmente no quieres subirlo)
 #docker-compose.yml
 
+<<<<<<< HEAD
 =======
 # -- Visual Studio / .NET build --------------------------------------------------------
 .vs/
@@ -106,3 +107,7 @@ uploads/
 # Si USTEDES versionan las migraciones (lo mas comun), QUITA la linea de abajo.
 Migrations/
 >>>>>>> c425504bf3ee901a7c35c948385d9b4fa669bd5a
+=======
+#Imagenes bases
+Dockerfile.base
+>>>>>>> 143f662da6eec2dafc6b3246d57a15a58402695f

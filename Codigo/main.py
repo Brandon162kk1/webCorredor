@@ -1,10 +1,11 @@
 ﻿# -*- coding: utf-8 -*-
 # -- Froms ---
-#from jinja2.utils import
 from Compañias.Mapfre.web import realizar_solicitud_mapfre
 from Compañias.Pacifico.EnLinea.web import realizar_solicitud_pacifico
 from Compañias.Positiva.web import realizar_solicitud_la_positiva
-from Compañias.Sanitas.web import realizar_solicitud_sanitas,procesar_solicitud_san_protecta_vl,procesar_solicitud_san_crecer_vl
+from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
+from Compañias.Sanitas.VidaLey.Crecer.web import procesar_solicitud_san_crecer_vl
+from Compañias.Sanitas.VidaLey.Protecta.web import procesar_solicitud_san_protecta_vl
 from Compañias.Rimac.VidaLey.web_sas import realizar_solicitud_SAS
 from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
 #from Compañias.Rimac.SCTR.web_Corredores import realizar_solicitud_corredores
@@ -13,15 +14,10 @@ from Apis.metodos_put import enviar_documentos,enviar_error_movimiento,enviar_pu
 from LinuxDebian.rutas import armar_ruta_archivos
 from Chrome.google import abrirDriver
 from selenium.webdriver.support.ui import WebDriverWait
-from LinuxDebian.ventana import esperar_ventana
+#from LinuxDebian.ventana import esperar_descarga_por_nombre
+#from LinuxDebian.OtrosMetodos.metodos import descargar_trama
 # -- Imports --
-import os,json
-import logging
-import sys
-import time
-import io
-import subprocess
-from pprint import pprint
+import os,json,logging,sys,time,io
 from pprint import pformat
 
 # Forzar la salida en UTF-8 para evitar UnicodeEncodeError
@@ -168,7 +164,7 @@ class VidaLey(RamoBase):
 
     def __str__(self):
         return (
-            f"VidaLey ("
+            f"Vida Ley ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
             f"Sede: {self.sede}, "
@@ -236,9 +232,6 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
                              ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave, 
                              tipo_proceso,nombre_cliente,actividad,ramo):
 
-    tipoError = ""
-    detalleError = ""
-
     # -------------------------------
     # 🔹 Funciones internas por compañía
     # -------------------------------
@@ -268,24 +261,29 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
     def ejecutar_crecer():
         logging.info("✅ Compañía: Crecer")
 
-        try:
-            if tipo_mes == 'MV':
-                logging.info("Tipo: Mes Vencido")
+        if tipo_mes == 'MV':
 
-                if tipo_proceso == 'IN':
-                    generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,tipo_proceso,nombre_cliente,ramo)
-                else:
-                    generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,tipo_proceso,nombre_cliente,ruc_empresa,ramo)
-                time.sleep(2)
-                return True,True, tipoError, detalleError
-
+            logging.info("Tipo: Mes Vencido")
+            if tipo_proceso == 'IN':
+                generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo)
             else:
-                logging.info("Tipo: Mes Adelantado")
-                procesar_solicitud_san_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,palabra_clave)
-                return True,True, tipoError, detalleError
+                generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
+                
+            time.sleep(2)
+            return True,False,"",""
 
-        except Exception as e:
-            return manejar_error_crecer(e,tipo_mes)
+        else:
+
+            logging.info("Tipo: Mes Adelantado")
+            # try:
+            #     procesar_solicitud_san_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,ruc_empresa,tipo_mes,ramo)
+            #     return False,True,"",""
+            # except Exception as e:
+            #     logging.error(f"❌ Error en Crecer Vida Ley {tipo_mes}: '{e}'")
+            #     return False,False, f"{compania_BB}-VL-{tipo_mes}", e
+            # # except Exception as e:
+            # #     return manejar_error_crecer(e,tipo_mes)
+            return procesar_solicitud_san_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,ruc_empresa,tipo_mes,ramo)
 
     def ejecutar_protecta():
         logging.info("✅ Compañía: Protecta")
@@ -293,23 +291,29 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
         if tipo_mes == 'MV':
             logging.info("Tipo: Mes Vencido (manual por compañía)")
             time.sleep(5)
-            return True,True, tipoError, detalleError
+            return True,True, "", ""
         else:
             logging.info("Tipo: Mes Adelantado")
-            procesar_solicitud_san_protecta_vl(driver, wait, ruc_empresa, tipo_proceso, ruta_archivos_x_inclu,ramo)
-            return True,True, tipoError, detalleError
+            procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,ramo)
+            return True,True, "", ""
 
     def ejecutar_lapositiva():
         logging.info("✅ Compañía: La Positiva")
         return realizar_solicitud_la_positiva(driver,wait,list_polizas,ba_codigo,bb_codigo,tipo_mes,ruta_archivos_x_inclu,
                                                                       ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
 
+    def ejecutar_pacifico():
+        logging.info("✅ Compañía: Pacifico")
+        return realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
+                                           ruc_empresa,ejecutivo_responsable,bb_codigo,ramo)
+
     dispatch = {
         'CREC': ejecutar_crecer,
         'PROT': ejecutar_protecta,
         'MAPF': ejecutar_mapfre,
         'LAPO': ejecutar_lapositiva,
-        'RIMA': ejecutar_rimac_SAS if tipo_mes == 'MV' else ejecutar_rimac_portal_web
+        'RIMA': ejecutar_rimac_SAS if tipo_mes == 'MV' else ejecutar_rimac_portal_web,
+        'PACI': ejecutar_pacifico
     }
 
     if compania_BB not in dispatch:
@@ -317,9 +321,9 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
         return False,False,"Compañía no reconocida","Revisar compañía"
 
     resultado = dispatch[compania_BB]()
-    constancia,proforma,tipoError,detalleErrror = resultado
+    constancia,proforma,tipoError,detalleError = resultado
    
-    return constancia,proforma,tipoError,detalleErrror
+    return constancia,proforma,tipoError,detalleError
 
 def enviar_puerto_por_ramos(RAMOS, puerto):
     for r in RAMOS:
@@ -334,9 +338,7 @@ def enviar_puerto_por_ramos(RAMOS, puerto):
         if ctx_ramo.activo:
             continue
 
-        logging.info(
-            f"⌛ Enviando puerto {puerto} al Id -> {ctx_ramo.id_poliza} de '{r['nombre']}'"
-        )
+        logging.info(f"⌛ Enviando puerto {puerto} al Id -> {ctx_ramo.id_poliza} de '{r['ramo']}'")
 
         if not enviar_puerto(ctx_ramo.id_poliza, puerto):
             raise Exception(f"No se pudo enviar puerto {puerto}")
@@ -348,28 +350,12 @@ def enviar_puerto_por_ramos(RAMOS, puerto):
     logging.info("ℹ️ No hubo ramos disponibles para enviar puerto")
     return False
 
-def click_descarga_documento():
-    
-    try:
-
-        if not esperar_ventana("Save File"):
-            raise Exception("No apareció la ventana de descarga")
-
-        time.sleep(1)
-        subprocess.run(["xdotool", "search", "--name", "Save File", "windowactivate", "windowfocus"])
-        subprocess.run(["xdotool", "key", "Return"])
-        return True
-
-    except Exception as ex:
-        logging.error(f"❌ Error durante el flujo de descarga: {ex}")
-        return False
-
 def main():
  
-    ok_sctr = False
-    ok_vl = False
-    ok_proforma_sctr = False
-    ok_proforma_vl = False
+    conSCTR = False
+    conVL = False
+    endSCTR = False
+    endVL = False
     tipoErrorSCTR = ""
     detalleErrorSCTR = ""
     tipoErrorVL = ""
@@ -425,15 +411,19 @@ def main():
             raise Exception("No hay pólizas para procesar")
 
         #--- Cases para tipos de proceso y mes ---
-        match ctx.proceso:
+        match ctx.proceso.upper():
             case 'INCLUSION':
                 tipo_proc = 'IN'
                 palabra_clave = 'Inclusion'
                 tiempo = 60
-            case _:
+            case 'RENOVACION':
                 tipo_proc = 'RE'
                 palabra_clave = 'Renovacion'
                 tiempo = 120
+            case _:
+                tipo_proc = 'DES'
+                palabra_clave = 'descarga de Constancia'
+                tiempo = 90
 
         ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
 
@@ -443,15 +433,15 @@ def main():
 
         PRE_RAMOS = [
             {
-                "nombre": "SALUD",
+                "ramo": "SALUD",
                 "ctx": ctx.salud
             },
             {
-                "nombre": "PENSION",
+                "ramo": "PENSION",
                 "ctx": ctx.pension
             },
             {
-                "nombre": "VIDALEY",
+                "ramo": "VIDALEY",
                 "ctx": ctx.vida
             }
         ]
@@ -470,28 +460,42 @@ def main():
             if ctx_ramo.trama:
 
                 descargas_esperadas += 1
-                logging.info(f"⌛ Descargando trama {r['nombre']}")
+                logging.info(f"⌛ Descargando trama {r['ramo']}")
 
                 driver.get(ctx_ramo.trama)
 
-                if click_descarga_documento():
-                    logging.info(f"✅ Trama {r['nombre']} descargada")
+                # if esperar_descarga_por_nombre(f"{ruta_archivos_x_inclu}/{ctx_ramo.poliza}.xlsx"):
+                #     logging.info(f"✅ Trama {r['nombre']} descargada")
+                # else:
+                #     logging.error(f"❌ Error descargando la Trama {r['nombre']}")
 
+                # if descargar_trama():
+                #     logging.info(f"✅ Trama {r['nombre']} descargada")
+                # else:
+                #     logging.error(f"❌ Error descargando la Trama {r['nombre']}")
+           
                 time.sleep(1)
 
             # Trama 97 (si aplica)
             if ctx_ramo.trama_97:
 
                 descargas_esperadas += 1
-                logging.info(f"⌛ Descargando trama 97 {r['nombre']}")
+                logging.info(f"⌛ Descargando trama 97 {r['ramo']}")
 
                 driver.get(ctx_ramo.trama_97)
 
-                if click_descarga_documento():
-                    logging.info(f"✅ Trama 97 {r['nombre']} descargada")
+                # if esperar_descarga_por_nombre(f"{ruta_archivos_x_inclu}/{ctx_ramo.poliza}_97.xls"):
+                #     logging.info(f"✅ Trama 97 {r['nombre']} descargada")
+                # else:
+                #     logging.error(f"❌ Error descargando la Trama 97 {r['nombre']}")
+
+                # if descargar_trama():
+                #     logging.info(f"✅ Trama 97 {r['nombre']} descargada")
+                # else:
+                #     logging.error(f"❌ Error descargando la Trama 97 {r['nombre']}")
 
                 time.sleep(1)
-        
+
         def contar_archivos(ruta):
             return len([
                 f for f in os.listdir(ruta)
@@ -545,7 +549,7 @@ def main():
 
                 contexto_sctr = ctx.salud if ctx.salud.debe_procesarse() else ctx.pension
 
-                ok_sctr,ok_proforma_sctr, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
+                conSCTR, endSCTR, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
                     driver, wait, polizas_sctr, compania_BA, ba_codigo, tipo_mes,
                     ruta_archivos_x_inclu, ctx.ruc, ctx.correo, tipo_proc,
                     palabra_clave, ctx.giro, ctx.cliente, contexto_sctr
@@ -557,7 +561,7 @@ def main():
                 logging.info(f"⌛ Procesando {palabra_clave} en VIDA LEY - póliza {ctx.vida.poliza}")
                 logging.info(f"✅ {ctx.vida}")
 
-                ok_vl,ok_proforma_vl, tipoErrorVL, detalleErrorVL = derivar_compania_vidaley(
+                conVL, endVL, tipoErrorVL, detalleErrorVL = derivar_compania_vidaley(
                     driver,wait,[ctx.vida.poliza],compania_BB,ba_codigo,bb_codigo,tipo_mes,
                     ruta_archivos_x_inclu,ctx.ruc, ctx.correo, palabra_clave,tipo_proc,ctx.cliente,
                     ctx.giro,ctx.vida)
@@ -568,33 +572,32 @@ def main():
     except Exception as e:
         logging.error(f"⚠️ Conclusión: {e}")
     finally:
-
         RAMOS = [
             {
                 "codigo": 0,
-                "nombre": "SALUD",
+                "ramo": "SALUD",
                 "ctx": ctx.salud,
-                "ok": ok_sctr,
-                "proforma": ok_proforma_sctr
+                "constancia": conSCTR,
+                "proforma": endSCTR
             },
             {
                 "codigo": 1,
-                "nombre": "PENSION",
+                "ramo": "PENSION",
                 "ctx": ctx.pension,
-                "ok": ok_sctr,
-                "proforma": ok_proforma_sctr
+                "constancia": conSCTR,
+                "proforma": endSCTR
             },
             {
                 "codigo": 2,
-                "nombre": "VIDALEY",
+                "ramo": "VIDALEY",
                 "ctx": ctx.vida,
-                "ok": ok_vl,
-                "proforma": ok_proforma_vl
+                "constancia": conVL,
+                "proforma": endVL
             }
         ]
 
         def obtener_error(r):
-            if r["nombre"] == "VIDALEY":
+            if r["ramo"] == "VIDALEY":
                 return tipoErrorVL, detalleErrorVL
             return tipoErrorSCTR, detalleErrorSCTR
 
@@ -602,8 +605,8 @@ def main():
         for r in RAMOS:
 
             ctx_ramo = r["ctx"]
-            nombre = r["nombre"]
-            ok = r["ok"]
+            ramo = r["ramo"]
+            constancia = r["constancia"]
             proforma = r["proforma"]
             id_mov = ctx_ramo.id_poliza
 
@@ -613,23 +616,23 @@ def main():
             logging.info("-----------------------------")
             # ---------------- ESTACA ----------------
 
-            if tipo_mes == 'MV' and ok and not proforma:
-                logging.info(f"⌛ Actualizando registros de Constancia → '{ok}' para el Id → {id_mov} de '{nombre}'")
+            if tipo_mes == 'MV' and constancia and not proforma:
+                logging.info(f"⌛ Actualizando registros de Constancia → '{constancia}' para el Id → {id_mov} de '{ramo}'")
 
-                enviar_estaca(id_mov, nombre,ok,proforma)
+                enviar_estaca(id_mov, ramo,constancia,proforma)
                 time.sleep(1)
-            elif tipo_mes == 'MA' and ok and proforma:
+            elif tipo_mes == 'MA' and constancia and proforma:
 
-                logging.info(f"⌛ Actualizando registros de Constancia → '{ok}' y Proforma → '{proforma}' para el Id → {id_mov} de '{nombre}'")
+                logging.info(f"⌛ Actualizando registros de Constancia → '{constancia}' y Proforma → '{proforma}' para el Id → {id_mov} de '{ramo}'")
 
-                enviar_estaca(id_mov, nombre, ok,proforma)
+                enviar_estaca(id_mov, ramo, constancia,proforma)
                 time.sleep(1)
-            elif tipo_mes == 'MA' and not ok and proforma:
+            elif tipo_mes == 'MA' and not constancia and proforma:
             #--------------------------------
             #if ok or proforma:
-                logging.info(f"⌛ Actualizando registros de Proforma → '{proforma}' para el Id → {id_mov} de '{nombre}'")
+                logging.info(f"⌛ Actualizando registros de Proforma → '{proforma}' para el Id → {id_mov} de '{ramo}'")
 
-                enviar_estaca(id_mov, nombre, ok,proforma)
+                enviar_estaca(id_mov, ramo, constancia,proforma)
                 time.sleep(1)
 
             # ---------------- ERRORES ----------------
@@ -637,35 +640,30 @@ def main():
             tipo_error, detalle_error = obtener_error(r)
 
             if tipo_error and detalle_error:
-                logging.info(f"⌛ Enviando errores para '{nombre}' con Id → {id_mov}")
+                logging.info(f"⌛ Enviando errores para '{ramo}' con Id → {id_mov}")
 
-                enviar_error_movimiento(
-                    id_mov,
-                    nombre,
-                    tipo_error,
-                    detalle_error
-                )
+                enviar_error_movimiento(id_mov,ramo,tipo_error,detalle_error)
                 time.sleep(1)
 
             #continue  # ⛔ Si hubo error, no enviar documentos
 
             # ---------------- DOCUMENTOS ----------------
-            if ok:
+            if constancia:
                 constancia = f"{ctx_ramo.poliza}.pdf"
                 ruta_constancia = os.path.join(ruta_archivos_x_inclu, constancia)
 
-                logging.info(f"⌛ Enviando Constancia de '{nombre}' al Id → {id_mov}")
+                logging.info(f"⌛ Enviando Constancia de '{ramo}' al Id → {id_mov}")
 
-                enviar_documentos(id_mov, ruta_constancia, nombre, "Constancia")
+                enviar_documentos(id_mov, ruta_constancia, ramo, "Constancia")
                 time.sleep(1)
 
-            if proforma: #tipo_mes == 'MA':
+            if proforma:
                 endoso = f"endoso_{ctx_ramo.poliza}.pdf"
                 ruta_endoso = os.path.join(ruta_archivos_x_inclu, endoso)
 
-                logging.info(f"⌛ Enviando Endoso de '{nombre}' al Id →{id_mov}")
+                logging.info(f"⌛ Enviando Endoso de '{ramo}' al Id →{id_mov}")
 
-                enviar_documentos(id_mov, ruta_endoso, nombre, "Endoso")
+                enviar_documentos(id_mov, ruta_endoso, ramo, "Endoso")
                 time.sleep(1)
         #------------------------------------------
         if ba_codigo != '0' or bb_codigo != '5':

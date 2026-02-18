@@ -40,6 +40,10 @@ def get_minuto():
 def get_pos_fecha_dmy():
     return datetime.now(tz_peru).strftime("%d/%m/%Y")
 
+def get_fecha_menos_x_dias(dia):
+    fecha = datetime.now(tz_peru) - timedelta(days=dia)
+    return fecha.strftime("%d/%m/%Y")
+
 def sumar_x_dias_habiles(fecha_inicio, dias_habiles):
     fecha = fecha_inicio
     contador = 0
