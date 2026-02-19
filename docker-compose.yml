@@ -7,4 +7,4 @@ services:
 
 # Comando: docker build --no-cache -t web_corredor .
 # Comando: docker compose build
-# Comando para crear una imagen base : docker build -f Dockerfile.base -t rpa-base:chrome145 .
+# Comando para crear una imagen base : docker build -f Dockerfile.base -t chromedriver:stable .
