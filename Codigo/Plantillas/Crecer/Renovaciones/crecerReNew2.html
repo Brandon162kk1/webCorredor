@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+
+                /* =========================
+           CONFIGURACIÓN DE PÁGINA
+        ========================= */
+
+                @page {
+                    size: A4;
+                    margin: 120px 45px 70px  45px;
+
+                    @bottom-center {
+                        content: element(footer);
+                    }
+                }
+
+                /* Numeración real */
+                .paginacion::after {
+                    content: "Página " counter(page) " de " counter(pages);
+                    font-size: 10px;
+                    color: #666;
+                }
+
+                /* =========================
+           ESTILOS GENERALES
+        ========================= */
+
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 12px;
+                    color: #222;
+                    line-height: 1.4;
+                }
+
+                p {
+                    margin: 6px 0;
+                }
+
+                /* =========================
+           HEADER PROFESIONAL
+        ========================= */
+
+                .header {
+                    position: fixed;
+                    top: -105px;
+                    left: 0;
+                    right: 0;
+                    height: 95px;
+                    border-bottom: none;
+                }
+
+                .header table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+
+                .header td {
+                    border: none;
+                    vertical-align: top;
+                }
+
+                .encabezado-derecha {
+                    font-size: 12px;
+                    color: #7a7a7a;
+                    text-align: right;
+                    line-height: 1.3;
+                }
+
+                /* =========================
+           FOOTER PROFESIONAL
+        ========================= */
+
+                .footer {
+                    position: running(footer);
+                    height: 60px;              /* Altura fija controlada */
+                    border-top: none;
+                    padding-top: 5px;
+                }
+
+                .footer table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+
+                .footer td {
+                    border: none;
+                    font-size: 10px;
+                    color: #666;
+                    vertical-align: middle;
+                    padding: 0;
+                }
+
+                /* =========================
+           TITULOS CENTRADOS
+        ========================= */
+
+                .titulo-principal {
+                    text-align: center;
+                    font-size: 15px;
+                    font-weight: bold;
+                    margin-top: 10px;
+                }
+
+                .subtitulo {
+                    text-align: center;
+                    font-size: 13px;
+                    font-weight: bold;
+                    margin-bottom: 15px;
+                }
+
+                /* =========================
+           BLOQUES TIPO INFO
+        ========================= */
+
+                .linea {
+                    display: table;
+                    width: 100%;
+                    margin-bottom: 3px;
+                }
+
+                .label, .colon, .value {
+                    display: table-cell;
+                    padding: 2px 4px;
+                }
+
+                .label {
+                    width: 240px;
+                    font-weight: bold;
+                }
+
+                .colon {
+                    width: 10px;
+                }
+
+                .value {
+                    text-align: left;
+                }
+
+                /* =========================
+           TABLA CORPORATIVA
+        ========================= */
+
+                table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 11px;
+                }
+
+                th {
+                    background-color: steelblue; /* gris suave como tu PDF */
+                    border: 1px solid steelblue;
+                    padding: 6px;
+                    text-align: center;
+                    font-weight: bold;
+                }
+
+                td {
+                    border: 1px solid steelblue;
+                    padding: 5px;
+                    text-align: center;
+                }
+
+                /* Repetir encabezado en cada página */
+                thead {
+                    display: table-header-group;
+                }
+
+                /* Evitar cortar filas */
+                tr {
+                    page-break-inside: avoid;
+                }
+
+                /* =========================
+           FIRMAS
+        ========================= */
+
+                .firmas {
+                    width: 100%;
+                    table-layout: fixed;
+                    margin-top: 60px;
+                    page-break-inside: avoid;
+                }
+
+                .firmas td {
+                    width: 33.33%;
+                    text-align: center;
+                    vertical-align: top;
+                    border: none;
+                }
+
+                .firma-img {
+                    height: 55px;
+                    object-fit: contain;
+                    margin-bottom: 6px;
+                }
+
+                .firma-linea {
+                    margin: 5px 0;
+                }
+
+                .firma-nombre {
+                    font-weight: bold;
+                    font-size: 11px;
+                }
+
+                .firma-cargo {
+                    font-size: 10px;
+                }
+
+                .espacio-firma {
+                    height: 55px;
+                }
+
+                .fecha-derecha {
+                    text-align: right;
+                    margin-top: 10px;
+                }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- =========================
+         HEADER
+    ========================= -->
+
+    <div class="header">
+        <table>
+            <tr>
+                <td style="width:40%;">
+                    <img src="{{logo}}" width="150">
+                </td>
+                <td class="encabezado-derecha" style="width:60%;">
+                    {{encabezado_logo | safe}}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- =========================
+         CONTENIDO
+    ========================= -->
+
+    <p class="fecha-derecha">{{fecha_texto}}</p>
+
+    <!--<center><p><strong>{{titulo_html}}</strong></p></center>
+    <center><p><strong>{{subtitulo_html}}</strong></p></center>-->
+
+    <p class="titulo-principal">{{titulo_html}}</p>
+    <p class="subtitulo">{{subtitulo_html}}</p>
+
+
+    <div class="linea">
+        <div class="label">PÓLIZA</div>
+        <div class="colon">:</div>
+        <div class="value">{{poliza}}</div>
+    </div>
+
+    <div class="linea">
+        <div class="label">CONTRATANTE</div>
+        <div class="colon">:</div>
+        <div class="value">{{contratante}}</div>
+    </div>
+
+    <div class="linea">
+        <div class="label">RUC</div>
+        <div class="colon">:</div>
+        <div class="value">{{ruc}}</div>
+    </div>
+
+    <div class="linea">
+        <div class="label">TRÁMITE</div>
+        <div class="colon">:</div>
+        <div class="value">{{tramite}}</div>
+    </div>
+
+    <div class="linea">
+        <div class="label">SEDE O LUGAR DE TRABAJO</div>
+        <div class="colon">:</div>
+        <div class="value">{{sede}}</div>
+    </div>
+
+    <p><strong>_______________________________________________________________________________________________</strong></p>
+
+    <!--<p>{{descripcion_html}} {{rango_fech}}.</p>-->
+
+    <p style="margin-top:10px; text-align: justify;">
+        {{descripcion_html}} <strong>{{rango_fech}}</strong>.
+    </p>
+
+
+    <p><strong>ASEGURADOS:</strong></p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Apellido Paterno</th>
+                <th>Apellido Materno</th>
+                <th>Primer Nombre</th>
+                <th>Segundo Nombre</th>
+                <th>Nro. Documento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for persona in datos_tabla %}
+            <tr>
+                <td>{{ persona['N°'] }}</td>
+                <td>{{ persona['Ap. Paterno'] }}</td>
+                <td>{{ persona['Ap. Materno'] }}</td>
+                <td>{{ persona['Nombre 1'] }}</td>
+                <td>{{ persona['Nombre 2'] }}</td>
+                <td>
+                    {% if persona['N° Documento']|string|length == 8 %}
+                    DNI: {{ persona['N° Documento'] }}
+                    {% else %}
+                    CE: {{ persona['N° Documento'] }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p style="margin-top: 30px;">Atentamente,</p>
+
+    <table class="firmas">
+        <tr>
+            <td>
+                <img src="{{firma_ger_op}}" class="firma-img">
+                <p class="firma-linea">________________________</p>
+                <p class="firma-nombre">LUIS ASMAT CUSTODIO</p>
+                <p class="firma-cargo">Gerente de Operaciones</p>
+                <p class="firma-cargo">CRECER SEGUROS S.A.</p>
+            </td>
+            <td>
+                <img src="{{firma_vic}}" class="firma-img">
+                <p class="firma-linea">________________________</p>
+                <p class="firma-nombre">JUAN CARLOS ORDOÑEZ</p>
+                <p class="firma-cargo">Vicepresidente Comercial</p>
+                <p class="firma-cargo">CRECER SEGUROS S.A.</p>
+            </td>
+            <td>
+                <div class="espacio-firma"></div>
+                <p class="firma-linea">________________________</p>
+                <p class="firma-nombre">CONTRATANTE</p>
+            </td>
+        </tr>
+    </table>
+
+    <!-- =========================
+         FOOTER
+    ========================= -->
+
+    <div class="footer">
+        <table>
+            <tr>
+                <td style="width:33%; text-align:left;">
+                    <!--<img src="{{img_footer}}" width="120">-->
+                    <img src="{{img_footer}}" style="height:35px;">
+                </td>
+                <td style="width:34%; text-align:center;">
+                    <span class="paginacion"></span>
+                </td>
+                <td style="width:33%; text-align:right;">
+                    <!--<img src="{{redes_footer}}" width="120">-->
+                    <img src="{{redes_footer}}" style="height:30px;">
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>

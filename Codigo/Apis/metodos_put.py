@@ -3,27 +3,23 @@ import logging
 import os
 import json
 
-#base_url = "https://webcorredor.azurewebsites.net/api/movimiento/"
-#base_url = "http://192.168.0.201:64328/api/movimiento/"
-
 # --- Variables de Entorno ---
 API_KEY = os.getenv("API_KEY")
-base_url = os.getenv("API_BASE_URL") 
+API_BASE_URL = os.getenv("API_BASE_URL") 
+PUERTO_HOST = os.getenv("PUERTO_HOST",API_BASE_URL)
 
 #-- Header Global para autenticación (si es necesario) --
 headers = {
-    #"Content-Type": "application/json",
-    "X-Api-Key": API_KEY 
+    "X-Api-Key": API_KEY
 }
 
 def enviar_puerto(id_movimiento,puerto):
 
 
-    url = f"{base_url}/api/movimiento/{id_movimiento}/puerto-host"
+    url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/puerto-host"
 
     payload = {
-        "puertoHost": f"{base_url}:{puerto}"
-        #"puertoHost": f"http://192.168.0.201:{puerto}"
+        "puertoHost": f"{PUERTO_HOST}:{puerto}"
     }
 
     try:
@@ -41,7 +37,8 @@ def enviar_puerto(id_movimiento,puerto):
         return False
  
 def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma):
-    url = f"{base_url}{id_movimiento}/estaca-ramo"
+
+    url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/estaca-ramo"
 
     payload = {
         "ramo": ramo,
@@ -60,13 +57,12 @@ def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma
             return False
 
     except Exception as e:
-        #logging.exception(f"❌ Error conectando al API para registrar estaca | Movimiento {id_movimiento} | Ramo {ramo}")
         logging.error(f"❌ Error conectando al API para actualizar | Movimiento {id_movimiento} | Ramo {ramo} | {e}")
         return False
 
 def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error):
 
-    url = f"{base_url}{id_movimiento}/error"
+    url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/error"
 
     payload = {
         "ramo": ramo,
@@ -85,13 +81,12 @@ def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error):
             return False
 
     except Exception as e:
-        #logging.exception(f"❌ Error conectando al API para registrar 'errores' | Movimiento {id_movimiento} | Ramo {ramo}")
         logging.error(f"❌ Error conectando al API para registrar 'errores' | Movimiento {id_movimiento} | Ramo {ramo} | {e}")
         return False
 
 def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
    
-    url = f"{base_url}{id_movimiento}/subir-documentos"
+    url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/subir-documentos"
 
     try:
 
@@ -137,6 +132,5 @@ def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
             return False
 
     except Exception as e:
-        #logging.exception(f"❌ Error conectando al API al enviar {tipoDocumento} : {id_movimiento}")
         logging.error(f"❌ Error enviando documento | Movimiento {id_movimiento} | {e}")
         return False
