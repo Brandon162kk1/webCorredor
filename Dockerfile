@@ -20,7 +20,7 @@ COPY supervisord.conf /app/
 
 # Workdir y usuario
 WORKDIR /app
-#USER user1
+USER user1
 
 # CMD para levantar supervisord
 CMD ["supervisord", "-c", "/app/supervisord.conf"]
