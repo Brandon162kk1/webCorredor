@@ -12,8 +12,8 @@ COPY requirements.txt /app/
 # Instalar dependencias Python
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# 🔹 Copiar código del proyecto
-COPY Codigo/ /app/Codigo
+## 🔹 Copiar código del proyecto
+#COPY Codigo/ /app/Codigo
 
 # Copiar supervisord.conf
 COPY supervisord.conf /app/

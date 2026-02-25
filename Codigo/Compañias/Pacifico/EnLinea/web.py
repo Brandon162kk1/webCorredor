@@ -3,12 +3,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from LinuxDebian.ventana import bloquear_interaccion,desbloquear_interaccion,esperar_archivos_nuevos
+from LinuxDebian.Ventana.ventana import bloquear_interaccion,desbloquear_interaccion,esperar_archivos_nuevos
 #---- Import ---
 import os
 import logging
 import time
-import subprocess
 import shutil
 
 def cambiar_a_nueva_ventana(wait, driver, handles_antes, timeout=10):
@@ -324,19 +323,15 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
 
             driver.execute_script("arguments[0].click();", btn_verConstancia)
-            logging.info("🖱 Clic con JS en el botón de descarga")
+            logging.info("🖱 Clic con JS en el botón 'Ver Constancia'")
 
             archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
-            logging.info(f"✅ Constancia descargado exitosamente")
 
-            # La web te lo descarga con el mismo nombre de la poliza , ya no es necesario renombrar
-            # if archivo_nuevo:
-            #     ruta_original = os.path.join(ruta_archivos_x_inclu, archivo_nuevo)
-            #     ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-            #     os.rename(ruta_original, ruta_final)
-            #     logging.info(f"🔄 Constancia renombrado a '{ramo.poliza}.pdf'")
-            # else:
-            #     logging.error("❌ No se encontró archivo nuevo después de la descarga")
+            #La web te lo descarga con el mismo nombre de la poliza , ya no es necesario renombrar
+            if archivo_nuevo:
+                logging.info(f"✅ Constancia '{ramo.poliza}.pdf' descargado exitosamente")
+            else:
+                raise Exception("No se encontró archivo nuevo después de descargar")
 
             # if descargar_documento(driver,btn_verConstancia,f"{ramo.poliza}",impresion=False,pestaña=False):
             #     time.sleep(2)
@@ -357,7 +352,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
                 archivos_antes2 = set(os.listdir(ruta_archivos_x_inclu))
 
                 driver.execute_script("arguments[0].click();", btn_verLiqui)
-                logging.info("🖱 Clic con JS en el botón de descarga")
+                logging.info("🖱 Clic con JS en el botón 'Ver Liquidacion'")
 
                 archivo_nuevo2 = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes2,".pdf",cantidad=1)
                 logging.info(f"✅ Archivo descargado exitosamente")
