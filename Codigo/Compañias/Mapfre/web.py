@@ -4,7 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from Tiempo.fechas_horas import tipo_vigencia
-from LinuxDebian.ventana import esperar_archivos_nuevos
+from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 #---- Import ---
 import os
 import logging
@@ -579,4 +579,3 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", link)
         driver.execute_script("arguments[0].click();", link)
         logging.info("🔙 Regresando al menú de Constancias")
-

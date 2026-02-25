@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
-from LinuxDebian.ventana import esperar_archivos_nuevos
+from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 #from LinuxDebian.OtrosMetodos.metodos import subir_trama
 from selenium.webdriver import ActionChains
 from LinuxDebian.OtrosMetodos.metodos import esperar_ventana
@@ -197,7 +197,7 @@ def detectar_constancia_en_tabla(wait):
     return "No hay constancia, solo Proformas"
 
 def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x_inclu,
-                               tipo_proceso,palabra_clave,ramo):
+                               tipo_proceso,palabra_clave,ba_codigo,ramo):
 
     encontrado = False
     constancia = False
@@ -473,9 +473,11 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             if tipo_mes != "MV":
 
+                proforma = True
+
                 if len(list_polizas) == 2:
 
-                    proforma = True
+                    #proforma = True
 
                     documentos_a_descargar.append({
                         "nombreDoc": "Proforma - Sanitas Perú S.A.",
@@ -493,9 +495,18 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                         "impresion": True
                     })
 
-                elif tipo_constancia == "SALUD":
+                elif ba_codigo == '1': # Solo Salud
                     documentos_a_descargar.append({
                         "nombreDoc": "Proforma - Sanitas Perú S.A.",
+                        "alias": f"endoso_{ramo.poliza}",
+                        "tittle": "Imprimir",
+                        "impresion": True
+                    })
+                elif ba_codigo == '2': # Solo Pensión
+                    documentos_a_descargar.append({
+                        "nombreDoc":
+                            "Aviso de cobranza - Protecta S.A." if i == 1
+                            else "Aviso de cobranza - Crecer Seguros S.A.",
                         "alias": f"endoso_{ramo.poliza}",
                         "tittle": "Imprimir",
                         "impresion": True
@@ -580,10 +591,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 except Exception as e:
                     logging.error(f"❌ Error al intentar descargar: {nombre_documento} ,Detalle: {e}")
                     continue
-
-            # if not constancia_conjunta:
-            #     logging.info("No existe constancia conjunta")
-            
+                
             time.sleep(3)
 
             if encontrado:
@@ -601,6 +609,8 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                         logging.info(f"📄 Copia creada como '{list_polizas[1]}.pdf'")
                     else:
                         logging.error(f"❌ No existe el archivo base: {ruta_salud}")
+                else:
+                    logging.info("No hay constancia conjunta, o salud o pension, pero verificar cual falta para volver a descargar")
 
                 break
 

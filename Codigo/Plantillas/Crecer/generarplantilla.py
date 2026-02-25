@@ -4,6 +4,19 @@ from jinja2 import Environment, FileSystemLoader
 import pdfkit
 import logging
 from Tiempo.fechas_horas import get_fecha_hoy
+
+# Apagar completamente logs de weasyprint y fonttools
+logging.getLogger("weasyprint").handlers = []
+logging.getLogger("weasyprint").propagate = False
+logging.getLogger("weasyprint").setLevel(logging.CRITICAL)
+
+logging.getLogger("fontTools").handlers = []
+logging.getLogger("fontTools").propagate = False
+logging.getLogger("fontTools").setLevel(logging.CRITICAL)
+
+# Opcional: bajar nivel global
+logging.basicConfig(level=logging.CRITICAL)
+
 from weasyprint import HTML # type: ignore
 
 def fecha_lima_formateada():
@@ -183,6 +196,7 @@ def generarConstanciaInCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_clien
 
     # 🔹 Generar PDF
     HTML(string=html_renderizado, base_url=ruta_plantilla).write_pdf(salida_pdf)
+    logging.info("✅ PDF generado correctamente")
 
 def generarConstanciaReCrecer1(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc,ramo):
     
@@ -288,7 +302,5 @@ def generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente
     salida_pdf = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
 
     # 🔹 Generar PDF
-    HTML(
-        string=html_renderizado,
-        base_url=ruta_plantilla
-    ).write_pdf(salida_pdf)
+    HTML(string=html_renderizado,base_url=ruta_plantilla).write_pdf(salida_pdf)
+    logging.info("✅ PDF generado correctamente")

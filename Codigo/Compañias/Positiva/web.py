@@ -8,13 +8,12 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
 from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda
-from LinuxDebian.ventana import esperar_archivos_nuevos
+from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 #---- Import ---
 import os
 import re
 import logging
 import time
-import subprocess
 import random
 import shutil
 
@@ -218,10 +217,20 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             try:
                 WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")))
-                wait.until(EC.element_to_be_clickable((By.ID, "btnErroresPlanilla"))).click()
+
                 cantidad_errores = wait.until(EC.visibility_of_element_located((By.ID, "spnContadorError"))).text
                 cantidad_texto = "error" if cantidad_errores == '1' else "errores"
+
+                link = wait.until(EC.element_to_be_clickable((By.ID, "btnErroresPlanilla")))
+                driver.execute_script("arguments[0].click();", link)
+
+                wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
+
+                ruta_imagen = os.path.join(ruta_archivos_x_inclu, f"errores.png")
+                driver.save_screenshot(ruta_imagen)
+
                 raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla")
+
             except TimeoutException:
                 logging.info("✅ No se encontraron errores al subir la planilla. Continuando flujo normal")
 
@@ -944,6 +953,13 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     boton_buscar.click()
     logging.info(f"🖱️ Clic en 'Buscar'")
 
+    try:
+        tit = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue"))).text
+        con = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextContentValue"))).text
+        raise Exception(f"{tit} {con}")
+    except TimeoutException:
+        pass
+
     wait.until(EC.presence_of_element_located((By.ID, "b12-Widget_TransactionRecordList")))
     logging.info(f"⌛ Esperando la tabla con resultados")
 
@@ -999,6 +1015,9 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     time.sleep(2)
 
+    if not os.path.exists(ruta_archivo):
+        raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
+
     if tipo_proceso == 'IN':
         input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b11-b2-b1-DropArea']//input[@type='file']")))
         input_file.send_keys(ruta_archivo)
@@ -1033,13 +1052,35 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, f"//span[contains(text(), '{msj}')]")))
         raise Exception(msj)
     except TimeoutException:
-        logging.info("✅ No se detectó errores en la Trama. Se continúa con el flujo normalmente.")
-            
+        #logging.info("✅ No se detectó errores en la Trama. Se continúa con el flujo normalmente.")
+        pass
+        
     try:
-        wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'La planilla superó exitosamente')]")))
+        wait.until(
+            EC.any_of(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]")
+                ),
+                EC.presence_of_element_located(
+                    (By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")
+                )
+            )
+        )
+
+        # Verificamos cuál mensaje apareció
+        if driver.find_elements(By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]"):
+            raise Exception("Encontramos algunos errores en la planilla. Descarga y corrige las observaciones")
+
         logging.info("✅ Planilla validada exitosamente. Continuando con el flujo.")
-    except TimeoutException:       
-        raise Exception("La validación de la planilla falló o no se completó")
+
+    except TimeoutException:
+        raise Exception("No se pudo determinar el resultado de la validación de la planilla.")
+
+    # try:
+    #     wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'La planilla superó exitosamente')]")))
+    #     logging.info("✅ Planilla validada exitosamente. Continuando con el flujo.")
+    # except TimeoutException:       
+    #     raise Exception("La validación de la planilla falló o no se completó")
             
     #Nuevo Correo del cliente
     input_correo = wait.until(EC.element_to_be_clickable((By.ID, "b13-Input_ContractingEmail")))
@@ -1153,7 +1194,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     boton_aceptar.click()
     logging.info("🖱️ Clic en 'Aceptar' final")
 
-def realizar_solicitud_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,ruta_archivos_x_inclu,
+def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,ruta_archivos_x_inclu,
                                    ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
   
     global ventana_menu_positiva
@@ -1243,6 +1284,7 @@ def realizar_solicitud_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo
 
     except Exception as e:
         logging.error(f"❌ Error inesperado entrando a la url: {e}")
+
         return False,False,"Login Fallido", e
 
     if bab_codigo in ['1', '2', '3']:
