@@ -4,7 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
-from LinuxDebian.ventana import desbloquear_interaccion
+from LinuxDebian.Ventana.ventana import desbloquear_interaccion
 from Tiempo.fechas_horas import get_timestamp
 #   --- Imports ----
 import time
