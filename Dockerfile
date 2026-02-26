@@ -13,7 +13,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 ## 🔹 Copiar código del proyecto
-#COPY Codigo/ /app/Codigo
+COPY Codigo/ /app/Codigo
 
 # Copiar supervisord.conf
 COPY supervisord.conf /app/
