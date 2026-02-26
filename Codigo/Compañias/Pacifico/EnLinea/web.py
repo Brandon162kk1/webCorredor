@@ -264,8 +264,25 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             seleccionar_radio("rblProducto_2","Ambos",wait,driver)
 
         if tipo_proceso == 'IN':
-            id_mov = "rdbTipoMov_1" if bab_codigo != '4' else "rblTipoMovimiento_1"
+            id_mov = "rdbTipoMov_1" if bab_codigo != '4' else "rblTipoMovimiento_1" # SCTR - VL
             seleccionar_radio(id_mov,"Inclusión",wait,driver)
+        else:
+            id_mov = "rdbTipoMov_0" if bab_codigo != '4' else "rblTipoMovimiento_0" # SCTR - VL
+            seleccionar_radio(id_mov,"Renovación",wait,driver)
+
+            try:
+                WebDriverWait(driver,10).until(EC.alert_is_present())
+                alert = driver.switch_to.alert
+                texto_alerta = alert.text   # 👈 guardar antes
+
+                if texto_alerta.startswith("VREN02: No se puede renovar este periodo."):
+                    alert.accept()
+                    logging.info(f"⚠️ Texto de la alerta: {texto_alerta}")
+                    logging.info("✅ Alerta Aceptada")
+                    raise Exception(texto_alerta)
+
+            except TimeoutException:
+                pass
 
         if bab_codigo != '4':
             ruta_archivo = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}_97.xls")
@@ -297,6 +314,8 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
         except TimeoutException:
             logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
+
+        input("Esperar")
 
         id_btn_procesar = "btnGrabar" if bab_codigo != '4' else "btnProcesar"
         btn_procesar = wait.until(EC.element_to_be_clickable((By.ID, id_btn_procesar)))
