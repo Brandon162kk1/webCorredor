@@ -1,6 +1,4 @@
-﻿# --------------------------------------------------
-# Imagen base con Chrome y noVNC
-# --------------------------------------------------
+﻿# Imagen base con Chrome y noVNC
 FROM chromedriver:stable
 
 # Crear carpetas necesarias
@@ -12,7 +10,7 @@ COPY requirements.txt /app/
 # Instalar dependencias Python
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-## 🔹 Copiar código del proyecto
+# Copiar código del proyecto
 COPY Codigo/ /app/Codigo
 
 # Copiar supervisord.conf
