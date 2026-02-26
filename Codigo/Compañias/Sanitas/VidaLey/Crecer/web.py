@@ -38,8 +38,8 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     logging.info("🧩 Resuelve el CAPTCHA manualmente y clic en 'Ingresar'")
 
     #desbloquear_interaccion()
-    #ruta_imagen = os.path.join(ruta_archivos_x_inclu,f"captcha_{get_timestamp()}.png")
-    #driver.save_screenshot(ruta_imagen)
+    ruta_imagen = os.path.join(ruta_archivos_x_inclu,f"captcha_{get_timestamp()}.png")
+    driver.save_screenshot(ruta_imagen)
     wait_humano = WebDriverWait(driver,300)
 
     try:
