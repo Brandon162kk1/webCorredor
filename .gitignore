@@ -36,3 +36,6 @@ volumen_codigo/
 Dockerfile.base
 
 #.dockerignore
+
+# No subir el supervisord.conf, ya que puede contener configuraciones específicas del entorno local
+supervisord.conf
