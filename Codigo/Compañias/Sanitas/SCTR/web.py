@@ -7,7 +7,6 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
-#from LinuxDebian.OtrosMetodos.metodos import subir_trama
 from selenium.webdriver import ActionChains
 from LinuxDebian.OtrosMetodos.metodos import esperar_ventana
 #   --- Imports ----

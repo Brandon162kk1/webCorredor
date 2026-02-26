@@ -719,7 +719,16 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info("✅ N° Certificados : 1 ")
 
-    observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: Mes Vencido"
+    #observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: Mes Vencido"
+    observacion = f"""PROYECTO : CONSORCIO VIAL SONDOR VADO GRANDE \n RAMO : VIDALEY \n Vigencia: {ramo.f_inicio} al {ramo.f_fin}
+            \n  N° de Póliza: {ramo.poliza} \n *****CONSIDERAR CAMBIO DE NOMBRAMIENTO YA REGISTRADO EN INSIS*******"""
+
+
+#     PROYECTO: XXXXXXXXXX
+# RAMO: VIDA LEY
+# POLIZA: XXXXXXXXXXXX
+# VIGENCIA: DESDE 01/03/2026 - HASTA 01/04/2026
+# *****CONSIDERAR CAMBIO DE NOMBRAMIENTO YA REGISTRADO EN INSIS*******
 
     textarea = wait.until(EC.presence_of_element_located((By.ID, "textarea1")))
 
