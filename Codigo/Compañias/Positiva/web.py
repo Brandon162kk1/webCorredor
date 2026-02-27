@@ -719,9 +719,12 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info("✅ N° Certificados : 1 ")
 
-    #observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: Mes Vencido"
-    observacion = f"""PROYECTO : {ramo.sede} \n RAMO : VIDALEY \n Vigencia: {ramo.f_inicio} al {ramo.f_fin}
-            \n  N° de Póliza: {ramo.poliza} \n *****CONSIDERAR CAMBIO DE NOMBRAMIENTO YA REGISTRADO EN INSIS*******"""
+    observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: Mes Vencido"
+    # observacion = f"""PROYECTO : {ramo.sede} \n 
+    #                   RAMO : VIDALEY \n
+    #                   Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n
+    #                   N° de Póliza: {ramo.poliza} \n
+    #                   *****CONSIDERAR CAMBIO DE NOMBRAMIENTO YA REGISTRADO EN INSIS*******"""
 
     textarea = wait.until(EC.presence_of_element_located((By.ID, "textarea1")))
 
@@ -747,8 +750,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # Primero verificar si aparece un alert
     try:
 
-        #WebDriverWait(driver,5).until(EC.alert_is_present())
-        wait.until(EC.alert_is_present())
+        WebDriverWait(driver,10).until(EC.alert_is_present())
+        #wait.until(EC.alert_is_present())
         alert1 = driver.switch_to.alert
         logging.info(f"⚠️ Alerta #1 presente: ¿{alert1.text}?")
         alert1.accept()
@@ -781,15 +784,15 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
             # 👇 Aquí validas si aparece la alerta después del iframe
             try:
-                    WebDriverWait(driver,5).until(EC.alert_is_present())
-                    alert0 = driver.switch_to.alert
-                    logging.info(f"⚠️ Alerta #1 después del iframe: ¿{alert0.text}?")
-                    alert0.accept()
-                    logging.info("✅ Alerta aceptada después del iframe")
+                WebDriverWait(driver,5).until(EC.alert_is_present())
+                alert0 = driver.switch_to.alert
+                logging.info(f"⚠️ Alerta #1 después del iframe: ¿{alert0.text}?")
+                alert0.accept()
+                logging.info("✅ Alerta aceptada después del iframe")
             except TimeoutException:
-                    logging.info("❌ No apareció alerta después del iframe")
+                logging.info("❌ No apareció alerta después del iframe")
             except NoAlertPresentException:
-                    logging.info("⚠️ Selenium detectó alerta, pero desapareció antes de leerla")
+                logging.info("⚠️ Selenium detectó alerta, pero desapareció antes de leerla")
             finally:
                 # Siempre regresar al DOM principal
                 driver.switch_to.default_content()
@@ -847,41 +850,15 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     except TimeoutException:
         logging.info("❌ No apareció ninguna alerta")
-
-    # aviso_alerta_2 = ""
+ 
     # try:
-    #     WebDriverWait(driver,7).until(EC.alert_is_present())
-    #     alert_ok  = driver.switch_to.alert
-    #     aviso_alerta_2 = alert_ok.text
+    #     nombre_imagen_ok = f"tramite_{get_timestamp()}.png"
+    #     ruta_tramite = os.path.join(ruta_archivos_x_inclu, nombre_imagen_ok)
+    #     driver.save_screenshot(ruta_tramite)
+    # except:
+    #     pass
 
-    #     if aviso_alerta_2.startswith("Corregir errores encontrados en la Trama."):
-    #         raise Exception(f"{aviso_alerta_2}")
-
-    #     #-- Se ha registrado la solicitud correctamente. o Corregir errores encontrados en la Trama.
-    #     logging.info(f"⚠️ Alerta : {aviso_alerta_2}")
-    #     alert_ok.accept() #---Corregir
-    #     logging.info("✅ Alerta aceptada") #Ok
-    # except TimeoutException:
-    #     logging.info("❌ No apareció la segunda alerta") 
-
-    # try:
-    #     WebDriverWait(driver,7).until(EC.alert_is_present())
-    #     alert3 = driver.switch_to.alert
-    #     logging.info(f"⚠️ Alerta : {alert3.text}") #-- ¿Desea ver el formulario en PDF para su impresión?
-    #     alert3.dismiss()
-    #     logging.info("✅ Alerta Cancelada")
-    # except TimeoutException:
-    #     logging.info("❌ No apareció la tercera alerta")
-    #     raise Exception(f"{aviso_alerta_2}")
-    
-    try:
-        nombre_imagen_ok = f"tramite_{get_timestamp()}.png"
-        ruta_tramite = os.path.join(ruta_archivos_x_inclu, nombre_imagen_ok)
-        driver.save_screenshot(ruta_tramite)
-    except:
-        pass
-
-    logging.info(f"✅ Constancia obtenida para la Inclusión con numero de póliza '{ramo.poliza}'")
+    logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
 def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,ramo):
 
