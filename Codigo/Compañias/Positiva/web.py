@@ -7,7 +7,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
-from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda
+from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda,leer_pdf
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 #---- Import ---
 import os
@@ -805,12 +805,11 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     
     time.sleep(8)
 
+    archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
     try:
 
-        archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
-        logging.info(f"✅ Archivo descargado exitosamente")
-
         if archivo_nuevo:
+            logging.info(f"✅ Archivo descargado exitosamente")
             ruta_original = archivo_nuevo[0]
             ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
             os.rename(ruta_original, ruta_final)
@@ -834,7 +833,11 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         if mensaje.startswith("Corregir errores encontrados en la Trama."):
             alert.accept()
             logging.info("✅ Alerta aceptada")
-            raise Exception(mensaje)
+
+            #--- capturar el mensaje del pdf que se descargo para enviarlo por error
+            ruta_pdf_errores = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+            error_pdf = leer_pdf(ruta_pdf_errores)
+            raise Exception(f"{mensaje} - {error_pdf}")
 
         elif mensaje.startswith("Se ha registrado la solicitud correctamente."):
             alert.accept()
@@ -949,7 +952,11 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except TimeoutException:
         logging.info("✅ No se detectó modal")
 
-    fila = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#b12-Widget_TransactionRecordList tbody tr")))
+    try:
+        fila = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#b12-Widget_TransactionRecordList tbody tr")))
+    except TimeoutException:
+        raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad Mes Adelantado")
+
     checkbox = fila.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
 
     actions = ActionChains(driver)
