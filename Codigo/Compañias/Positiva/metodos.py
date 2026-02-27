@@ -10,6 +10,7 @@ import os
 import logging
 import time
 import random
+import pdfplumber
 
 def escribir_lento(elemento, texto, min_delay, max_delay):
     """Envía texto carácter por carácter con retrasos aleatorios."""
@@ -74,6 +75,23 @@ def validardeuda(driver,wait):
 
     except TimeoutException:
         return False
+
+def leer_pdf(ruta_pdf):
+    texto_completo = ""
+
+    with pdfplumber.open(ruta_pdf) as pdf:
+        for pagina in pdf.pages:
+            texto = pagina.extract_text()
+            if texto:
+                texto_completo += texto + "\n"
+
+    # Buscar la primera aparición de "Celda"
+    indice = texto_completo.find("Celda")
+
+    if indice != -1:
+        return texto_completo[indice:]
+    else:
+        return ""  # No encontró la palabra
 
 # Ruta del directorio compartido entre contenedores
 SYNC_DIR = "/app/sync"
