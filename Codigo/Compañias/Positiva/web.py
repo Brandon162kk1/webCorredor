@@ -727,7 +727,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     #                   *****CONSIDERAR CAMBIO DE NOMBRAMIENTO YA REGISTRADO EN INSIS*******"""
 
     textarea = wait.until(EC.presence_of_element_located((By.ID, "textarea1")))
-
     textarea.clear()
     textarea.send_keys(observacion)
 
@@ -804,8 +803,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         logging.info("⚠️ Selenium detectó alerta, pero desapareció antes de leerla")
     
     time.sleep(8)
-
     archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+
     try:
 
         if archivo_nuevo:
