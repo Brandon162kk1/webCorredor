@@ -416,11 +416,11 @@ def main():
             case 'INCLUSION':
                 tipo_proc = 'IN'
                 palabra_clave = 'Inclusion'
-                tiempo = 60
+                tiempo = 150
             case 'RENOVACION':
                 tipo_proc = 'RE'
                 palabra_clave = 'Renovacion'
-                tiempo = 120
+                tiempo = 300
             case _:
                 tipo_proc = 'DES'
                 palabra_clave = 'descarga de Constancia'

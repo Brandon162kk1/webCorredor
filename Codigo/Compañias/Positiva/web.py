@@ -95,6 +95,22 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             btn_incluir.click()
             logging.info("🖱️ Clic en Incluir")
 
+            try:
+                wait.until(EC.visibility_of_element_located((By.ID, "divTipoIncluir")))
+                logging.info(f"⚠️ Apareció el modal con advertencia")
+                
+                if tipo_mes == 'MA':
+                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaSi")))
+                else:
+                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaNo")))
+                    
+                nom_btn = 'Si' if tipo_mes == 'MA' else 'No'
+                btn_aceptar.click()
+                logging.info(f"🖱️ Clic en {nom_btn}")
+
+            except TimeoutException:
+                pass
+
             mensaje_deuda = validardeuda(driver,wait)
 
             if mensaje_deuda:
@@ -783,7 +799,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
             # 👇 Aquí validas si aparece la alerta después del iframe
             try:
-                WebDriverWait(driver,5).until(EC.alert_is_present())
+                WebDriverWait(driver,10).until(EC.alert_is_present())
                 alert0 = driver.switch_to.alert
                 logging.info(f"⚠️ Alerta #1 después del iframe: ¿{alert0.text}?")
                 alert0.accept()
@@ -802,8 +818,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except NoAlertPresentException:
         logging.info("⚠️ Selenium detectó alerta, pero desapareció antes de leerla")
     
-    time.sleep(8)
-    archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+    time.sleep(10)
+    archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1,timeout=180)
 
     try:
 
@@ -853,12 +869,12 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except TimeoutException:
         logging.info("❌ No apareció ninguna alerta")
  
-    # try:
-    #     nombre_imagen_ok = f"tramite_{get_timestamp()}.png"
-    #     ruta_tramite = os.path.join(ruta_archivos_x_inclu, nombre_imagen_ok)
-    #     driver.save_screenshot(ruta_tramite)
-    # except:
-    #     pass
+    try:
+        nombre_imagen_ok = f"tramite_{get_timestamp()}.png"
+        ruta_tramite = os.path.join(ruta_archivos_x_inclu, nombre_imagen_ok)
+        driver.save_screenshot(ruta_tramite)
+    except:
+        pass
 
     logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
