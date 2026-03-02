@@ -353,6 +353,7 @@ def enviar_puerto_por_ramos(RAMOS, puerto):
 
 def main():
  
+    driver = None
     conSCTR = False
     conVL = False
     endSCTR = False
@@ -675,8 +676,8 @@ def main():
         #     #enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_completa)
 
         #------------------------------------------
-        # if ba_codigo != '0' or bb_codigo != '5':
-        #     driver.quit()
+        if driver:
+            driver.quit()
 
 if __name__ == "__main__":
     main()
