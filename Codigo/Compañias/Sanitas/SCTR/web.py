@@ -9,6 +9,8 @@ from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from selenium.webdriver import ActionChains
 from LinuxDebian.OtrosMetodos.metodos import esperar_ventana
+from Compañias.Sanitas.metodos import es_error_502
+from Chrome.google import tomar_capturar
 #   --- Imports ----
 import time
 import os
@@ -219,6 +221,9 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             driver.get(url)
             logging.info(f"⌛ Cargando la Web de Sanitas {compania}")
 
+            if es_error_502(driver):
+                raise("Pagina Fuera de Servicio")
+
             username_input = wait.until(EC.presence_of_element_located((By.ID, 'Login')))
             username_input.clear()
             username_input.send_keys(ramo.usuario)
@@ -264,7 +269,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("🖱️ Clic en Buscar")
 
             try:               
-                filas = WebDriverWait(driver,7).until(EC.presence_of_all_elements_located((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
+                filas = WebDriverWait(driver,10).until(EC.presence_of_all_elements_located((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
                 fila_correcta = filas[0]
                 fila_correcta.click()
                 logging.info(f"✅ Se seleccionó la fila para la póliza {ramo.poliza}")
@@ -280,12 +285,12 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("🖱️ Clic en Aceptar")
 
             try:
-                modal_poliza = WebDriverWait(driver,7).until(EC.visibility_of_element_located((By.ID, "MessageBox")))                  
+                modal_poliza = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))                  
                 span_txt_modal = modal_poliza.find_element(By.ID, "message").text
                 logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_modal}.")
                 raise Exception(f"{span_txt_modal}")
             except TimeoutException:
-                logging.info("✅ No hay advertencias, el flujo continúa")
+                pass
 
             client_branch_office_select = wait.until(EC.presence_of_element_located((By.ID, 'ClientBranchOfficeId')))
             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_branch_office_select)
@@ -332,7 +337,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                     try:
                         # Modal con Advertencias de la fecha
-                        modal_fecha = WebDriverWait(driver,7).until(EC.visibility_of_element_located((By.ID,"MessageBox")))
+                        modal_fecha = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID,"MessageBox")))
                         span_txt_fecha = modal_fecha.find_element(By.ID, "message").text
                         logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_fecha}")
 
@@ -344,7 +349,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                         logging.info("🖱️ Clic en 'Aceptar'")
 
                     except TimeoutException:
-                        logging.info("✅ No se detectó el modal de advertencias en la fecha. Continuando flujo")
+                        pass
 
                 else:
                     logging.info("📅 La fecha de vigencia de inicio no requiere ser modificada")
@@ -387,12 +392,12 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             try:
                 # Modal con Errores en la Trama
-                modal_error_trama = WebDriverWait(driver,5).until(EC.visibility_of_element_located((By.ID, "MessageBoxWithScroll")))             
+                modal_error_trama = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBoxWithScroll")))             
                 span_txtArea_modal = modal_error_trama.find_element(By.ID, "message").text
                 logging.warning(f"⚠️ Apareció el modal con errores de la Trama")
                 raise Exception(f"{span_txtArea_modal}")
             except TimeoutException:
-                logging.info("✅ No se detectó el modal de errores. Continuando flujo.")
+                pass
 
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             logging.info("🖱️ Scroll hasta abajo de la página")
@@ -403,22 +408,22 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("🖱️ Clic en Confirmar")
 
             try:
-                modal_advertencia = WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, "MessageBox")))
+                modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))
                 spana_dv_txt_modal = modal_advertencia.find_element(By.ID, "message").text
                 logging.warning(f"⚠️ Apareció el modal con advertencia")
                 raise Exception(f"{spana_dv_txt_modal}")
             except TimeoutException:
-                logging.info("✅ No se detectó el modal de advertencias. Continuando flujo")
+                pass
 
             try:
                 # Modal de Retroactividad para autorizar no siniestros
-                modal_advertencia = WebDriverWait(driver,5).until(EC.visibility_of_element_located((By.ID, "ConfirmationMessageBox")))
+                modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "ConfirmationMessageBox")))
                 logging.warning(f"⚠️ Apareció el modal con advertencia de retroactividad")
                 btn_si = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@onclick, \"data-dialog-response', 'YES'\")]")))
                 btn_si.click()
                 logging.info("🖱️ Se hizo clic en el botón 'Sí'.")
             except TimeoutException:
-                logging.info("✅ No se detectó el modal de Retroactividad. Continuando flujo")
+                pass
     
             wait.until(EC.visibility_of_element_located((By.ID, 'createdDocumentsPopUp')))
             logging.info("⌛ Cargando Modal de los documentos")
@@ -623,8 +628,11 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
         time.sleep(3) 
 
     except Exception as e:
+
         logging.error(f"❌ Error en Sanitas (SCTR) - {tipo_mes}: {e}")
         tipoError = f"SANI-SCTR-{tipo_mes}"
         detalleError = e
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{compania}_SCTR_{tipo_mes}")
+
     finally:
         return constancia,proforma,tipoError,detalleError

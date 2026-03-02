@@ -6,9 +6,10 @@ from selenium.common.exceptions import TimeoutException,NoAlertPresentException
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
+from Tiempo.fechas_horas import get_fecha_hoy
 from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda,leer_pdf
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
+from Chrome.google import tomar_capturar
 #---- Import ---
 import os
 import re
@@ -38,7 +39,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     time.sleep(3)
 
     try:
-        WebDriverWait(driver,7).until(EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")))
+        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")))
         raise Exception("Lo sentimos, ha ocurrido un error inesperado")
     except TimeoutException:
         pass
@@ -63,13 +64,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     fecha_vigencia_str = fecha_vigencia_element.text.strip()  # Ejemplo: "01/11/2025"
     
     # Convertir la fecha a objeto datetime
-    #fecha_vigencia_dmy = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
+    fecha_vigencia_dmy = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
     try:
         # Definir rango permitido
-        #rango_inicio = fecha_vigencia_dmy.date() - timedelta(days=2)  # 2 días antes
-        #rango_fin = fecha_vigencia_dmy.date() + timedelta(days=2)     # 2 días después
+        rango_inicio = fecha_vigencia_dmy.date() - timedelta(days=2)  # 2 días antes
+        rango_fin = fecha_vigencia_dmy.date() + timedelta(days=2)     # 2 días después
 
-        #logging.info(f"📅 Rango permitido para la {palabra_clave}: {rango_inicio} a {rango_fin}")
+        logging.info(f"📅 Rango permitido para la {palabra_clave}: {rango_inicio} a {rango_fin}")
 
         logging.info(f"📅 Fecha Fin de la vigencia en la póliza: {fecha_vigencia_str}")
         #pos_fecha_dmy = get_pos_fecha_dmy()
@@ -96,7 +97,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             logging.info("🖱️ Clic en Incluir")
 
             try:
-                wait.until(EC.visibility_of_element_located((By.ID, "divTipoIncluir")))
+                WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divTipoIncluir")))
                 logging.info(f"⚠️ Apareció el modal con advertencia")
                 
                 if tipo_mes == 'MA':
@@ -224,8 +225,18 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             raise Exception("No se puede Validar la Trama")
 
         try:
+            WebDriverWait(driver,5).until(EC.alert_is_present())
+            alerTrama = driver.switch_to.alert   
+            logging.info("🚨 Texto de la alerta:", alerTrama.text)   
+            alerTrama.accept()
+            logging.info("✅ Alerta aceptada")
+            raise Exception("Posiblemente un campo de la Trama no este correcta, verificarla porfavor")
+        except TimeoutException:
+            pass
+
+        try:
             # Posible error para la hoja de la trama , debe ser Planilla no Trabajadores
-            WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorValidacion")))
+            WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorValidacion")))
             logging.info(f"⚠️ Apareció el modal con errores")
             mensaje_error = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaErrorValidacion"))).text
             raise Exception(mensaje_error)
@@ -241,9 +252,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 driver.execute_script("arguments[0].click();", link)
 
                 wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
-
-                ruta_imagen = os.path.join(ruta_archivos_x_inclu, f"errores.png")
-                driver.save_screenshot(ruta_imagen)
 
                 raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla")
 
@@ -412,16 +420,16 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 driver.execute_script("arguments[0].click();", boton_embebido)
                 logging.info("🖱 Clic con JS en el botón de descarga")
 
-                archivo_nuevo_2 = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_2,".pdf",cantidad=1)
+                endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_2,".pdf",cantidad=1)
                 logging.info(f"✅ Archivo descargado exitosamente")
 
                 if archivo_nuevo:
-                    ruta_original = archivo_nuevo_2[0]  # ya es ruta completa
+                    ruta_original = endoso[0]  # ya es ruta completa
                     ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
                     os.rename(ruta_original, ruta_final)
                     logging.info(f"🔄 Endoso renombrado a 'endoso_{ramo.poliza}.pdf'")
                 else:
-                    raise Exception("No se encontró endoso después la descarga")
+                    raise Exception("No se descargo el endoso")
 
                 driver.switch_to.default_content()
             
@@ -486,10 +494,10 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except:
         logging.info("✅ No apareció ninguna alerta")
                 
-    resultado,asunto = validar_pagina(driver)
+    # resultado,asunto = validar_pagina(driver)
 
-    if not resultado:
-        raise Exception (f"{asunto}")
+    # if not resultado:
+    #     raise Exception (f"{asunto}")
 
     logging.info ("--- Se ingresó a Oficina Virtual La Positiva 🌐---")
     action = ActionChains(driver)
@@ -736,11 +744,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     logging.info("✅ N° Certificados : 1 ")
 
     observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: Mes Vencido"
-    # observacion = f"""PROYECTO : {ramo.sede} \n 
-    #                   RAMO : VIDALEY \n
-    #                   Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n
-    #                   N° de Póliza: {ramo.poliza} \n
-    #                   *****CONSIDERAR CAMBIO DE NOMBRAMIENTO YA REGISTRADO EN INSIS*******"""
 
     textarea = wait.until(EC.presence_of_element_located((By.ID, "textarea1")))
     textarea.clear()
@@ -765,10 +768,10 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # Primero verificar si aparece un alert
     try:
 
-        WebDriverWait(driver,10).until(EC.alert_is_present())
+        WebDriverWait(driver,5).until(EC.alert_is_present())
         #wait.until(EC.alert_is_present())
         alert1 = driver.switch_to.alert
-        logging.info(f"⚠️ Alerta #1 presente: ¿{alert1.text}?")
+        logging.info(f"⚠️ Alerta : ¿{alert1.text}?")
         alert1.accept()
         logging.info("✅ Alerta aceptada")
 
@@ -784,24 +787,24 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             driver.switch_to.default_content()
 
             try:
-                nombre_imagen_error = f"Similitud_{get_timestamp()}.png"
-                ruta_imagen = os.path.join(ruta_archivos_x_inclu, nombre_imagen_error)
-                driver.save_screenshot(ruta_imagen)
+
+                tomar_capturar(driver,ruta_archivos_x_inclu,f"Similitud")
+
                 cerrar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@onclick, 'cerrarVentanaModal')]")))
+
                 cerrar_btn.click()
                 logging.info("🖱️ Clic en botón 'Cerrar' dentro del iframe")
 
             except Exception:
 
-                logging.error(f"❌ No se pudo hacer clic en 'Cerrar'.")
                 driver.execute_script("cerrarVentanaModal();")
                 logging.info("🖱️ Clic en 'Cerrar' ejecutado con JS")
 
             # 👇 Aquí validas si aparece la alerta después del iframe
             try:
-                WebDriverWait(driver,10).until(EC.alert_is_present())
+                WebDriverWait(driver,5).until(EC.alert_is_present())
                 alert0 = driver.switch_to.alert
-                logging.info(f"⚠️ Alerta #1 después del iframe: ¿{alert0.text}?")
+                logging.info(f"⚠️ Alerta : ¿{alert0.text}?")
                 alert0.accept()
                 logging.info("✅ Alerta aceptada después del iframe")
             except TimeoutException:
@@ -819,7 +822,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         logging.info("⚠️ Selenium detectó alerta, pero desapareció antes de leerla")
     
     time.sleep(10)
-    archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1,timeout=180)
+    archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
 
     try:
 
@@ -830,10 +833,9 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             os.rename(ruta_original, ruta_final)
             logging.info(f"🔄 Constancia renombrado a '{ramo.poliza}.pdf'")
         else:
-            raise Exception(" No se encontró archivo nuevo después de descargar")
+            raise Exception("No se descargo ningun archivo")
 
     except Exception as e:
-        driver.save_screenshot(os.path.join(ruta_archivos_x_inclu, f"{get_timestamp()}.png"))
         raise Exception(f"{e}")
 
     try:
@@ -842,7 +844,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         alert = driver.switch_to.alert
         mensaje = alert.text.strip()
 
-        logging.info(f"⚠️ Alerta detectada: {mensaje}")
+        logging.info(f"⚠️ Alerta : {mensaje}")
 
         # ---- Evaluación del mensaje ----
         if mensaje.startswith("Corregir errores encontrados en la Trama."):
@@ -852,15 +854,23 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             #--- capturar el mensaje del pdf que se descargo para enviarlo por error
             ruta_pdf_errores = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
             error_pdf = leer_pdf(ruta_pdf_errores)
-            raise Exception(f"{mensaje} - {error_pdf}")
+            raise Exception(f"{error_pdf}")
 
         elif mensaje.startswith("Se ha registrado la solicitud correctamente."):
             alert.accept()
             logging.info("✅ Alerta aceptada")
 
-        elif mensaje.startswith("Desea ver el formulario en PDF para su impresión"):
-            alert.dismiss()
-            logging.info("✅ Alerta Cancelada")
+            tomar_capturar(driver,ruta_archivos_x_inclu,f"Tramite")
+
+            try:
+                WebDriverWait(driver,5).until(EC.alert_is_present())
+                alert_impresion = driver.switch_to.alert
+                logging.info(f"⚠️ Alerta : ¿{alert_impresion.text}?")
+                alert_impresion.dismiss()
+                logging.info("✅ Alerta Cancelada")
+
+            except TimeoutException:
+                logging.info("❌ No apareció ninguna alerta")
 
         else:
             logging.warning("⚠️ Alerta no contemplada, se acepta por defecto")
@@ -868,13 +878,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     except TimeoutException:
         logging.info("❌ No apareció ninguna alerta")
- 
-    try:
-        nombre_imagen_ok = f"tramite_{get_timestamp()}.png"
-        ruta_tramite = os.path.join(ruta_archivos_x_inclu, nombre_imagen_ok)
-        driver.save_screenshot(ruta_tramite)
-    except:
-        pass
 
     logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
@@ -1128,7 +1131,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     # 3. Esperar que sea clickeable y clicar
     boton_descargar = wait.until(EC.element_to_be_clickable((By.XPATH,"//span[normalize-space()='Descargar documentos']/ancestor::a")))
-    driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"solicitud_{get_timestamp()}.png"))
+    #driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"solicitud_{get_timestamp()}.png"))
+    tomar_capturar(driver,ruta_archivos_x_inclu,f"Solicitud")
 
     archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
 
@@ -1265,6 +1269,7 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
 
                         aceptar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//button[.//span[text()='Aceptar']]")))
                         aceptar_btn.click()
+                        logging.info("🖱️ Clic en Aceptar")
                         time.sleep(2)
                         driver.refresh()
                         continue
@@ -1284,8 +1289,8 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
                 driver.refresh()
 
     except Exception as e:
-        logging.error(f"❌ Error inesperado entrando a la url: {e}")
 
+        logging.error(f"❌ Error inesperado entrando a la url: {e}")
         return False,False,"Login Fallido", e
 
     if bab_codigo in ['1', '2', '3']:
@@ -1294,8 +1299,13 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
             solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo)
             return True, True if tipo_mes == 'MA' else False, tipoError, detalleError
         except Exception as e:
+
             logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {e}")
-            return False,False,f"LAPO-SCTR-{tipo_mes}", e
+            resultado, asunto = validar_pagina(driver)
+            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_POSITIVA_SCTR_{tipo_mes}")
+            detalle = asunto if not resultado else str(e)
+            return False, False, f"LAPO-SCTR-{tipo_mes}", detalle
+
         finally:
             driver.close()
             logging.info("✅ Cerrando la Pestaña SED Positiva-SCTR")
@@ -1307,33 +1317,46 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
                                                                   palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,detalleError)
         return conVL,proVL,tipErVL,detErVL
 
-def solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,
-                                 ramo,tipo_mes,tipoError,detalleError):
-    
-    if tipo_mes == 'MV':
+def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave,
+                                tipo_proceso,actividad, ramo, tipo_mes, tipoError, detalleError):
 
-        try:
-            solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
-            return True,False,tipoError,detalleError
-        except Exception as e:
-            logging.error(f"❌ Error en La Positiva (Vida Ley) - MV: {e}")
-            return False,False,f"LAPO-VIDALEY-{tipo_mes}",e
-        finally:
-            driver.close()
-            logging.info("✅ Cerrando la Pestaña OV Positiva-VL")
-            driver.switch_to.window(driver.window_handles[0])
-            logging.info("🔙 Retornando al menú principal tras cerrar OV")
+    # 🔹 Mapear función según tipo_mes
+    funciones = {
+        "MV": lambda: solicitud_vidaley_MV(
+            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+            ejecutivo_responsable, palabra_clave,
+            tipo_proceso, actividad, ramo
+        ),
+        "MA": lambda: solicitud_vidaley_MA(
+            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+            ejecutivo_responsable, palabra_clave,
+            tipo_proceso, ramo
+        )
+    }
 
-    else:
+    funcion = funciones.get(tipo_mes)
 
-        try:
-            solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,ramo)
-            return True,True,tipoError,detalleError
-        except Exception as e:
-            logging.error(f"❌ Error en La Positiva (Vida Ley) - MA: {e}")
-            return False,False,f"LAPO-VIDALEY-{tipo_mes}",e
-        finally:
-            driver.close()
-            logging.info("✅ Cerrando la Pestaña Positiva - Vida Ley")
-            driver.switch_to.window(driver.window_handles[0])
-            logging.info("🔙 Retornando al menú principal tras cerrar Vida Ley")
+    if not funcion:
+        return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de mes inválido"
+
+    try:
+        funcion()
+
+        # 🔹 Solo cambia este flag según tipo
+        flag_extra = True if tipo_mes == "MA" else False
+
+        return True, flag_extra, tipoError, detalleError
+
+    except Exception as e:
+        logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: {e}")
+
+        resultado, asunto = validar_pagina(driver)
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_POSITIVA_VL_{tipo_mes}")
+        detalle = asunto if not resultado else str(e)
+        return False, False, f"LAPO-VIDALEY-{tipo_mes}", detalle
+
+    finally:
+        driver.close()
+        logging.info("✅ Cerrando la pestaña Vida Ley")
+        driver.switch_to.window(driver.window_handles[0])
+        logging.info("🔙 Retornando al menú principal")
