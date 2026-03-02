@@ -675,8 +675,8 @@ def main():
         #     #enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_completa)
 
         #------------------------------------------
-        if ba_codigo != '0' or bb_codigo != '5':
-            driver.quit()
+        # if ba_codigo != '0' or bb_codigo != '5':
+        #     driver.quit()
 
 if __name__ == "__main__":
     main()
