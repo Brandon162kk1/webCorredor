@@ -3,8 +3,19 @@
 from reportlab.platypus import SimpleDocTemplate, Image # type: ignore
 from reportlab.lib.pagesizes import A4 # type: ignore
 from reportlab.lib import utils # type: ignore
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
 # -- Imports --
 import logging
+
+def es_error_502(driver):
+    try:
+        h1 = driver.find_element(By.TAG_NAME, "h1").text
+        if "502" in h1:
+            return True
+    except NoSuchElementException:
+        pass
+    return False
 
 def imagen_a_pdf(ruta_imagen, ruta_pdf):
     doc = SimpleDocTemplate(ruta_pdf, pagesize=A4)

@@ -1,6 +1,12 @@
 ﻿from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
-import logging
+from Tiempo.fechas_horas import get_timestamp
+import logging , os
+
+def tomar_capturar(driver, ruta, prefijo):
+    nombre = f"{prefijo}_{get_timestamp()}.png"
+    ruta_completa = os.path.join(ruta, nombre)
+    driver.save_screenshot(ruta_completa)
 
 def abrirDriver(ruta_archivos_x_inclu):
 

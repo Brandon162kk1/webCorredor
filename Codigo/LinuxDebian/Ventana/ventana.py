@@ -15,7 +15,7 @@ def desbloquear_interaccion():
     logging.info("✋ Interacción humana HABILITADA")
 
 #-------- Esperas Avanzadas --------
-def esperar_archivos_nuevos(directorio, archivos_antes, extension, cantidad, timeout=60):
+def esperar_archivos_nuevos(directorio, archivos_antes, extension, cantidad, timeout=180):
     """
     Espera archivos nuevos con determinada extensión.
     extension: ".zip", ".pdf", ".xlsx", etc.

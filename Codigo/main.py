@@ -10,7 +10,7 @@ from Compañias.Rimac.VidaLey.web_sas import realizar_solicitud_SAS
 from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
 from Plantillas.Crecer.generarplantilla import generarConstanciaInCrecer,generarConstanciaReCrecer
 # -- Froms Apis ---
-from Apis.Post.webhook import enviar_error_interno
+from Apis.Post.webhook import enviar_error_interno,enviar_error_consolidado
 from Apis.Put.web_corredor import enviar_documentos,enviar_error_movimiento,enviar_puerto,enviar_estaca
 # -- Froms Configuración ---
 from LinuxDebian.Carpetas.rutas import armar_ruta_archivos
@@ -550,6 +550,7 @@ def main():
         logging.error(f"⚠️ Conclusión: {e}")
     finally:
 
+        errores_consolidados = []
         RAMOS = [
             {
                 "ramo": "SALUD",
@@ -576,7 +577,7 @@ def main():
                 return tipoErrorVL, detalleErrorVL
             return tipoErrorSCTR, detalleErrorSCTR
 
-        #------------- Enviando Estacas,Errores y Documentos---------------------
+        #------- Enviando Estacas,Errores y Documentos---------------------
         for r in RAMOS:
 
             ctx_ramo = r["ctx"]
@@ -618,14 +619,32 @@ def main():
                 enviar_error_movimiento(id_mov,ramo,tipo_error,detalle_error)
                 time.sleep(1)
 
-                # Generar nombre dinámico
-                nombre_imagen = f"error_{ramo}.png"
-                ruta_completa = os.path.join(ruta_archivos_x_inclu, nombre_imagen)
-                driver.save_screenshot(ruta_completa)
+                # # Generar nombre dinámico
+                # nombre_imagen = f"error_{ramo}.png"
+                # ruta_completa = os.path.join(ruta_archivos_x_inclu, nombre_imagen)
+                # driver.save_screenshot(ruta_completa)
 
                 time.sleep(1)
 
-                enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_completa)
+                tramas = []
+
+                if ctx_ramo.trama:
+                    tramas.append(ctx_ramo.trama)
+
+                if ctx_ramo.trama_97:
+                    tramas.append(ctx_ramo.trama_97)
+
+                # # Guardamos información para envío único
+                # errores_consolidados.append(f"""Ramo: {ramo}\n
+                #                                 Compañia: {ctx_ramo.compania}\n
+                #                                 Póliza: {ctx_ramo.poliza}\n
+                #                                 Sede: {ctx_ramo.sede}\n
+                #                                 Vigencia: {ctx_ramo.f_inicio} al {ctx_ramo.f_fin}\n
+                #                                 Tramas: {' y '.join(tramas)}\n
+                #                                 Tipo: {tipo_error}\n
+                #                                 Detalle: {detalle_error}\n
+                #                                 """)
+                #enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_completa)
 
             # ---------------- DOCUMENTOS ----------------
             if constancia:
@@ -645,6 +664,16 @@ def main():
 
                 enviar_documentos(id_mov, ruta_endoso, ramo, "Endoso")
                 time.sleep(1)
+        #------- Enviando Error Consolidado a Jishu ----------------------------------
+        # if errores_consolidados:
+        #     logging.info("📩 Enviando error interno consolidado")
+
+        #     detalle_final = "\n\n-------------------------\n\n".join(errores_consolidados)
+
+        #     enviar_error_consolidado(ctx.cliente,ctx.proceso,detalle_final,ruta_archivos_x_inclu)
+
+        #     #enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_completa)
+
         #------------------------------------------
         if ba_codigo != '0' or bb_codigo != '5':
             driver.quit()

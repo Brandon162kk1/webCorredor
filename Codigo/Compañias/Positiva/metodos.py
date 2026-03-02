@@ -51,10 +51,15 @@ def validar_pagina(driver):
             asunto = "Página web de La Positiva fuera de Servicio"
             return False,asunto
 
+        asunto = "Redirecciono a otra página"
+
         # Validar si aparece el campo de usuario
-        user_field = WebDriverWait(driver,5).until(EC.presence_of_element_located((By.NAME, "txtUsuario")))
+        user_field = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.NAME, "txtUsuario")))
         if user_field:
-            asunto = "Página web de La Positiva fuera de Servicio"
+            return False,asunto
+
+        userName_input = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.NAME, "username")))
+        if userName_input:
             return False,asunto
 
     except TimeoutException:
@@ -64,7 +69,7 @@ def validardeuda(driver,wait):
 
     try:
 
-        WebDriverWait(driver, 8).until(EC.visibility_of_element_located((By.ID, "divAlertas")))
+        WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertas")))
         logging.warning("⚠️ Apareció el modal de advertencia.")
 
         mensaje_deuda = wait.until(EC.visibility_of_element_located((By.ID, "spMensaje")))

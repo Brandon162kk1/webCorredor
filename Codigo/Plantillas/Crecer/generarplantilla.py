@@ -35,7 +35,11 @@ def obtener_rango_vigencia(ramo):
     return f"{ramo.f_inicio} al {ramo.f_fin}"
 
 def leer_asegurados_excel(ruta_excel, incluir_nombres=True):
+
     df = pd.read_excel(ruta_excel, engine="openpyxl", dtype={"N° Documento": str})
+
+    df.columns = df.columns.str.strip()
+    df = df.fillna("")
 
     columnas = ["Nombre 1", "Nombre 2", "Ap. Paterno", "Ap. Materno", "N° Documento"]
     df = df[columnas].copy()
@@ -109,48 +113,6 @@ def renderizar_pdf(ruta_plantilla, template_html, contexto, salida_pdf):
 
     print("✅ PDF generado correctamente")
 
-def generarConstanciaInCrecer1(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo):
-
-    rango = obtener_rango_vigencia(ramo)
-    datos_tabla = leer_asegurados_excel(os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx"))
-
-    encabezado = (
-    "Crecer Seguros S.A. Compañía de Seguros – RUC: 20600098633<br>"
-    "Av. Jorge Basadre 310, piso 2, San Isidro, Lima – Perú<br>"
-    "T: Lima (01) 4174400 / Provincia (0801) 17440<br>"
-    "gestionalcliente@crecerseguros.pe"
-    )
-
-    ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Inclusiones"
-
-    contexto = {
-        "poliza": ramo.poliza,
-        "producto": "VIDA LEY",
-        "contratante": nombre_cliente,
-        "tramite": f"{palabra_clave.upper()} DE ASEGURADOS",
-        "rango_fech": rango,
-        "fecha_texto": fecha_lima_formateada(),
-        "datos_tabla": datos_tabla,
-        "titulo_html": f"ENDOSO DE {palabra_clave.upper()} DE ASEGURADOS",
-        "subtitulo_html": "ASEGURADOS INCLUIDOS:",
-        "encabezado_logo": encabezado,
-        "descripcion_html": f"""Por medio del presente endoso se deja constancia que, a solicitud del Contratante, 
-        se procede a incluir al (los) siguientes Asegurados a partir del""",
-        "firma_ger_op": "file://" + os.path.join(ruta_plantilla, "ger_ope_vl_crecer.jpg"),
-        "firma_vic": "file://" + os.path.join(ruta_plantilla, "vice_com_vl_crecer.jpg")
-    }
-
-    salida_pdf = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-
-    renderizar_pdf(
-        ruta_plantilla,
-        "crecerIn.html",
-        contexto,
-        salida_pdf,
-        os.path.join(ruta_plantilla, "logo_crecer.jpg"),
-        contexto["encabezado_logo"]
-    )
-
 def generarConstanciaInCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_cliente, ramo):
 
     rango = obtener_rango_vigencia(ramo)
@@ -197,59 +159,6 @@ def generarConstanciaInCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_clien
     # 🔹 Generar PDF
     HTML(string=html_renderizado, base_url=ruta_plantilla).write_pdf(salida_pdf)
     logging.info("✅ PDF generado correctamente")
-
-def generarConstanciaReCrecer1(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc,ramo):
-    
-    rango = obtener_rango_vigencia(ramo)
-    datos_tabla = leer_asegurados_excel(
-        os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx"),
-        incluir_nombres=False
-    )
-
-    encabezado = (
-    "Lima: (01) 417 4400<br>"
-    "Provincias: (0801) 17440<br>"
-    "gestionalcliente@crecerseguros.pe<br>"
-    "Av. Jorge Basadre 310, Piso 2, San Isidro - Lima"
-    )
-
-    ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Renovaciones"
-
-    contexto = {
-        "poliza": ramo.poliza,
-        "producto": "VIDA LEY",
-        "contratante": nombre_cliente,
-        "tramite": palabra_clave.upper(),
-        "ruc": ruc,
-        "sede": ramo.sede,
-        "rango_fech": rango,
-        "fecha_texto": fecha_lima_formateada(),
-        "datos_tabla": datos_tabla,
-        "titulo_html": "CONSTANCIA - SEGURO VIDA LEY TRABAJADORES",
-        "subtitulo_html": "CODIGO SBS N° VI1787300005",
-        "encabezado_logo": encabezado,
-        "descripcion_html": f"""Por medio del presente endoso se deja constancia que, a solicitud del Contratante,
-            se procede a renovar al (los) siguientes Asegurados a partir del""",
-        "firma_ger_op": "file://" + os.path.join(ruta_plantilla, "ger_ope_vl_crecer.jpg"),
-        "firma_vic": "file://" + os.path.join(ruta_plantilla, "vice_com_vl_crecer.jpg")
-    }
-
-    salida_pdf = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-
-    footer_vars = {
-        "img_footer": "file://" + os.path.join(ruta_plantilla, "img_footer.jpg"),
-        "redesS_footer": "file://" + os.path.join(ruta_plantilla, "redesSocialesCrecer.jpg")
-    }
-
-    renderizar_pdf(
-        ruta_plantilla,
-        "crecerRe.html",
-        contexto,
-        salida_pdf,
-        os.path.join(ruta_plantilla, "crecer_re_logo.jpg"),
-        contexto["encabezado_logo"],
-        footer_vars=footer_vars
-    )
 
 def generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc,ramo):
 

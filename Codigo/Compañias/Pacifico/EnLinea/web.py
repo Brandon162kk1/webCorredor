@@ -85,7 +85,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         if detectar_recaptcha(driver):
 
             logging.warning("🚫 Flujo detenido: reCAPTCHA activo")
-            #desbloquear_interaccion()
+            desbloquear_interaccion()
 
             try:
                 wait_humano = WebDriverWait(driver, 600)  # 10 minutos máx
@@ -223,7 +223,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         logging.info("🔙 Regresando a la ventana principal")
 
         try:
-            WebDriverWait(driver,10).until(EC.alert_is_present())
+            WebDriverWait(driver,20).until(EC.alert_is_present())
             alert = driver.switch_to.alert
             texto_alerta = alert.text   # 👈 guardar antes
             alert.accept()
@@ -231,7 +231,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             logging.info("✅ Alerta Aceptada")
             raise Exception(texto_alerta)
         except TimeoutException:
-            logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
+            pass
 
         # 🔑 REENTRAR A LOS FRAMES
         driver.switch_to.default_content() #Sale de TODOS los frames / iframes
@@ -315,8 +315,6 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         except TimeoutException:
             logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
 
-        input("Esperar")
-
         id_btn_procesar = "btnGrabar" if bab_codigo != '4' else "btnProcesar"
         btn_procesar = wait.until(EC.element_to_be_clickable((By.ID, id_btn_procesar)))
         driver.execute_script("arguments[0].scrollIntoView(true);", btn_procesar)
@@ -335,6 +333,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
         # Flujo para descargar constancia
         try:
+
             id_btn_verConstancia = "btnGenerarPdf" if bab_codigo != '4' else "btnVerConstancia"
             btn_verConstancia = wait.until(EC.element_to_be_clickable((By.ID, id_btn_verConstancia)))
 
@@ -348,6 +347,8 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
             #La web te lo descarga con el mismo nombre de la poliza , ya no es necesario renombrar
             if archivo_nuevo:
+
+                #SCTR no descarga con el nombre que es , vida ley si // arreglar
                 logging.info(f"✅ Constancia '{ramo.poliza}.pdf' descargado exitosamente")
             else:
                 raise Exception("No se encontró archivo nuevo después de descargar")
