@@ -365,20 +365,15 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
                 logging.info("🖱 Clic con JS en el botón de descarga")
 
                 archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
-                logging.info(f"✅ Archivo '{tipo_doc}' descargado exitosamente")
 
                 if archivo_nuevo:
-                    ruta_original = os.path.join(ruta_archivos_x_inclu, archivo_nuevo)
+                    logging.info(f"✅ Archivo '{tipo_doc}' descargado exitosamente")
+                    ruta_original = archivo_nuevo[0]
                     ruta_final = os.path.join(ruta_archivos_x_inclu, f"{nombre_guardar}.pdf")
                     os.rename(ruta_original, ruta_final)
                     logging.info(f"🔄 Archivo renombrado a '{nombre_guardar}.pdf'")
                 else:
                     raise Exception("No se encontró archivo después de la descarga")
-
-                # # Intentar descargar usando tu función personalizada
-                # if descargar_documento(driver, descargar_btn, nombre_guardar, impresion=False,pestaña=True):
-                #     time.sleep(2)  # espera para no saturar la web
-                #     logging.info(f"✅ Descargado: Fila {idx}, Tipo: {tipo_doc}")
 
             except Exception as e:
                 logging.error(f"❌ Error en fila {idx} ({tipo_doc if 'tipo_doc' in locals() else 'Desconocido'}): {e}")
@@ -430,7 +425,7 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
         logging.info (f"❌ Error enviando documento: {e}")
         raise Exception(f"{e}")
 
-    if ba_codigo == '3':
+    if ba_codigo == '3' and tipo_mes == 'MA':
         
         rutas = {
             "salud": os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf"),
