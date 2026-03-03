@@ -860,10 +860,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             alert.accept()
             logging.info("✅ Alerta aceptada")
 
-            tomar_capturar(driver,ruta_archivos_x_inclu,f"Tramite")
-
             try:
-                WebDriverWait(driver,5).until(EC.alert_is_present())
+                wait.until(EC.alert_is_present())
                 alert_impresion = driver.switch_to.alert
                 logging.info(f"⚠️ Alerta : ¿{alert_impresion.text}?")
                 alert_impresion.dismiss()
@@ -871,6 +869,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
             except TimeoutException:
                 logging.info("❌ No apareció ninguna alerta")
+            finally:
+                tomar_capturar(driver,ruta_archivos_x_inclu,f"Tramite")
 
         else:
             logging.warning("⚠️ Alerta no contemplada, se acepta por defecto")

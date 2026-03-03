@@ -113,7 +113,6 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         driver.execute_script("arguments[0].click();", folder)
         time.sleep(0.5)
 
-        # Click real
         link = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@id='spn_5']//a[contains(.,'Renovación')]")))
         driver.execute_script("arguments[0].click();", link)
         logging.info(f"🖱️ Clic en {palabra_clave}")
@@ -143,7 +142,6 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             alert.accept()
             logging.info("✅ Alerta Aceptada")
 
-            # MUY IMPORTANTE
             driver.switch_to.default_content()
 
         except TimeoutException:
@@ -301,7 +299,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         logging.info("🖱️ Clic en Cargar la trama")
 
         try:
-            WebDriverWait(driver,10).until(EC.alert_is_present())
+            wait.until(EC.alert_is_present())
             alert = driver.switch_to.alert
             texto_alerta = alert.text   # 👈 guardar antes
 
@@ -313,7 +311,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
                 raise Exception(f"{texto_alerta}")
 
         except TimeoutException:
-            logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
+            pass
 
         id_btn_procesar = "btnGrabar" if bab_codigo != '4' else "btnProcesar"
         btn_procesar = wait.until(EC.element_to_be_clickable((By.ID, id_btn_procesar)))
@@ -323,7 +321,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         logging.info("🖱️ Clic en Procesar")
 
         try:
-            WebDriverWait(driver,10).until(EC.alert_is_present())
+            wait.until(EC.alert_is_present())
             alert = driver.switch_to.alert
             logging.info(f"⚠️ Texto de la alerta: {alert.text}")
             alert.accept()
@@ -349,15 +347,19 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             if archivo_nuevo:
 
                 #SCTR no descarga con el nombre que es , vida ley si // arreglar
-                logging.info(f"✅ Constancia '{ramo.poliza}.pdf' descargado exitosamente")
+                if bab_codigo != '4':
+
+                    logging.info(f"✅ Archivo descargado exitosamente")
+                    ruta_original = archivo_nuevo[0]
+                    ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+                    os.rename(ruta_original, ruta_final)
+                    logging.info(f"🔄 Constancia renombrada a '{ramo.poliza}.pdf'")
+                else:
+                    logging.info(f"✅ Constancia '{ramo.poliza}.pdf' descargado exitosamente")
+
+                constancia = True
             else:
                 raise Exception("No se encontró archivo nuevo después de descargar")
-
-            # if descargar_documento(driver,btn_verConstancia,f"{ramo.poliza}",impresion=False,pestaña=False):
-            #     time.sleep(2)
-            #     logging.info(f"✅ Constancia {list_polizas[0]}.pdf descargado exitosamente")
-            # else:
-            #     raise Exception ("No se logró descargar la constancia, verificar manualmente")
 
         except TimeoutException:
             raise Exception(f"El boton Ver Constancia no esta clickeable aún")
@@ -365,6 +367,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         # Flujo para descargar liquidacion
         if tipo_mes == 'MA':
 
+            # En vida ley mes adelantado se descarga la constancia
             try:
                 btn_verLiqui = wait.until(EC.element_to_be_clickable((By.ID, "btnVerLiquidaciones")))
 
@@ -375,9 +378,10 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
                 logging.info("🖱 Clic con JS en el botón 'Ver Liquidacion'")
 
                 archivo_nuevo2 = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes2,".pdf",cantidad=1)
-                logging.info(f"✅ Archivo descargado exitosamente")
 
                 if archivo_nuevo2:
+
+                    logging.info(f"✅ Archivo descargado exitosamente")
                     ruta_original = archivo_nuevo2[0]
                     ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
                     os.rename(ruta_original, ruta_final)
@@ -385,12 +389,8 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
                 else:
                     logging.error("❌ No se encontró archivo nuevo después de la descarga")
 
-                # #if click_descarga_documento(driver,btn_verLiqui,f"endoso_{list_polizas[0]}"):
-                # if descargar_documento(driver,btn_verLiqui,f"endoso_{ramo.poliza}",impresion=False,pestaña=False):
-                #     time.sleep(2)
-                #     logging.info(f"✅ Endoso_{list_polizas[0]}.pdf descargado exitosamente")
-                # else:
-                #     raise Exception ("No se logró descargar el endoso, verificar manualmente")
+                proforma = True
+
             except TimeoutException:
                 raise Exception(f"El boton Ver Liquidación no esta clickeable aún")
 
@@ -420,11 +420,13 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
             logging.info("----------------------------")
 
-        return True,True if tipo_mes == 'MA' else False,tipoError,detalleError
+        #return True,True if tipo_mes == 'MA' else False,tipoError,detalleError
+        logging.info(f"✅ {palabra_clave} en Pacifico realizada exitosamente.")
 
     except Exception as e:
         ramo_s = "VL" if all(c == '4' for c in (bab_codigo)) else "SCTR"
         logging.error(f"❌ Error en Pacifico {ramo_s} - {tipo_mes}: {e}")
-        detalleError = str(e)
+        detalleError = f"PACI-{ramo_s}-{tipo_mes}"
         tipoError = str(e)
+    finally:
         return constancia,proforma,tipoError,detalleError
