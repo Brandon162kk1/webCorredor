@@ -15,7 +15,7 @@ __pycache__/
 *.pyo
 
 # Entornos / credenciales
-#.env
+.env
 config.json
 *.log
 
