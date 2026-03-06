@@ -10,6 +10,7 @@ from Tiempo.fechas_horas import get_fecha_hoy
 from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda,leer_pdf
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
+#from Apis.Post.webhook import enviar_constancia_anular
 #---- Import ---
 import os
 import re
@@ -31,6 +32,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     driver.switch_to.window(driver.window_handles[-1])
     logging.info("⌛ Esperando la nueva ventana...")
+
+    #Metodo para buscar y descargar constancias si es que falla la web
 
     transacciones = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Transacciones y Consultas")))
     transacciones.click()
@@ -470,7 +473,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             time.sleep(2)
 
-            logging.info(f"✅ {palabra_clave} en La Positiva realizada exitosamente.")
+            logging.info(f"✅ {palabra_clave} en La Positiva realizada exitosamente")
        
 def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
  
@@ -494,11 +497,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except:
         logging.info("✅ No apareció ninguna alerta")
                 
-    # resultado,asunto = validar_pagina(driver)
-
-    # if not resultado:
-    #     raise Exception (f"{asunto}")
-
     logging.info ("--- Se ingresó a Oficina Virtual La Positiva 🌐---")
     action = ActionChains(driver)
 
@@ -535,8 +533,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     time.sleep(1)
 
-    #raise Exception("Detenido para pruebas")
-
     select_element_2 = wait.until(EC.presence_of_element_located((By.NAME, "sRamo")))
     select_2 = Select(select_element_2)
     select_2.select_by_value("29")
@@ -566,12 +562,10 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     # --- Paso 5: Manejar el alert (si aparece) ---
     try:
-
         alert = wait.until(EC.alert_is_present())
         logging.info(f"⚠️ Alerta presente: {alert.text}")
         alert.accept()
         logging.info("✅ Alerta aceptada")
-
     except:
         logging.info("✅ No apareció ninguna alerta")
 
@@ -620,7 +614,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     logging.info("--- Ventana 3---------🌐")
 
     try:
-
         iframe2 = wait.until(EC.presence_of_element_located((By.NAME, "frmClientes")))
         driver.switch_to.frame(iframe2)
         elemento = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, \"selecciona('\")]")))
@@ -628,11 +621,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         time.sleep(3)
         driver.execute_script("arguments[0].click();", elemento)
         logging.info("🖱️ Clic en el Nombre del Cliente")
-
     except Exception as e:
-
-        msj = f'{e}'
-        raise Exception(msj)
+        raise Exception(e)
 
     # --- Esperar que se cierre la ventana 3 y volver a la 2
     time.sleep(3)
@@ -767,14 +757,11 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     # Primero verificar si aparece un alert
     try:
-
         WebDriverWait(driver,5).until(EC.alert_is_present())
-        #wait.until(EC.alert_is_present())
         alert1 = driver.switch_to.alert
         logging.info(f"⚠️ Alerta : ¿{alert1.text}?")
         alert1.accept()
         logging.info("✅ Alerta aceptada")
-
     except TimeoutException:
         logging.info("✅ No apareció la primera alerta, revisamos si salió el iframe...")
 
@@ -878,6 +865,21 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     except TimeoutException:
         logging.info("❌ No apareció ninguna alerta")
+
+
+    # ruta_cons = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+    # tramite = obtener_tramite_pdf(ruta_cons)
+
+    # if tramite is False:
+
+    #     # Enviar documento a ejecutivo para anular
+    #     enviar_constancia_anular(ejecutivo_responsable,ramo,ruta_cons)
+
+    #     raise Exception("Se genero la constancia sin valores de la Trama , enviando correo para anular")
+    # elif tramite is None:
+    #     raise Exception("No se encontró número de trámite de la constancia")
+    # else:
+    #     logging.info(f"✅ Número de trámite encontrado: {tramite}")
 
     logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
@@ -1246,7 +1248,7 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
                 time.sleep(random.uniform(0.97, 0.99))
 
                 escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
-                logging.info(f"⌨️ Digitando el Password '{ramo.clave}'.")
+                logging.info("⌨️ Digitando el Password")
 
                 time.sleep(1 + random.random() * 1.5)
 
@@ -1273,7 +1275,7 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
                         time.sleep(2)
                         driver.refresh()
                         continue
-                except:
+                except TimeoutException:
                     logging.info("✅ Login exitoso")
 
                 autogestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")))
@@ -1291,7 +1293,7 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
     except Exception as e:
 
         logging.error(f"❌ Error inesperado entrando a la url: {e}")
-        return False,False,"Login Fallido", e
+        return False,False,"Login Fallido", str(e)
 
     if bab_codigo in ['1', '2', '3']:
 
@@ -1299,13 +1301,11 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
             solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo)
             return True, True if tipo_mes == 'MA' else False, tipoError, detalleError
         except Exception as e:
-
-            logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {e}")
             resultado, asunto = validar_pagina(driver)
-            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_POSITIVA_SCTR_{tipo_mes}")
-            detalle = asunto if not resultado else str(e)
+            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_SCTR_{tipo_mes}")
+            detalle = f"{asunto} - {e}" if not resultado else str(e)
+            logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {detalle}")
             return False, False, f"LAPO-SCTR-{tipo_mes}", detalle
-
         finally:
             driver.close()
             logging.info("✅ Cerrando la Pestaña SED Positiva-SCTR")
@@ -1351,8 +1351,8 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
         logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: {e}")
 
         resultado, asunto = validar_pagina(driver)
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_POSITIVA_VL_{tipo_mes}")
-        detalle = asunto if not resultado else str(e)
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
+        detalle = f"{asunto} - {e}" if not resultado else str(e)
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", detalle
 
     finally:

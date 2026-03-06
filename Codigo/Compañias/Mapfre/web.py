@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from Tiempo.fechas_horas import tipo_vigencia
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
+from Chrome.google import tomar_capturar
 #---- Import ---
 import os
 import logging
@@ -320,7 +321,7 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
         else:
             alias = {
                 "Constancia": f"{ramo.poliza}",
-                "Recibo Vida Ley": f"endoso_{ramo.poliza}"
+                "Recibo": f"endoso_{ramo.poliza}"
             }
     else:
         if bab_codigo == '3':
@@ -422,25 +423,27 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
         logging.info("🖱️ Clic en el botón 'Enviar'.")
  
     except Exception as e:
-        logging.info (f"❌ Error enviando documento: {e}")
-        raise Exception(f"{e}")
+        raise Exception(f" No se pudo enviar documento -> {e}")
 
-    if ba_codigo == '3' and tipo_mes == 'MA':
+    # if ba_codigo == '3' and tipo_mes == 'MA':
         
-        rutas = {
-            "salud": os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf"),
-            "pension": os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[1]}.pdf"),
-        }
+    #     rutas = {
+    #         "salud": os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf"),
+    #         "pensión": os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[1]}.pdf"),
+    #     }
 
-        faltantes = [nombre for nombre, ruta in rutas.items() if not os.path.exists(ruta)]
+    #     faltantes = [nombre for nombre, ruta in rutas.items() if not os.path.exists(ruta)]
 
-        if faltantes:
-            raise Exception(f"No se encontraron los archivos {' y '.join(faltantes)}")
+    #     if faltantes:
+    #         raise Exception(f"No se encontraron los archivos {' y '.join(faltantes)}")
+
+    logging.info(f"✅ {palabra_clave} en Mapfre realizada exitosamente")
 
 def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
                               ejecutivo_responsable,ba_codigo,bab_codigo,nombre_cliente,ramo):
 
     global ventana_solicitud_mapfre
+    ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
     tipoError = ""
     detalleError = ""
     constancia = False
@@ -454,7 +457,8 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
             return True,True,tipoError,detalleError
         except Exception as e:
             logging.error(f"❌ Error en Mapfre (VL) - {tipo_mes}: {e}")
-            return constancia,proforma,f"MAPF-VL-{tipo_mes}",f"{e}"
+            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
+            return constancia,proforma,f"MAPF-VL-{tipo_mes}",str(e)
 
     try:
 
@@ -553,21 +557,26 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
         return True,True,tipoError,detalleError
     except Exception as e:
 
-        ramo_s = "SCTR" if all(c == '3' for c in (ba_codigo, bab_codigo)) else "VL"
+        #ramo_s = "SCTR" if all(c == '3' for c in (ba_codigo, bab_codigo)) else "VL"
+        #ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
+        tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
         logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
+
         try:
             ok_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
+            tomar_capturar(driver, ruta_archivos_x_inclu, "btnConfirmar")
             ok_btn.click()
             logging.info("🖱️ Clic en 'Confirmar'")
-        except :
+        except TimeoutException:
             try:
                 btn_cancelar = wait.until(EC.element_to_be_clickable((By.XPATH,"//a[contains(@class,'g-button') and contains(normalize-space(.), 'Cancelar')]")))
+                tomar_capturar(driver, ruta_archivos_x_inclu, "btnCancelar")
                 btn_cancelar.click()
                 logging.info("🖱️ Clic en 'Cancelar'")
-            except:
+            except TimeoutException:
                 pass
 
-        return constancia,proforma,f"MAPF-{ramo_s}-{tipo_mes}",f"{e}"
+        return constancia,proforma,f"MAPF-{ramo_s}-{tipo_mes}",str(e)
     finally:
         time.sleep(3)
         link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[span[text()='Constancias SCTR y VL']]")))  

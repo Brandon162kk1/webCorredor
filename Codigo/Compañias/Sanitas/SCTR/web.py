@@ -631,8 +631,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
         logging.error(f"❌ Error en Sanitas (SCTR) - {tipo_mes}: {e}")
         tipoError = f"SANI-SCTR-{tipo_mes}"
-        detalleError = e
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{compania}_SCTR_{tipo_mes}")
-
+        detalleError = str(e)
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_SCTR_{tipo_mes}")
     finally:
         return constancia,proforma,tipoError,detalleError
