@@ -4,6 +4,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from LinuxDebian.Ventana.ventana import bloquear_interaccion,desbloquear_interaccion,esperar_archivos_nuevos
+from Compañias.Positiva.metodos import validar_pagina
+from Chrome.google import tomar_capturar
 #---- Import ---
 import os
 import logging
@@ -55,6 +57,20 @@ def detectar_recaptcha(driver):
     except TimeoutException:
         return False
 
+def cerrar_popup(driver, ventana_principal, wait):
+    try:
+        wait.until(lambda d: len(d.window_handles) > 1)
+
+        for ventana in driver.window_handles:
+            if ventana != ventana_principal:
+                driver.switch_to.window(ventana)
+                driver.close()
+
+        driver.switch_to.window(ventana_principal)
+
+    except TimeoutException:
+        pass
+
 def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,
                           palabra_clave,ruc_empresa,ejecutivo_responsable,bab_codigo,ramo):
     
@@ -68,6 +84,11 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         driver.get("https://www0.pacificoseguros.com/loginPacifico/login.aspx") 
         logging.info("⌛ Cargando la Web de Pacifico en Linea")
            
+        resultado,asunto = validar_pagina(driver)
+
+        if not resultado:
+            raise Exception (f"{asunto}")
+
         user_input = wait.until(EC.element_to_be_clickable((By.ID, "txtNumero")))
         user_input.clear()
         user_input.send_keys(ramo.usuario)
@@ -81,6 +102,15 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "imbIngresar2")))
         driver.execute_script("arguments[0].click();", buscar_btn)
         logging.info(f"🖱️ Clic en 'Ingresar'")
+
+        try:
+            mensaje = WebDriverWait(driver,7).until(EC.visibility_of_element_located((By.ID, "lblMensaje")))
+            texto = mensaje.text.strip()
+            if "Contraseña incorrecta" in texto:
+                raise Exception(texto)
+
+        except TimeoutException:
+            pass
 
         if detectar_recaptcha(driver):
 
@@ -96,8 +126,8 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
                 logging.error("⏰ Timeout: reCAPTCHA no fue resuelto a tiempo")
                 raise Exception("🧩 Captcha no resuelto")
 
-            #finally:
-                #bloquear_interaccion()
+            finally:
+                bloquear_interaccion()
 
         #id_ramo = "imgbtn_EPS" if ba_codigo != '4' else "imgbtn_VIDA"
         seguro_vida = wait.until(EC.element_to_be_clickable((By.ID, "imgbtn_EPS")))
@@ -145,7 +175,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             driver.switch_to.default_content()
 
         except TimeoutException:
-            logging.info("✅ No apareció ninguna alerta en el tiempo especificado")
+            pass
 
         wait.until(EC.presence_of_element_located((By.NAME, "Menu")))
         wait.until(EC.frame_to_be_available_and_switch_to_it((By.NAME, "Menu")))
@@ -298,17 +328,18 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         driver.execute_script("arguments[0].click();", btnCargar)
         logging.info("🖱️ Clic en Cargar la trama")
 
+        time.sleep(5)
         try:
-            wait.until(EC.alert_is_present())
-            alert = driver.switch_to.alert
-            texto_alerta = alert.text   # 👈 guardar antes
 
-            if texto_alerta.startswith("Ingreso de planilla de trabajadores, satisfactorio."):
-                alert.accept()
-                logging.info(f"⚠️ Texto de la alerta: {texto_alerta}")
+            wait.until(EC.alert_is_present())
+            alert_trama = driver.switch_to.alert
+            texto_alerta_trama = alert_trama.text.strip()
+
+            if "Ingreso de planilla de trabajadores, satisfactorio" in texto_alerta_trama:
+                alert_trama.accept()
                 logging.info("✅ Alerta Aceptada")
             else:
-                raise Exception(f"{texto_alerta}")
+                raise Exception(texto_alerta_trama)
 
         except TimeoutException:
             pass
@@ -327,7 +358,9 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             alert.accept()
             logging.info("✅ Alerta Aceptada")
         except TimeoutException:
-            raise Exception(f"No apareció ninguna alerta de confirmación")
+            pass
+
+        ventana_principal = driver.current_window_handle
 
         # Flujo para descargar constancia
         try:
@@ -342,6 +375,8 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             logging.info("🖱 Clic con JS en el botón 'Ver Constancia'")
 
             archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+
+            cerrar_popup(driver, ventana_principal, wait)
 
             #La web te lo descarga con el mismo nombre de la poliza , ya no es necesario renombrar
             if archivo_nuevo:
@@ -358,41 +393,102 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
                     logging.info(f"✅ Constancia '{ramo.poliza}.pdf' descargado exitosamente")
 
                 constancia = True
+               
             else:
                 raise Exception("No se encontró archivo nuevo después de descargar")
 
         except TimeoutException:
-            raise Exception(f"El boton Ver Constancia no esta clickeable aún")
+            raise Exception(f"No esta habilitado la opcion para descargar la constancia")
 
-        # Flujo para descargar liquidacion
+        # Flujo para descargar Proformas - Liquidacion y Facturacion
         if tipo_mes == 'MA':
 
-            # En vida ley mes adelantado se descarga la constancia
-            try:
-                btn_verLiqui = wait.until(EC.element_to_be_clickable((By.ID, "btnVerLiquidaciones")))
+            if bab_codigo != '4':
+                
+                try:
 
-                # Guardar archivos antes del clic
-                archivos_antes2 = set(os.listdir(ruta_archivos_x_inclu))
+                    btn_proforma_salud = wait.until(EC.element_to_be_clickable((By.ID, "btnGenerarPdfFactura")))
+                    archivos_antes_proforma_Salud = set(os.listdir(ruta_archivos_x_inclu))
+                    driver.execute_script("arguments[0].click();", btn_proforma_salud)
+                    logging.info("🖱 Clic con JS en el botón 'Ver Documento Salud'")
 
-                driver.execute_script("arguments[0].click();", btn_verLiqui)
-                logging.info("🖱 Clic con JS en el botón 'Ver Liquidacion'")
+                    proforma_salud = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_proforma_Salud,".pdf",cantidad=1)
 
-                archivo_nuevo2 = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes2,".pdf",cantidad=1)
+                    cerrar_popup(driver, ventana_principal, wait)
 
-                if archivo_nuevo2:
+                    if proforma_salud:
 
-                    logging.info(f"✅ Archivo descargado exitosamente")
-                    ruta_original = archivo_nuevo2[0]
-                    ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
-                    os.rename(ruta_original, ruta_final)
-                    logging.info(f"🔄 Endoso renombrado a 'endoso_{ramo.poliza}.pdf'")
-                else:
-                    logging.error("❌ No se encontró archivo nuevo después de la descarga")
+                        logging.info(f"✅ Archivo descargado exitosamente")
+                        ruta_proforma_salud = proforma_salud[0]
+                        ruta_nueva_proforma = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
+                        os.rename(ruta_proforma_salud, ruta_nueva_proforma)
+                        proforma = True
+                        logging.info(f"🔄 Facturación renombrado a 'endoso_{ramo.poliza}.pdf'")
+                    else:
+                        logging.error("❌ No se encontró archivo nuevo después de la descarga")
 
-                proforma = True
+                except TimeoutException:
+                    logging.error(f"El boton Ver Documento Salud no esta clickeable aún")
 
-            except TimeoutException:
-                raise Exception(f"El boton Ver Liquidación no esta clickeable aún")
+                try:
+
+                    btn_proforma_pension= wait.until(EC.element_to_be_clickable((By.ID, "btnVerDocPension")))
+                    archivos_antes_proforma_Pension = set(os.listdir(ruta_archivos_x_inclu))
+
+                    driver.execute_script("arguments[0].click();", btn_proforma_pension)
+                    logging.info("🖱 Clic con JS en el botón 'Ver Documento Pension'")
+
+                    proforma_pension = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_proforma_Pension,".pdf",cantidad=1)
+
+                    cerrar_popup(driver, ventana_principal, wait)
+
+                    if proforma_pension:
+
+                        logging.info(f"✅ Archivo descargado exitosamente")
+                        ruta_proforma_pension = proforma_pension[0]
+
+                        nom_p_2 = f"{list_polizas[1]}" if len(list_polizas) == 2 else f"{ramo.poliza}"
+
+                        ruta_nueva_proformaP = os.path.join(ruta_archivos_x_inclu, f"endoso_{nom_p_2}.pdf")
+                        os.rename(ruta_proforma_pension, ruta_nueva_proformaP)
+                        proforma = True
+                        logging.info(f"🔄 Liquidación renombrado a 'endoso_{nom_p_2}.pdf'")
+                    else:
+                        logging.error("❌ No se encontró archivo nuevo después de la descarga")
+
+                except TimeoutException:
+                    logging.error(f"El boton Ver Documento Pension no esta clickeable aún")
+
+            else:
+                # En vida ley mes adelantado se descarga la constancia
+                try:
+                    btn_verLiqui = wait.until(EC.element_to_be_clickable((By.ID, "btnVerLiquidaciones")))
+
+                    # Guardar archivos antes del clic
+                    archivos_antes2 = set(os.listdir(ruta_archivos_x_inclu))
+
+                    driver.execute_script("arguments[0].click();", btn_verLiqui)
+                    logging.info("🖱 Clic con JS en el botón 'Ver Liquidacion'")
+
+                    archivo_nuevo2 = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes2,".pdf",cantidad=1)
+
+                    cerrar_popup(driver, ventana_principal, wait)
+
+                    if archivo_nuevo2:
+
+                        logging.info(f"✅ Archivo descargado exitosamente")
+                        ruta_original = archivo_nuevo2[0]
+                        ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
+                        os.rename(ruta_original, ruta_final)
+                        proforma = True
+                        logging.info(f"🔄 Endoso renombrado a 'endoso_{ramo.poliza}.pdf'")
+                    else:
+                        logging.error("❌ No se encontró archivo nuevo después de la descarga")
+
+                    proforma = True
+
+                except TimeoutException:
+                    logging.error(f"El boton Ver Liquidación no esta clickeable aún")
 
         if len(list_polizas) == 2:
 
@@ -409,24 +505,14 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
             logging.info("----------------------------")
 
-            ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[0]}.pdf")
-            ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[1]}.pdf")
-
-            if os.path.exists(ruta_endoso_salud):
-                shutil.copy2(ruta_endoso_salud,ruta_endoso_pension)
-                logging.info(f"📄 Copia creada para el endoso de Pensión")
-            else:
-                logging.error(f"❌ No existe el archivo base Endoso Salud")
-
-            logging.info("----------------------------")
-
         #return True,True if tipo_mes == 'MA' else False,tipoError,detalleError
         logging.info(f"✅ {palabra_clave} en Pacifico realizada exitosamente.")
 
     except Exception as e:
-        ramo_s = "VL" if all(c == '4' for c in (bab_codigo)) else "SCTR"
+        ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
+        tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
         logging.error(f"❌ Error en Pacifico {ramo_s} - {tipo_mes}: {e}")
-        detalleError = f"PACI-{ramo_s}-{tipo_mes}"
-        tipoError = str(e)
-    finally:
-        return constancia,proforma,tipoError,detalleError
+        tipoError = f"PACI-{ramo_s}-{tipo_mes}"
+        detalleError = str(e)
+    
+    return constancia,proforma,tipoError,detalleError

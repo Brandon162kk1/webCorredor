@@ -2,6 +2,7 @@
 import logging
 import os
 import json
+from LinuxDebian.Carpetas.rutas import obtener_imagenes_error
 
 # --- Variables de Entorno ---
 API_KEY = os.getenv("API_KEY")
@@ -60,15 +61,20 @@ def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma
         logging.error(f"❌ Error conectando al API para actualizar | Movimiento {id_movimiento} | Ramo {ramo} | {e}")
         return False
 
-def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error):
+def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error,ruta_carpeta,const):
 
     url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/error"
+
+    imagenes = obtener_imagenes_error(ruta_carpeta, const)
 
     payload = {
         "ramo": ramo,
         "error": error,
         "detalleError": str(detalle_error)
     }
+
+    if imagenes:
+        payload["imagenes"] = imagenes
 
     try:
         response = requests.put(url,json=payload,headers=headers,timeout=30)

@@ -33,7 +33,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     pass_input = wait.until(EC.presence_of_element_located((By.ID, "spassword")))
     pass_input.clear()
     pass_input.send_keys(ramo.clave)
-    logging.info(f"⌨️ Digitando el Password '{ramo.clave}'")
+    logging.info(f"⌨️ Digitando el Password")
 
     logging.info("🧩 Resuelve el CAPTCHA manualmente y clic en 'Ingresar'")
 
@@ -81,7 +81,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
             return False,True,tipoError,detalleError
         except Exception as e:
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
-            return False,False,f"CREC-VL-{tipo_mes}",e
+            return False,False,f"CREC-VL-{tipo_mes}",str(e)
 
     elif tipo_proceso == 'RE':
 
@@ -90,7 +90,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
             return False,True,tipoError,detalleError
         except Exception as e :
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
-            return False,False,f"CREC-VL-{tipo_mes}",e
+            return False,False,f"CREC-VL-{tipo_mes}",str(e)
 
     else:
 
@@ -99,7 +99,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
             return True,False,tipoError,detalleError
         except Exception as e :
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
-            return False,False,f"CREC-VL-{tipo_mes}",e
+            return False,False,f"CREC-VL-{tipo_mes}",str(e)
 
 def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
 

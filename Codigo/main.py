@@ -6,11 +6,11 @@ from Compañias.Positiva.web import login_la_positiva
 from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
 from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer_vl
 from Compañias.Sanitas.VidaLey.Protecta.web import procesar_solicitud_san_protecta_vl
-from Compañias.Rimac.VidaLey.web_sas import realizar_solicitud_SAS
+#from Compañias.Rimac.VidaLey.web_sas import realizar_solicitud_SAS
 from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
 from Plantillas.Crecer.generarplantilla import generarConstanciaInCrecer,generarConstanciaReCrecer
 # -- Froms Apis ---
-from Apis.Post.webhook import enviar_error_interno,enviar_error_consolidado
+from Apis.Post.webhook import enviar_error_interno
 from Apis.Put.web_corredor import enviar_documentos,enviar_error_movimiento,enviar_puerto,enviar_estaca
 # -- Froms Configuración ---
 from LinuxDebian.Carpetas.rutas import armar_ruta_archivos
@@ -179,15 +179,10 @@ def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_me
                           ruc_empresa,ejecutivo_responsable,tipo_proceso,palabra_clave,actividad,nombre_cliente,
                           ramo):
 
-    # def ejecutar_rimac_corredores():
-    #     logging.info("✅ Compañía: Rímac - Corredores")
-    #     return realizar_solicitud_corredores(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-    #                                          ejecutivo_responsable,ba_codigo,nombre_cliente,ruc_empresa,ramo)
-
     def ejecutar_rimac_portal_web():
         logging.info("✅ Compañía: Rímac - Portal Web")
         return realizar_solicitud_PortalWeb(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,
-                                                                    palabra_clave,ejecutivo_responsable,ba_codigo,nombre_cliente,ruc_empresa,ramo)
+                                             palabra_clave,ejecutivo_responsable,ba_codigo,nombre_cliente,ruc_empresa,ramo)
 
     def ejecutar_mapfre():
         logging.info("✅ Compañía: Mapfre")
@@ -225,9 +220,9 @@ def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_me
         return False,False,"Compañía no reconocida","Revisar compañía"
 
     resultado = dispatch[compania_BA]()
-    constancia,proforma,tipoError,detalleErrror = resultado
+    constancia,proforma,tipoError,detalleError = resultado
    
-    return constancia,proforma,tipoError,detalleErrror
+    return constancia,proforma,tipoError,detalleError
 
 def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_codigo,tipo_mes, 
                              ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave, 
@@ -240,20 +235,6 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
     # SAS: MV VidaLey.
     # WebCorredores: SCTR (MV-MA) y Ver Facturas.
  
-    def ejecutar_rimac_SAS():
-        logging.info("✅ Compañía: Rímac - SAS")
-        return realizar_solicitud_SAS(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,ejecutivo_responsable,
-                                      ba_codigo, bb_codigo,nombre_cliente,ruc_empresa,ramo)
-
-    def ejecutar_rimac_portal_web():
-        logging.info("✅ Compañía: Rímac - Portal Web")
-        return realizar_solicitud_PortalWeb(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-                                            ejecutivo_responsable,ba_codigo,nombre_cliente,ruc_empresa,ramo)
-
-    def manejar_error_crecer(e,tipo_mes):
-        logging.error(f"❌ Error en Crecer Vida Ley: {e}")
-        return False,False, f"{compania_BB}-VL-{tipo_mes}", e
-
     def ejecutar_mapfre():
         logging.info("✅ Compañía: Mapfre")
         return realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
@@ -276,14 +257,6 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
         else:
 
             logging.info("Tipo: Mes Adelantado")
-            # try:
-            #     procesar_solicitud_san_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,ruc_empresa,tipo_mes,ramo)
-            #     return False,True,"",""
-            # except Exception as e:
-            #     logging.error(f"❌ Error en Crecer Vida Ley {tipo_mes}: '{e}'")
-            #     return False,False, f"{compania_BB}-VL-{tipo_mes}", e
-            # # except Exception as e:
-            # #     return manejar_error_crecer(e,tipo_mes)
             return login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,ruc_empresa,tipo_mes,ramo)
 
     def ejecutar_protecta():
@@ -313,7 +286,7 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
         'PROT': ejecutar_protecta,
         'MAPF': ejecutar_mapfre,
         'LAPO': ejecutar_lapositiva,
-        'RIMA': ejecutar_rimac_SAS if tipo_mes == 'MV' else ejecutar_rimac_portal_web,
+        #'RIMA': ejecutar_rimac_SAS if tipo_mes == 'MV' else ejecutar_rimac_portal_web,
         'PACI': ejecutar_pacifico
     }
 
@@ -331,11 +304,9 @@ def enviar_puerto_por_ramos(RAMOS, puerto):
 
         ctx_ramo = r["ctx"]
 
-        # ⛔ No existe movimiento
         if not ctx_ramo.id_poliza:
             continue
 
-        # ⛔ Ya está activo
         if ctx_ramo.activo:
             continue
 
@@ -346,7 +317,7 @@ def enviar_puerto_por_ramos(RAMOS, puerto):
 
         time.sleep(1)
 
-        return True   # ✅ SE ENVIÓ UNA VEZ
+        return True
 
     logging.info("ℹ️ No hubo ramos disponibles para enviar puerto")
     return False
@@ -551,7 +522,7 @@ def main():
         logging.error(f"⚠️ Conclusión: {e}")
     finally:
 
-        errores_consolidados = []
+        #errores_consolidados = []
         RAMOS = [
             {
                 "ramo": "SALUD",
@@ -617,23 +588,19 @@ def main():
             if tipo_error and detalle_error:
                 logging.info(f"⌛ Enviando errores para '{ramo}' con Id → {id_mov}")
 
-                enviar_error_movimiento(id_mov,ramo,tipo_error,detalle_error)
+                const =  "SCTR" if ramo in ("SALUD","PENSION") else "VIDALEY"
+
+                enviar_error_movimiento(id_mov,ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
                 time.sleep(1)
+                enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
-                # # Generar nombre dinámico
-                # nombre_imagen = f"error_{ramo}.png"
-                # ruta_completa = os.path.join(ruta_archivos_x_inclu, nombre_imagen)
-                # driver.save_screenshot(ruta_completa)
+                # tramas = []
 
-                time.sleep(1)
+                # if ctx_ramo.trama:
+                #     tramas.append(ctx_ramo.trama)
 
-                tramas = []
-
-                if ctx_ramo.trama:
-                    tramas.append(ctx_ramo.trama)
-
-                if ctx_ramo.trama_97:
-                    tramas.append(ctx_ramo.trama_97)
+                # if ctx_ramo.trama_97:
+                #     tramas.append(ctx_ramo.trama_97)
 
                 # # Guardamos información para envío único
                 # errores_consolidados.append(f"""Ramo: {ramo}\n
@@ -645,24 +612,19 @@ def main():
                 #                                 Tipo: {tipo_error}\n
                 #                                 Detalle: {detalle_error}\n
                 #                                 """)
-                #enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_completa)
 
             # ---------------- DOCUMENTOS ----------------
             if constancia:
                 constancia = f"{ctx_ramo.poliza}.pdf"
                 ruta_constancia = os.path.join(ruta_archivos_x_inclu, constancia)
-
                 logging.info(f"⌛ Enviando Constancia de '{ramo}' al Id → {id_mov}")
-
                 enviar_documentos(id_mov, ruta_constancia, ramo, "Constancia")
                 time.sleep(1)
 
             if proforma:
                 endoso = f"endoso_{ctx_ramo.poliza}.pdf"
                 ruta_endoso = os.path.join(ruta_archivos_x_inclu, endoso)
-
                 logging.info(f"⌛ Enviando Endoso de '{ramo}' al Id →{id_mov}")
-
                 enviar_documentos(id_mov, ruta_endoso, ramo, "Endoso")
                 time.sleep(1)
         #------- Enviando Error Consolidado a Jishu ----------------------------------

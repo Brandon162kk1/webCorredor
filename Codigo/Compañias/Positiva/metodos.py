@@ -11,6 +11,7 @@ import logging
 import time
 import random
 import pdfplumber
+import re
 
 def escribir_lento(elemento, texto, min_delay, max_delay):
     """Envía texto carácter por carácter con retrasos aleatorios."""
@@ -46,10 +47,17 @@ def validar_pagina(driver):
 
     try:
 
-        # Validar si aparece el mensaje de error en el body
-        if "The requested URL was rejected. Please consult with your administrator." in driver.page_source:
+        page = driver.page_source
+
+        # Error de seguridad
+        if "The requested URL was rejected. Please consult with your administrator." in page:
             asunto = "Página web de La Positiva fuera de Servicio"
-            return False,asunto
+            return False, asunto
+
+        # Error 404
+        if "404 - File or directory not found." in page:
+            asunto = "Página 404 - Archivo o directorio no encontrado"
+            return False, asunto
 
         asunto = "Redirecciono a otra página"
 
@@ -80,6 +88,37 @@ def validardeuda(driver,wait):
 
     except TimeoutException:
         return False
+
+def obtener_tramite_pdf(ruta_pdf):
+
+    try:
+
+        texto = ""
+
+        with pdfplumber.open(ruta_pdf) as pdf:
+            for page in pdf.pages:
+                texto += page.extract_text() or ""
+
+        # Normalizar texto (muy importante en PDFs)
+        texto = " ".join(texto.split())
+
+        # 1️⃣ Validar si existe Nota:
+        if "Nota:" not in texto:
+            return False
+
+        # 2️⃣ Buscar fecha + número de trámite
+        patron = r"\d{1,2}\s+de\s+\w+\s+de\s+\d{4}\s+(\d+)"
+
+        match = re.search(patron, texto)
+
+        if match:
+            return match.group(1)  # número de trámite
+        else:
+            return None
+
+    except Exception as e:
+        logging.error(f"❌ Error leyendo PDF: {e}")
+        return None
 
 def leer_pdf(ruta_pdf):
     texto_completo = ""

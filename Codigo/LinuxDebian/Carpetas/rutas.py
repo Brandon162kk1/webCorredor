@@ -2,7 +2,7 @@
 # -- Imports --
 import os
 import logging
-import logging
+import base64
 #---- Froms ---
 from Tiempo.fechas_horas import get_timestamp,get_dia,get_mes
 from io import StringIO
@@ -10,6 +10,27 @@ from io import StringIO
 #---- Carpetas Descargas -----------
 nombre_carpeta_descargas = "Downloads"
 download_path = f"/app/{nombre_carpeta_descargas}"
+
+def obtener_imagenes_error(ruta_carpeta, const):
+
+    imagenes_payload = []
+
+    try:
+        for archivo in os.listdir(ruta_carpeta):
+
+            if archivo.startswith(f"ERROR_{const}") and archivo.lower().endswith(".png"):
+
+                ruta_completa = os.path.join(ruta_carpeta, archivo)
+
+                with open(ruta_completa, "rb") as f:
+                    imagen_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+                imagenes_payload.append(imagen_base64)
+
+    except Exception as e:
+        logging.error(f"❌ Error leyendo imágenes de la carpeta: {e}")
+
+    return imagenes_payload
 
 def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compania_BB, poliza1, poliza2, poliza3):
 
