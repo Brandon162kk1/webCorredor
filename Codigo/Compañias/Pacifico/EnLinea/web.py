@@ -409,6 +409,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
                     btn_proforma_salud = wait.until(EC.element_to_be_clickable((By.ID, "btnGenerarPdfFactura")))
                     archivos_antes_proforma_Salud = set(os.listdir(ruta_archivos_x_inclu))
+                    driver.execute_script("arguments[0].scrollIntoView(true);", btn_proforma_salud)
                     driver.execute_script("arguments[0].click();", btn_proforma_salud)
                     logging.info("🖱 Clic con JS en el botón 'Ver Documento Salud'")
 
@@ -434,7 +435,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
                     btn_proforma_pension= wait.until(EC.element_to_be_clickable((By.ID, "btnVerDocPension")))
                     archivos_antes_proforma_Pension = set(os.listdir(ruta_archivos_x_inclu))
-
+                    driver.execute_script("arguments[0].scrollIntoView(true);", btn_proforma_pension)
                     driver.execute_script("arguments[0].click();", btn_proforma_pension)
                     logging.info("🖱 Clic con JS en el botón 'Ver Documento Pension'")
 
@@ -466,7 +467,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
 
                     # Guardar archivos antes del clic
                     archivos_antes2 = set(os.listdir(ruta_archivos_x_inclu))
-
+                    driver.execute_script("arguments[0].scrollIntoView(true);", btn_verLiqui)
                     driver.execute_script("arguments[0].click();", btn_verLiqui)
                     logging.info("🖱 Clic con JS en el botón 'Ver Liquidacion'")
 
