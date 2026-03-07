@@ -120,11 +120,18 @@ def generarConstanciaInCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_clien
         os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx")
     )
 
+    # encabezado = (
+    #     "Crecer Seguros S.A. Compañía de Seguros – RUC: 20600098633<br>"
+    #     "Av. Jorge Basadre 310, piso 2, San Isidro, Lima – Perú<br>"
+    #     "T: Lima (01) 4174400 / Provincia (0801) 17440<br>"
+    #     "gestionalcliente@crecerseguros.pe"
+    # )
+
     encabezado = (
-        "Crecer Seguros S.A. Compañía de Seguros – RUC: 20600098633<br>"
-        "Av. Jorge Basadre 310, piso 2, San Isidro, Lima – Perú<br>"
-        "T: Lima (01) 4174400 / Provincia (0801) 17440<br>"
-        "gestionalcliente@crecerseguros.pe"
+        "Lima: (01) 417 4400<br>"
+        "Provincias: (0801) 17440<br>"
+        "gestionalcliente@crecerseguros.pe<br>"
+        "Av. Jorge Basadre 310, Piso 2, San Isidro - Lima"
     )
 
     ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Inclusiones"
@@ -140,12 +147,10 @@ def generarConstanciaInCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_clien
         "encabezado_logo": encabezado,
         "titulo_html": f"ENDOSO DE {palabra_clave.upper()} DE ASEGURADOS",
         "subtitulo_html": "ASEGURADOS INCLUIDOS:",
-        "descripcion_html": f"""Por medio del presente endoso se deja constancia que, 
-        a solicitud del Contratante, se procede a incluir al (los) siguientes 
-        Asegurados a partir del""",
-        # 👇 Ahora SIN file://
-        "firma_ger_op": os.path.join(ruta_plantilla, "ger_ope_vl_crecer.jpg"),
-        "firma_vic": os.path.join(ruta_plantilla, "vice_com_vl_crecer.jpg"),
+        "descripcion_html": f"""Por medio del presente constancia indicamos la relación de Asegurados
+        que integran la póliza vida ley en la vigencia del""",
+        "firma_ger_ope": os.path.join(ruta_plantilla, "gerente_operaciones.jpg"),
+        "firma_ger_com": os.path.join(ruta_plantilla, "gerente_comercial.jpg"),
         "logo": os.path.join(ruta_plantilla, "logo_crecer.jpg")
     }
 
@@ -191,13 +196,13 @@ def generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente
         "titulo_html": "CONSTANCIA - SEGURO VIDA LEY TRABAJADORES",
         "subtitulo_html": "CODIGO SBS N° VI1787300005",
         "encabezado_logo": encabezado,
-        "descripcion_html": """Por medio de la presente constancia indicamos la relación de Asegurados que integran la póliza
-        vida ley en la vigencia del """,
+        "descripcion_html": """Por medio del presente constancia indicamos la relación de Asegurados
+        que integran la póliza vida ley en la vigencia del""",
 
         # 🔥 RUTAS SIN file://
         "logo": os.path.join(ruta_plantilla, "crecer_re_logo.jpg"),
-        "firma_ger_op": os.path.join(ruta_plantilla, "ger_ope_vl_crecer.jpg"),
-        "firma_vic": os.path.join(ruta_plantilla, "vice_com_vl_crecer.jpg"),
+        "firma_ger_ope": os.path.join(ruta_plantilla, "gerente_operaciones.jpg"),
+        "firma_ger_com": os.path.join(ruta_plantilla, "gerente_comercial.jpg"),
         "img_footer": os.path.join(ruta_plantilla, "img_footer.jpg"),
         "redes_footer": os.path.join(ruta_plantilla, "redesSocialesCrecer.jpg"),
     }

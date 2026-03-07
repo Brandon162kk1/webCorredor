@@ -10,6 +10,7 @@ from Tiempo.fechas_horas import get_timestamp,get_fecha_menos_x_dias
 from LinuxDebian.Ventana.ventana import desbloquear_interaccion,bloquear_interaccion,esperar_archivos_nuevos
 from LinuxDebian.OtrosMetodos.metodos import subir_trama
 from Compañias.Sanitas.metodos import imagen_a_pdf
+from Chrome.google import tomar_capturar
 #   --- Imports ----
 import time
 import os
@@ -35,44 +36,33 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     pass_input.send_keys(ramo.clave)
     logging.info(f"⌨️ Digitando el Password")
 
-    logging.info("🧩 Resuelve el CAPTCHA manualmente y clic en 'Ingresar'")
+    #logging.info("🧩 Resuelve el CAPTCHA manualmente y clic en 'Ingresar'")
+    # API para actualizar el id de la poliza indicando que resuelva captcha
 
-    #desbloquear_interaccion()
-    ruta_imagen = os.path.join(ruta_archivos_x_inclu,f"captcha_{get_timestamp()}.png")
-    driver.save_screenshot(ruta_imagen)
     wait_humano = WebDriverWait(driver,300)
+    #desbloquear_interaccion()
 
     try:
-
         WebDriverWait(driver,150).until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Debe crear una contraseña nueva.')]")))
         logging.warning("⚠️ Alerta de contraseña temporal detectada")
-
-        driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"cambiarPassword_{get_timestamp()}.png"))
-
-        raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla manualmente antes de continuar con el proceso automático")
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"cambiarPassword")
+        raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla manualmente antes de continuar con el proceso automático o comunicate con tu administrador.")
 
     except TimeoutException:
 
         try:
-            # Esperar hasta que el modal aparezca (máximo 10s)
             modal = WebDriverWait(driver,15).until(EC.visibility_of_element_located((By.CLASS_NAME, "modal-content")))
-    
-            # Capturar el mensaje del modal
             mensaje = modal.find_element(By.CLASS_NAME, "security-body").text
             logging.info(f"📩 Mensaje del modal: {mensaje}")
-    
-            # Hacer clic en el botón "Aceptar"
             boton_aceptar = modal.find_element(By.XPATH, ".//button[contains(text(),'Aceptar')]")
             boton_aceptar.click()
             logging.info("🖱️ Clic en 'Aceptar'")
+        except TimeoutException:
+            pass
 
-        finally:
-            wait_humano.until(EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")))
-
-    #bloquear_interaccion()
-
-    logging.info("✅ Login exitoso detectado (Cerrar sesión visible)")
-    #logging.info("🚀 Continuando flujo automáticamente")
+    wait_humano.until(EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")))
+    bloquear_interaccion()
+    logging.info("✅ Login exitoso detectado")
 
     if tipo_proceso == 'IN':
 

@@ -521,7 +521,6 @@ def main():
     except Exception as e:
         logging.error(f"⚠️ Conclusión: {e}")
     finally:
-
         #errores_consolidados = []
         RAMOS = [
             {

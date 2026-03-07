@@ -246,7 +246,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         except TimeoutException:
 
             try:
-                WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")))
+                WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")))
 
                 cantidad_errores = wait.until(EC.visibility_of_element_located((By.ID, "spnContadorError"))).text
                 cantidad_texto = "error" if cantidad_errores == '1' else "errores"
@@ -259,7 +259,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla")
 
             except TimeoutException:
-                logging.info("✅ No se encontraron errores al subir la planilla. Continuando flujo normal")
+                pass
 
         alerta_detectada = False
 
