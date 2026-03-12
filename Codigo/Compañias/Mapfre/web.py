@@ -16,7 +16,6 @@ import pandas as pd
 def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,
                                      ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
 
-
     ramo_opcion = "Vida Ley" if bab_codigo == '4' else "SCTR General"
     opcion = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li[a/div[normalize-space()='{ramo_opcion}']]/a")))
     driver.execute_script("arguments[0].click();", opcion)

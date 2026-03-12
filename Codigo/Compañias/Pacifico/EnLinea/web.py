@@ -6,6 +6,8 @@ from selenium.common.exceptions import TimeoutException
 from LinuxDebian.Ventana.ventana import bloquear_interaccion,desbloquear_interaccion,esperar_archivos_nuevos
 from Compañias.Positiva.metodos import validar_pagina
 from Chrome.google import tomar_capturar
+from selenium.common.exceptions import NoAlertPresentException
+from Apis.Put.web_corredor import enviar_aviso_captcha
 #---- Import ---
 import os
 import logging
@@ -71,6 +73,16 @@ def cerrar_popup(driver, ventana_principal, wait):
     except TimeoutException:
         pass
 
+def manejar_alerta(driver):
+    try:
+        alert = driver.switch_to.alert
+        texto = alert.text.strip()
+        alert.accept()
+        logging.warning(f"⚠️ Alerta detectada: {texto}")
+        return texto
+    except NoAlertPresentException:
+        return None
+
 def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,
                           palabra_clave,ruc_empresa,ejecutivo_responsable,bab_codigo,ramo):
     
@@ -108,23 +120,26 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             texto = mensaje.text.strip()
             if "Contraseña incorrecta" in texto:
                 raise Exception(texto)
-
         except TimeoutException:
             pass
 
         if detectar_recaptcha(driver):
 
             logging.warning("🚫 Flujo detenido: reCAPTCHA activo")
+
+            #enviar por api que salio captcha
+            enviar_aviso_captcha(ramo)
+
             desbloquear_interaccion()
 
             try:
                 wait_humano = WebDriverWait(driver, 600)  # 10 minutos máx
                 wait_humano.until(EC.presence_of_element_located((By.ID, "Label1")))
-                logging.info("✅ reCAPTCHA resuelto, Label1 detectado")
+                logging.info("🧩 reCAPTCHA resuelto")
 
             except TimeoutException:
                 logging.error("⏰ Timeout: reCAPTCHA no fue resuelto a tiempo")
-                raise Exception("🧩 Captcha no resuelto")
+                raise Exception("Captcha no resuelto")
 
             finally:
                 bloquear_interaccion()
@@ -166,7 +181,6 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         logging.info(f"🖱️ Clic en el cliente")
 
         try:
-            WebDriverWait(driver,5).until(EC.alert_is_present())
             alert = driver.switch_to.alert
             logging.info(f"⚠️ Texto de la alerta: {alert.text}")
             alert.accept()
@@ -250,15 +264,34 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         volver_a_ventana(wait, driver, ventana_principal, len(handles_iniciales))
         logging.info("🔙 Regresando a la ventana principal")
 
+        f"""⚠️ Conclusión: Alert Text: Ocurrió un error en el Servicio, comunícase con el administrador.
+        Message: unexpected alert open: Alert text : Ocurrió un error en el Servicio, comunícase con el administrador.
+          (Session info: chrome=145.0.7632.109)
+        Stacktrace:
+        #0 0x56388b0ddd0a <unknown>
+        #1 0x56388aaed682 <unknown>
+        #2 0x56388ab8b9b0 <unknown>
+        #3 0x56388ab3488f <unknown>
+        #4 0x56388ab35651 <unknown>
+        #5 0x56388b0a2159 <unknown>
+        #6 0x56388b0a5061 <unknown>
+        #7 0x56388b08e919 <unknown>
+        #8 0x56388b0a5c2e <unknown>
+        #9 0x56388b074c90 <unknown>
+        #10 0x56388b0ca358 <unknown>
+        #11 0x56388b0ca528 <unknown>
+        #12 0x56388b0dc353 <unknown>
+        #13 0x7f255a29cea7 start_thread"""
+        time.sleep(3)
+
         try:
-            WebDriverWait(driver,20).until(EC.alert_is_present())
             alert = driver.switch_to.alert
             texto_alerta = alert.text   # 👈 guardar antes
-            alert.accept()
             logging.info(f"⚠️ Texto de la alerta: {texto_alerta}")
-            logging.info("✅ Alerta Aceptada")
+            #alert.accept()
+            #logging.info("✅ Alerta Aceptada")
             raise Exception(texto_alerta)
-        except TimeoutException:
+        except NoAlertPresentException:
             pass
 
         # 🔑 REENTRAR A LOS FRAMES
@@ -299,14 +332,13 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             seleccionar_radio(id_mov,"Renovación",wait,driver)
 
             try:
-                WebDriverWait(driver,10).until(EC.alert_is_present())
                 alert = driver.switch_to.alert
                 texto_alerta = alert.text   # 👈 guardar antes
 
                 if texto_alerta.startswith("VREN02: No se puede renovar este periodo."):
-                    alert.accept()
                     logging.info(f"⚠️ Texto de la alerta: {texto_alerta}")
-                    logging.info("✅ Alerta Aceptada")
+                    #alert.accept()
+                    #logging.info("✅ Alerta Aceptada")
                     raise Exception(texto_alerta)
 
             except TimeoutException:
@@ -328,21 +360,12 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         driver.execute_script("arguments[0].click();", btnCargar)
         logging.info("🖱️ Clic en Cargar la trama")
 
-        time.sleep(5)
-        try:
+        time.sleep(1)  # dar tiempo a que aparezca el alert
 
-            wait.until(EC.alert_is_present())
-            alert_trama = driver.switch_to.alert
-            texto_alerta_trama = alert_trama.text.strip()
+        texto_alerta = manejar_alerta(driver)
 
-            if "Ingreso de planilla de trabajadores, satisfactorio" in texto_alerta_trama:
-                alert_trama.accept()
-                logging.info("✅ Alerta Aceptada")
-            else:
-                raise Exception(texto_alerta_trama)
-
-        except TimeoutException:
-            pass
+        if texto_alerta and "Ingreso de planilla de trabajadores, satisfactorio" not in texto_alerta:
+            raise Exception(texto_alerta)
 
         id_btn_procesar = "btnGrabar" if bab_codigo != '4' else "btnProcesar"
         btn_procesar = wait.until(EC.element_to_be_clickable((By.ID, id_btn_procesar)))
@@ -352,12 +375,11 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
         logging.info("🖱️ Clic en Procesar")
 
         try:
-            wait.until(EC.alert_is_present())
             alert = driver.switch_to.alert
             logging.info(f"⚠️ Texto de la alerta: {alert.text}")
             alert.accept()
             logging.info("✅ Alerta Aceptada")
-        except TimeoutException:
+        except NoAlertPresentException:
             pass
 
         ventana_principal = driver.current_window_handle

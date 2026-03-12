@@ -496,6 +496,11 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         logging.info("✅ Alerta aceptada")
     except:
         logging.info("✅ No apareció ninguna alerta")
+
+    resultado,asunto = validar_pagina(driver)
+
+    if not resultado:
+        raise Exception (f"{asunto}")
                 
     logging.info ("--- Se ingresó a Oficina Virtual La Positiva 🌐---")
     action = ActionChains(driver)
@@ -1209,7 +1214,6 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
     tipoError = ""
     detalleError = ""
 
-
     if ba_codigo == '3' and bab_codigo == '4':
         conVL,proVL,tipErVL,detErVL = solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,
                                                                   palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,
@@ -1303,7 +1307,7 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
         except Exception as e:
             resultado, asunto = validar_pagina(driver)
             tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_SCTR_{tipo_mes}")
-            detalle = f"{asunto} - {e}" if not resultado else str(e)
+            detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
             logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {detalle}")
             return False, False, f"LAPO-SCTR-{tipo_mes}", detalle
         finally:
@@ -1352,7 +1356,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
         resultado, asunto = validar_pagina(driver)
         tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
-        detalle = f"{asunto} - {e}" if not resultado else str(e)
+        detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", detalle
 
     finally:
