@@ -520,35 +520,50 @@ def main():
          
     except Exception as e:
         logging.error(f"⚠️ Conclusión: {e}")
+
     finally:
-        #errores_consolidados = []
+
+        if driver:
+            driver.quit()
+
+        error_sctr_enviado = False
+
         RAMOS = [
-            {
-                "ramo": "SALUD",
-                "ctx": ctx.salud,
-                "constancia": conSCTR,
-                "proforma": endSCTR
-            },
-            {
-                "ramo": "PENSION",
-                "ctx": ctx.pension,
-                "constancia": conSCTR,
-                "proforma": endSCTR
-            },
-            {
-                "ramo": "VIDALEY",
-                "ctx": ctx.vida,
-                "constancia": conVL,
-                "proforma": endVL
-            }
+            {"ramo": "SALUD", "ctx": ctx.salud, "constancia": conSCTR, "proforma": endSCTR},
+            {"ramo": "PENSION", "ctx": ctx.pension, "constancia": conSCTR, "proforma": endSCTR},
+            {"ramo": "VIDALEY", "ctx": ctx.vida, "constancia": conVL, "proforma": endVL},
         ]
 
-        def obtener_error(r):
-            if r["ramo"] == "VIDALEY":
+        def obtener_error(ramo):
+            if ramo == "VIDALEY":
                 return tipoErrorVL, detalleErrorVL
             return tipoErrorSCTR, detalleErrorSCTR
 
-        #------- Enviando Estacas,Errores y Documentos---------------------
+        def enviar_estaca_si_aplica(id_mov, ramo, constancia, proforma):
+            if tipo_mes == 'MV' and constancia and not proforma:
+                logging.info(f"⌛ Actualizando Constancia → {id_mov} ({ramo})")
+                enviar_estaca(id_mov, ramo, constancia, proforma)
+
+            elif tipo_mes == 'MA' and constancia and proforma:
+                logging.info(f"⌛ Actualizando Constancia + Proforma → {id_mov} ({ramo})")
+                enviar_estaca(id_mov, ramo, constancia, proforma)
+
+            elif tipo_mes == 'MA' and not constancia and proforma:
+                logging.info(f"⌛ Actualizando Proforma → {id_mov} ({ramo})")
+                enviar_estaca(id_mov, ramo, constancia, proforma)
+
+        def enviar_docs(id_mov, ramo, ctx_ramo, constancia, proforma):
+
+            if constancia:
+                archivo = os.path.join(ruta_archivos_x_inclu, f"{ctx_ramo.poliza}.pdf")
+                logging.info(f"⌛ Enviando Constancia '{ramo}' → {id_mov}")
+                enviar_documentos(id_mov, archivo, ramo, "Constancia")
+
+            if proforma:
+                archivo = os.path.join(ruta_archivos_x_inclu, f"endoso_{ctx_ramo.poliza}.pdf")
+                logging.info(f"⌛ Enviando Endoso '{ramo}' → {id_mov}")
+                enviar_documentos(id_mov, archivo, ramo, "Endoso")
+
         for r in RAMOS:
 
             ctx_ramo = r["ctx"]
@@ -558,87 +573,54 @@ def main():
             id_mov = ctx_ramo.id_poliza
 
             if not id_mov:
-                continue  # ⛔ No existe movimiento
+                continue
 
             logging.info("-----------------------------")
-            # ---------------- ESTACA ----------------
 
-            if tipo_mes == 'MV' and constancia and not proforma:
+            # -------- ESTACA --------
+            enviar_estaca_si_aplica(id_mov, ramo, constancia, proforma)
+            time.sleep(1)
 
-                logging.info(f"⌛ Actualizando registros de Constancia → '{constancia}' para el Id → {id_mov} de '{ramo}'")
-                enviar_estaca(id_mov, ramo,constancia,proforma)
-                time.sleep(1)
-
-            elif tipo_mes == 'MA' and constancia and proforma:
-
-                logging.info(f"⌛ Actualizando registros de Constancia → '{constancia}' y Proforma → '{proforma}' para el Id → {id_mov} de '{ramo}'")
-                enviar_estaca(id_mov, ramo, constancia,proforma)
-                time.sleep(1)
-
-            elif tipo_mes == 'MA' and not constancia and proforma:
-
-                logging.info(f"⌛ Actualizando registros de Proforma → '{proforma}' para el Id → {id_mov} de '{ramo}'")
-                enviar_estaca(id_mov, ramo, constancia,proforma)
-                time.sleep(1)
-
-            # ---------------- ERRORES ----------------
-            tipo_error, detalle_error = obtener_error(r)
+            # -------- ERRORES --------
+            tipo_error, detalle_error = obtener_error(ramo)
 
             if tipo_error and detalle_error:
-                logging.info(f"⌛ Enviando errores para '{ramo}' con Id → {id_mov}")
 
-                const =  "SCTR" if ramo in ("SALUD","PENSION") else "VIDALEY"
+                const = "SCTR" if ramo in ("SALUD","PENSION") else "VIDALEY"
 
-                enviar_error_movimiento(id_mov,ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
-                time.sleep(1)
-                enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
+                logging.info(f"⌛ Enviando error '{ramo}' → {id_mov}")
 
-                # tramas = []
+                enviar_error_movimiento(
+                    id_mov, ramo, tipo_error, detalle_error,
+                    ruta_archivos_x_inclu, const
+                )
 
-                # if ctx_ramo.trama:
-                #     tramas.append(ctx_ramo.trama)
+                # 🔹 enviar correo SCTR solo una vez
+                if ramo in ("SALUD","PENSION"):
 
-                # if ctx_ramo.trama_97:
-                #     tramas.append(ctx_ramo.trama_97)
+                    if not error_sctr_enviado:
 
-                # # Guardamos información para envío único
-                # errores_consolidados.append(f"""Ramo: {ramo}\n
-                #                                 Compañia: {ctx_ramo.compania}\n
-                #                                 Póliza: {ctx_ramo.poliza}\n
-                #                                 Sede: {ctx_ramo.sede}\n
-                #                                 Vigencia: {ctx_ramo.f_inicio} al {ctx_ramo.f_fin}\n
-                #                                 Tramas: {' y '.join(tramas)}\n
-                #                                 Tipo: {tipo_error}\n
-                #                                 Detalle: {detalle_error}\n
-                #                                 """)
+                        enviar_error_interno(
+                            ctx.cliente, ctx.proceso, ctx_ramo,
+                            palabra_clave, tipo_error, detalle_error,
+                            ruta_archivos_x_inclu, const
+                        )
 
-            # ---------------- DOCUMENTOS ----------------
-            if constancia:
-                constancia = f"{ctx_ramo.poliza}.pdf"
-                ruta_constancia = os.path.join(ruta_archivos_x_inclu, constancia)
-                logging.info(f"⌛ Enviando Constancia de '{ramo}' al Id → {id_mov}")
-                enviar_documentos(id_mov, ruta_constancia, ramo, "Constancia")
+                        error_sctr_enviado = True
+
+                else:
+
+                    enviar_error_interno(
+                        ctx.cliente, ctx.proceso, ctx_ramo,
+                        palabra_clave, tipo_error, detalle_error,
+                        ruta_archivos_x_inclu, const
+                    )
+
                 time.sleep(1)
 
-            if proforma:
-                endoso = f"endoso_{ctx_ramo.poliza}.pdf"
-                ruta_endoso = os.path.join(ruta_archivos_x_inclu, endoso)
-                logging.info(f"⌛ Enviando Endoso de '{ramo}' al Id →{id_mov}")
-                enviar_documentos(id_mov, ruta_endoso, ramo, "Endoso")
-                time.sleep(1)
-        #------- Enviando Error Consolidado a Jishu ----------------------------------
-        # if errores_consolidados:
-        #     logging.info("📩 Enviando error interno consolidado")
-
-        #     detalle_final = "\n\n-------------------------\n\n".join(errores_consolidados)
-
-        #     enviar_error_consolidado(ctx.cliente,ctx.proceso,detalle_final,ruta_archivos_x_inclu)
-
-        #     #enviar_error_interno(ctx.cliente,ctx.proceso,ctx_ramo,palabra_clave,tipo_error,detalle_error,ruta_completa)
-
-        #------------------------------------------
-        if driver:
-            driver.quit()
+            # -------- DOCUMENTOS --------
+            enviar_docs(id_mov, ramo, ctx_ramo, constancia, proforma)
+            time.sleep(1)
 
 if __name__ == "__main__":
     main()

@@ -11,12 +11,29 @@ from LinuxDebian.Ventana.ventana import desbloquear_interaccion,bloquear_interac
 from LinuxDebian.OtrosMetodos.metodos import subir_trama
 from Compañias.Sanitas.metodos import imagen_a_pdf
 from Chrome.google import tomar_capturar
+from Apis.Put.web_corredor import enviar_aviso_captcha
 #   --- Imports ----
 import time
 import os
 import logging
 import zipfile
 import re
+
+def login_completado(driver):
+
+    # 1️⃣ Si aparece cerrar sesión
+    if driver.find_elements(By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]"):
+        return True
+
+    # 2️⃣ Si cambió la URL
+    if "login" not in driver.current_url.lower():
+        return True
+
+    # 3️⃣ Si desapareció el input de usuario
+    if not driver.find_elements(By.ID, "suser"):
+        return True
+
+    return False
 
 def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,ruc_empresa,tipo_mes,ramo):
  
@@ -36,33 +53,79 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     pass_input.send_keys(ramo.clave)
     logging.info(f"⌨️ Digitando el Password")
 
-    #logging.info("🧩 Resuelve el CAPTCHA manualmente y clic en 'Ingresar'")
-    # API para actualizar el id de la poliza indicando que resuelva captcha
+    if not enviar_aviso_captcha(ramo):
+        raise Exception(f"No se pudo avisar para resolver el Captcha")
 
-    wait_humano = WebDriverWait(driver,300)
-    #desbloquear_interaccion()
+    # Tiempo estimado para resolver captcha 5 minutos
+    wait_humano = WebDriverWait(driver, 300, poll_frequency=1)
+    desbloquear_interaccion()
 
+    #-----------------------
     try:
-        WebDriverWait(driver,150).until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Debe crear una contraseña nueva.')]")))
-        logging.warning("⚠️ Alerta de contraseña temporal detectada")
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"cambiarPassword")
-        raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla manualmente antes de continuar con el proceso automático o comunicate con tu administrador.")
 
-    except TimeoutException:
+        resultado = wait_humano.until(
+            EC.any_of(
 
-        try:
-            modal = WebDriverWait(driver,15).until(EC.visibility_of_element_located((By.CLASS_NAME, "modal-content")))
-            mensaje = modal.find_element(By.CLASS_NAME, "security-body").text
+                # Login exitoso
+                EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")),
+
+                # Contraseña temporal
+                EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Debe crear una contraseña nueva.')]")),
+
+                # Modal de error
+                EC.visibility_of_element_located((By.CLASS_NAME, "modal-content"))
+            )
+        )
+
+        clase = resultado.get_attribute("class") or ""
+        texto = resultado.text or ""
+
+        if "Debe crear una contraseña nueva" in texto:
+
+            logging.warning("⚠️ Alerta de contraseña temporal detectada")
+            tomar_capturar(driver, ruta_archivos_x_inclu, "cambiarPassword")
+            raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla manualmente antes de continuar con el proceso automático o comunícate con tu administrador.")
+
+        elif "modal-content" in clase:
+
+            mensaje = resultado.find_element(By.CLASS_NAME, "security-body").text
             logging.info(f"📩 Mensaje del modal: {mensaje}")
-            boton_aceptar = modal.find_element(By.XPATH, ".//button[contains(text(),'Aceptar')]")
+            boton_aceptar = resultado.find_element(By.XPATH, ".//button[contains(text(),'Aceptar')]")
             boton_aceptar.click()
             logging.info("🖱️ Clic en 'Aceptar'")
-        except TimeoutException:
-            pass
+        else:
+            logging.info("✅ Login exitoso")
 
-    wait_humano.until(EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")))
-    bloquear_interaccion()
-    logging.info("✅ Login exitoso detectado")
+    except TimeoutException:
+        raise Exception("No se pudo iniciar sessión")
+    finally:
+        bloquear_interaccion()
+
+    input("Esperar")
+
+    # #-----------------------
+
+    # try:
+    #     WebDriverWait(driver,150).until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Debe crear una contraseña nueva.')]")))
+    #     logging.warning("⚠️ Alerta de contraseña temporal detectada")
+    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"cambiarPassword")
+    #     raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla manualmente antes de continuar con el proceso automático o comunicate con tu administrador.")
+
+    # except TimeoutException:
+
+    #     try:
+    #         modal = WebDriverWait(driver,15).until(EC.visibility_of_element_located((By.CLASS_NAME, "modal-content")))
+    #         mensaje = modal.find_element(By.CLASS_NAME, "security-body").text
+    #         logging.info(f"📩 Mensaje del modal: {mensaje}")
+    #         boton_aceptar = modal.find_element(By.XPATH, ".//button[contains(text(),'Aceptar')]")
+    #         boton_aceptar.click()
+    #         logging.info("🖱️ Clic en 'Aceptar'")
+    #     except TimeoutException:
+    #         pass
+
+    # wait_humano.until(EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")))
+    # bloquear_interaccion()
+    # logging.info("✅ Login exitoso detectado")
 
     if tipo_proceso == 'IN':
 

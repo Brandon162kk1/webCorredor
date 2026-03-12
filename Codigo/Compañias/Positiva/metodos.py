@@ -59,16 +59,18 @@ def validar_pagina(driver):
             asunto = "Página 404 - Archivo o directorio no encontrado"
             return False, asunto
 
-        asunto = "Redirecciono a otra página"
+        overlay = driver.find_element(By.ID, "ID_MODAL_PROCESS")
+        if overlay.is_displayed():
+            return False, "La página está demorando demasiado en cargar"
 
         # Validar si aparece el campo de usuario
         user_field = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.NAME, "txtUsuario")))
         if user_field:
-            return False,asunto
+            return False,"Redirecciono a otra página"
 
         userName_input = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.NAME, "username")))
         if userName_input:
-            return False,asunto
+            return False,"Redirecciono a otra página"
 
     except TimeoutException:
         return True,asunto

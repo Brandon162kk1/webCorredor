@@ -14,6 +14,23 @@ headers = {
     "X-Api-Key": API_KEY
 }
 
+def enviar_aviso_captcha(ramo):
+    url = f"{API_BASE_URL}/api/plantilla-captcha/movimiento/{ramo.id_poliza}"
+    payload = {
+      "captchaRequerido": True
+    }
+    try:
+        response = requests.put(url,json=payload,headers=headers,timeout=30)
+        if response.status_code in (200, 201, 204):
+            logging.info(f"✅ Aviso de captcha enviado correctamente al Movimiento {ramo.id_poliza}")
+            return True
+        else:
+            logging.error(f"❌ Error enviando aviso de captcha " f"| Status {response.status_code} | Resp {response.text}")
+            return False
+    except Exception as e:
+        logging.error(f"❌ Error conectando al API para enviar aviso de captcha | {e}")
+        return False
+
 def enviar_puerto(id_movimiento,puerto):
 
 
@@ -52,14 +69,14 @@ def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma
 
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ Registro actualizado correctamente | Movimiento {id_movimiento} | Ramo {ramo}")
-            return True
+            #return True
         else:
             logging.error(f"❌ Error actualizando registro | Movimiento {id_movimiento} " f"| Status {response.status_code} | Resp {response.text}")
-            return False
+            #return False
 
     except Exception as e:
         logging.error(f"❌ Error conectando al API para actualizar | Movimiento {id_movimiento} | Ramo {ramo} | {e}")
-        return False
+        #return False
 
 def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error,ruta_carpeta,const):
 
@@ -81,14 +98,14 @@ def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error,ruta_carpe
 
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ Error registrado correctamente | Movimiento {id_movimiento} | Ramo {ramo}")
-            return True
+            #return True
         else:
             logging.error(f"❌ Problemas en el registro de error | Movimiento {id_movimiento} " f"| Status {response.status_code} | Resp {response.text}")
-            return False
+            #return False
 
     except Exception as e:
         logging.error(f"❌ Error conectando al API para registrar 'errores' | Movimiento {id_movimiento} | Ramo {ramo} | {e}")
-        return False
+        #return False
 
 def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
    
@@ -129,14 +146,14 @@ def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
 
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ {tipoDocumento} enviado correctamente | Movimiento {id_movimiento}")
-            return True
+            #return True
         else:
             logging.error(
                 f"❌ Error enviando {tipoDocumento} | Movimiento {id_movimiento} "
                 f"| Status {response.status_code} | Resp {response.text}"
             )
-            return False
+            #return False
 
     except Exception as e:
         logging.error(f"❌ Error enviando documento | Movimiento {id_movimiento} | {e}")
-        return False
+        #return False
