@@ -94,8 +94,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     except Exception as e:
         raise Exception(f"Error al parsear la fecha de vigencia,Motivo - {e}")
-
-    if ramo.f_fin != fecha_vigencia_str: 
+    
+    if tipo_proceso == 'IN' and ramo.f_fin != fecha_vigencia_str: 
         raise Exception(f"Las fechas Fin de la vigencia en la Póliza {ramo.poliza} no coinciden")
     else:
 
@@ -538,7 +538,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         alert.accept()
         logging.info("✅ Alerta aceptada")
     except:
-        logging.info("✅ No apareció ninguna alerta")
+        #logging.info("✅ No apareció ninguna alerta")
+        pass
 
     resultado,asunto = validar_pagina(driver)
 
@@ -1264,6 +1265,67 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
 
         return conVL,proVL,tipErVL,detErVL
 
+    # try:
+
+    #     logging.info("----------------------------")
+    #     driver.get('https://web.lapositiva.com.pe/sso_login_ui/')
+    #     logging.info("⌛ Cargando la Web de Positiva")
+     
+    #     user_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
+    #     user_field.clear()
+
+    #     mover_y_hacer_click_simple(driver, user_field)
+    #     time.sleep(random.uniform(0.97, 0.99))
+
+    #     escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)
+    #     logging.info("⌨️ Digitando el Username")
+
+    #     time.sleep(1 + random.random() * 1.5)
+
+    #     password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
+    #     password_field.clear()
+
+    #     mover_y_hacer_click_simple(driver, password_field)
+    #     time.sleep(random.uniform(0.97, 0.99))
+
+    #     escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
+    #     logging.info("⌨️ Digitando el Password")
+
+    #     time.sleep(1 + random.random() * 1.5)
+
+    #     login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
+    #     mover_y_hacer_click_simple(driver, login_button)
+    #     logging.info("🖱️ Clic en Iniciar Sesión")
+
+    #     time.sleep(3)
+
+    #     try:
+
+    #         popup_text = WebDriverWait(driver,7).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")))
+
+    #         if popup_text:
+
+    #             logging.error("❌ Usuario o contraseña incorrectos")
+    #             raise Exception ("Usuario o contraseña incorrectos")
+    #             # aceptar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//button[.//span[text()='Aceptar']]")))
+    #             # aceptar_btn.click()
+    #             # logging.info("🖱️ Clic en Aceptar")
+
+    #     except TimeoutException:
+    #         #logging.info("✅ Login exitoso")
+    #         pass
+
+    #     autogestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")))
+    #     driver.execute_script("arguments[0].click();", autogestion)
+    #     logging.info("🖱️ Clic en Autogestión")
+
+    #     ventana_menu_positiva = driver.current_window_handle
+
+    # except Exception as e:
+    #     logging.error(f"❌ Error inesperado entrando a la url: {e}")
+    #     tomar_capturar(driver, ruta_archivos_x_inclu, f"LOGIN_FALLIDO")
+    #     return False,False,"Login Fallido", str(e)
+    #-------------------------------------------------------
     try:
 
         logging.info("----------------------------")
@@ -1311,7 +1373,7 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
 
                     if popup_text:
 
-                        logging.info("❌ Usuario o contraseña incorrectos")
+                        logging.error("❌ Usuario o contraseña incorrectos")
  
                         if intento == 1:
                             raise Exception("Usuario o contraseña incorrectos")

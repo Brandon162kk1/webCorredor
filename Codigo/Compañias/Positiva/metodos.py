@@ -59,7 +59,7 @@ def validar_pagina(driver):
             asunto = "Página 404 - Archivo o directorio no encontrado"
             return False, asunto
 
-        overlay = driver.find_element(By.ID, "ID_MODAL_PROCESS")
+        overlay =  WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID, "ID_MODAL_PROCESS")))
         if overlay.is_displayed():
             return False, "La página está demorando demasiado en cargar"
 
