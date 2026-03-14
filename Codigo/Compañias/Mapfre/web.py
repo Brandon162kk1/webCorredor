@@ -555,9 +555,6 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
                           ejecutivo_responsable,nombre_cliente,tipo_mes,ramo)
         return True,True,tipoError,detalleError
     except Exception as e:
-
-        #ramo_s = "SCTR" if all(c == '3' for c in (ba_codigo, bab_codigo)) else "VL"
-        #ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
         tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
         logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
 
