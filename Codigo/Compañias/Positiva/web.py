@@ -106,6 +106,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
         logging.info("⌛ Esperando que cargue...")
 
+        try:
+            modal_error_general = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorGeneral")))
+            mensaje_error = modal_error_general.find_element(By.XPATH, ".//p/span[2]").text.strip()
+            raise Exception(mensaje_error)
+        except TimeoutException:
+            pass
+
         if tipo_proceso == 'IN':  
             
             btn_incluir = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluir")))
