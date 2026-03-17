@@ -699,6 +699,18 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     driver.execute_script("arguments[0].click();", aceptar_btn)
     logging.info("🖱️ Clic en botón 'Aceptar'")
 
+    # # Primero verificar si aparece un alert
+    # try:
+    #     WebDriverWait(driver,5).until(EC.alert_is_present())
+    #     alert_v2 = driver.switch_to.alert
+    #     msj_alert =  alert_v2.text
+    #     logging.info(f"⚠️ Alerta : {msj_alert}")
+    #     alert_v2.accept()
+    #     logging.info("✅ Alerta aceptada")
+    #     raise Exception (msj_alert)
+    # except TimeoutException:
+    #     pass
+
     time.sleep(2)
 
     driver.switch_to.window(handle_ventana_principal)
@@ -815,11 +827,20 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     try:
         WebDriverWait(driver,5).until(EC.alert_is_present())
         alert1 = driver.switch_to.alert
-        logging.info(f"⚠️ Alerta : ¿{alert1.text}?")
+        texto_alerta = alert1.text.strip()
+
+        # Validar texto
+        if "Esta seguro de registrar la Solicitud, luego de ello no podrá ser modificada." not in texto_alerta:
+            logging.info(f"⚠️ Alerta : {texto_alerta}")
+            alert1.accept()
+            logging.info("✅ Alerta aceptada")
+            raise Exception(texto_alerta)
+
+        logging.info(f"⚠️ Alerta : ¿{texto_alerta}?")
         alert1.accept()
         logging.info("✅ Alerta aceptada")
     except TimeoutException:
-        logging.info("✅ No apareció la primera alerta, revisamos si salió el iframe...")
+        #logging.info("✅ No apareció la primera alerta, revisamos si salió el iframe...")
 
         # Si no hay alert → entonces revisar el iframe
         try:
