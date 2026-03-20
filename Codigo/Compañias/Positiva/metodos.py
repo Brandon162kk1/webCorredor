@@ -79,7 +79,7 @@ def validardeuda(driver,wait):
 
     try:
 
-        WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertas")))
+        wait.until(EC.visibility_of_element_located((By.ID, "divAlertas")))
         logging.warning("⚠️ Apareció el modal de advertencia.")
 
         mensaje_deuda = wait.until(EC.visibility_of_element_located((By.ID, "spMensaje")))

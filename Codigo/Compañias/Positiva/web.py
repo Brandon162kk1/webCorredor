@@ -39,15 +39,22 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     transacciones.click()
     logging.info("🖱️ Clic en Transacciones y Consultas")
 
-    time.sleep(3)
-
+    # Esperar: error de carga O el input de póliza (página cargó correctamente)
     try:
-        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")))
-        raise Exception("Lo sentimos, ha ocurrido un error inesperado")
+        wait.until(
+            EC.any_of(
+                EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")),
+                EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtNroPoliza")),
+            )
+        )
     except TimeoutException:
-        pass
+        raise Exception("Ocurrio un error inesperado al cargar")
 
-    poliza_input = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtNroPoliza")))
+    # Verificar si apareció el error de carga
+    if driver.find_elements(By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]"):
+        raise Exception("Lo sentimos, ha ocurrido un error inesperado")
+
+    poliza_input = driver.find_element(By.ID, "ContentPlaceHolder1_txtNroPoliza")
     poliza_input.clear()
     poliza_input.send_keys(ramo.poliza)
     logging.info(f"✅ Se Ingresó la póliza '{ramo.poliza}' en el campo")
@@ -106,12 +113,25 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
         logging.info("⌛ Esperando que cargue...")
 
+        # Esperar: error general O siguiente botón accionable (Incluir/Renovar)
         try:
-            modal_error_general = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorGeneral")))
-            mensaje_error = modal_error_general.find_element(By.XPATH, ".//p/span[2]").text.strip()
-            raise Exception(mensaje_error)
+            wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located((By.ID, "divAlertaErrorGeneral")),
+                    EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluir")),
+                    EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovar")),
+                )
+            )
         except TimeoutException:
             pass
+
+        try:
+            modal_error_general = driver.find_element(By.ID, "divAlertaErrorGeneral")
+            if modal_error_general.is_displayed():
+                mensaje_error = modal_error_general.find_element(By.XPATH, ".//p/span[2]").text.strip()
+                raise Exception(mensaje_error)
+        except Exception:
+           pass
 
         if tipo_proceso == 'IN':  
             
@@ -120,25 +140,41 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             logging.info("🖱️ Clic en Incluir")
 
             try:
-                WebDriverWait(driver,20).until(EC.visibility_of_element_located((By.ID, "divTipoIncluir")))
-                logging.info(f"⚠️ Apareció el modal con advertencia")
-                
-                if tipo_mes == 'MA':
-                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaSi")))
-                else:
-                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaNo")))
-                    
-                nom_btn = 'Si' if tipo_mes == 'MA' else 'No'
-                btn_aceptar.click()
-                logging.info(f"🖱️ Clic en {nom_btn}")
-
+                wait.until(
+                    EC.any_of(
+                        EC.visibility_of_element_located((By.ID, "divTipoIncluir")),
+                        EC.visibility_of_element_located((By.ID, "divAlertas")),
+                        EC.presence_of_element_located((By.ID, "fuPlanillaAjax")),
+                    )
+                )
             except TimeoutException:
+                raise Exception("Aparecio un error inesperado")
+
+            # Verificar si apareció el modal de tipo inclusión y responderlo
+            try:
+                modal_tipo = driver.find_element(By.ID, "divTipoIncluir")
+                if modal_tipo.is_displayed():
+                    logging.info("⚠️ Apareció el modal con advertencia de tipo inclusión")
+                    if tipo_mes == 'MA':
+                        btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaSi")))
+                    else:
+                        btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaNo")))
+                    nom_btn = 'Si' if tipo_mes == 'MA' else 'No'
+                    btn_aceptar.click()
+                    logging.info(f"🖱️ Clic en {nom_btn}")
+            except Exception:
+                pass  # El modal no apareció, se continúa normalmente
+
+            # Verificar si apareció el modal de deuda
+            try:
+                modal_alertas = driver.find_element(By.ID, "divAlertas")
+                if modal_alertas.is_displayed():
+                    logging.warning("⚠️ Apareció el modal de advertencia")
+                    mensaje_deuda = driver.find_element(By.ID, "spMensaje")
+                    deuda_advertencia = mensaje_deuda.get_attribute("innerText").strip()
+                    raise Exception(deuda_advertencia)
+            except Exception:
                 pass
-
-            mensaje_deuda = validardeuda(driver,wait)
-
-            if mensaje_deuda:
-                raise Exception(f"{mensaje_deuda}")
 
             input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
             logging.info("⌛ Esperando que cargue la nueva página donde se adjunta la Trama...")
@@ -152,13 +188,25 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 arguments[0].dispatchEvent(new Event('blur'));
             """, input_fecha, ramo.f_inicio)
 
+            # Esperar que la validación AJAX de la fecha complete:
+            # O aparece el error (divAlertas) O el spinner desaparece (validación OK)
             try:
-                WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertas")))
-                logging.info(f"⚠️ Apareció el modal con advertencia")
-                mensaje_fecha = wait.until(EC.visibility_of_element_located((By.ID, "spMensaje"))).text
-                raise Exception(mensaje_fecha)
+                wait.until(
+                    EC.any_of(
+                        EC.visibility_of_element_located((By.ID, "divAlertas")),
+                        EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")),
+                    )
+                )
             except TimeoutException:
-                pass
+                raise Exception("Aparecio un error inesperado")
+
+            # Verificar si apareció el modal de error de fecha
+            if driver.find_elements(By.ID, "divAlertas"):
+                modal_fecha = driver.find_element(By.ID, "divAlertas")
+                if modal_fecha.is_displayed():
+                    logging.info("⚠️ Apareció el modal con advertencia de fecha")
+                    mensaje_fecha = driver.find_element(By.ID, "spMensaje").text
+                    raise Exception(mensaje_fecha)
 
             driver.find_element(By.TAG_NAME, "body").click()
 
@@ -185,15 +233,39 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             btn_incluir.click()
             logging.info("🖱️ Clic en Renovar")
 
-            mensaje_deuda = validardeuda(driver,wait)
+            # Esperar: deuda (divAlertas) O modal de renovación (divTipoRenovacion) O input archivo
+            try:
+                wait.until(
+                    EC.any_of(
+                        EC.visibility_of_element_located((By.ID, "divAlertas")),
+                        EC.visibility_of_element_located((By.ID, "divTipoRenovacion"))
+                        #EC.presence_of_element_located((By.ID, "fuPlanillaAjax")),
+                    )
+                )
+            except TimeoutException:
+                raise Exception("Aparecio un error inesperado")
 
-            if mensaje_deuda:
-                raise Exception(f"{mensaje_deuda}")
+            # Verificar si apareció el modal de alertas
+            try:
+                modal_alertas = driver.find_element(By.ID, "divAlertas")
+                if modal_alertas.is_displayed():
+
+                    #wait.until(EC.visibility_of_element_located((By.ID, "divAlertas")))
+                    logging.warning("⚠️ Apareció el modal de advertencia")
+                    mensaje_deuda = wait.until(EC.visibility_of_element_located((By.ID, "spMensaje")))
+                    deuda_advertencia = mensaje_deuda.get_attribute("innerText").strip()
+                    #logging.warning(f"📄 Mensaje de advertencia detectado:\n{deuda_advertencia}")
+                    raise Exception (deuda_advertencia)
+                    
+            except Exception:
+                pass  # El modal no apareció, se continúa normalmente
+            
+            # mensaje_deuda = validardeuda(driver, wait)
+            # if mensaje_deuda:
+            #     raise Exception(f"{mensaje_deuda}")
 
             wait.until(EC.visibility_of_element_located((By.ID, "divTipoRenovacion")))
-
             btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovacionSi")))
-
             btn_aceptar.click()
             logging.info(f"🖱️ Clic en aceptar la Renovación")
 
@@ -257,49 +329,52 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         except TimeoutException:
             pass
 
+        # Esperar lo que aparezca primero: error general, errores de planilla, o botón de procesar
         try:
-            # Posible error para la hoja de la trama , debe ser Planilla no Trabajadores
-            WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorValidacion")))
-            logging.info(f"⚠️ Apareció el modal con errores")
-            mensaje_error = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaErrorValidacion"))).text
-            raise Exception(mensaje_error)
+            wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located((By.ID, "divAlertaErrorValidacion")),
+                    EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")),
+                    EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnProcesar")),
+                )
+            )
         except TimeoutException:
+            raise Exception("Aparecio un error inesperado")
+        # Caso 1: Error de formato/hoja de la trama
+        try:
+            modal_error_val = driver.find_element(By.ID, "divAlertaErrorValidacion")
+            if modal_error_val.is_displayed():
+                logging.info("⚠️ Apareció el modal con errores de validación")
+                mensaje_error = driver.find_element(By.ID, "spanAlertaErrorValidacion").text
+                raise Exception(mensaje_error)
+        except Exception :
+            pass
 
-            try:
-                WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")))
-
-                cantidad_errores = wait.until(EC.visibility_of_element_located((By.ID, "spnContadorError"))).text
+        # Caso 2: Errores por fila en la planilla
+        try:
+            btn_errores = driver.find_element(By.ID, "btnErroresPlanilla")
+            if btn_errores.is_displayed():
+                cantidad_errores = driver.find_element(By.ID, "spnContadorError").text
                 cantidad_texto = "error" if cantidad_errores == '1' else "errores"
 
-                link = wait.until(EC.element_to_be_clickable((By.ID, "btnErroresPlanilla")))
-                driver.execute_script("arguments[0].click();", link)
+                driver.execute_script("arguments[0].click();", btn_errores)
 
                 wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
-
                 filas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")))
 
                 errores = []
-
                 for fila in filas:
-
-                    error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
-
+                    error   = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
                     nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
-
                     paterno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sPaterno']").get_attribute("title")
-
                     materno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sMaterno']").get_attribute("title")
-
-                    nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
-
+                    nrodoc  = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
                     errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
 
                 detalle_errores = "\n".join(errores)
-
                 raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
-
-            except TimeoutException:
-                pass
+        except Exception :
+            pass
 
         alerta_detectada = False
 
@@ -328,13 +403,10 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             if tipo_proceso == 'IN':
 
                 #aca carga un modal indicado si estas seguro de realziar la operacion de Inclusion
-
                 btn_si = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirSi")))
                 btn_si.click()
                 logging.info("🖱️ Clic en Aceptar la Inclusión")
-
                 time.sleep(3)
-
                 mensaje_span = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaInclusion")))
                 texto_mensaje = mensaje_span.text
 
@@ -384,14 +456,23 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                     btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarInclusion")))
                     btn_aceptar.click()
                     logging.info("🖱️ Clic en Aceptar")
-                    time.sleep(3)
                 else:
+                    # Esperar: botón aparece O el overlay ya cerró sin necesitar el botón
                     try:
-                        btn_aceptar = WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")))
-                        btn_aceptar.click()
-                        logging.info("🖱️ Clic en Aceptar")
+                        wait.until(
+                            EC.any_of(
+                                EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")),
+                                EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")),
+                            )
+                        )
                     except TimeoutException:
-                        pass
+                        raise Exception("Aparecio un error inesperado")
+
+                    if driver.find_elements(By.ID, "ContentPlaceHolder1_btnAceptarRenovacion"):
+                        btn_aceptar = driver.find_element(By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
+                        if btn_aceptar.is_displayed():
+                            btn_aceptar.click()
+                            logging.info("🖱️ Clic en Aceptar")
 
                 wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
 
@@ -421,14 +502,22 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 except Exception as e:
                     raise Exception(f"Error al hacer clic en la lupa -> {e}")
 
+                # Esperar: advertencia de error O el panel PDF (operación exitosa)
                 try:
-                    WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "btnAceptarError")))
-                    raise Exception (f"Se detecto una advertencia, el código para descagar el documento en la compañía es {codigo_documento}.")
+                    wait.until(
+                        EC.any_of(
+                            EC.element_to_be_clickable((By.ID, "btnAceptarError")),
+                            EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")),
+                        )
+                    )
                 except TimeoutException:
-                    pass
+                    raise Exception("Aparecio un error inesperado")
 
-                wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
-                time.sleep(3)
+                # Verificar si apareció la advertencia de error
+                if driver.find_elements(By.ID, "btnAceptarError"):
+                    if driver.find_element(By.ID, "btnAceptarError").is_displayed():
+                        raise Exception(f"Se detecto una advertencia, el código para descargar el documento en la compañía es {codigo_documento}.")
+
                 logging.info("📄 Panel PDF de la constancia visible.")
 
                 logging.info("----------------------------")
@@ -699,17 +788,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     driver.execute_script("arguments[0].click();", aceptar_btn)
     logging.info("🖱️ Clic en botón 'Aceptar'")
 
-    # # Primero verificar si aparece un alert
-    # try:
-    #     WebDriverWait(driver,5).until(EC.alert_is_present())
-    #     alert_v2 = driver.switch_to.alert
-    #     msj_alert =  alert_v2.text
-    #     logging.info(f"⚠️ Alerta : {msj_alert}")
-    #     alert_v2.accept()
-    #     logging.info("✅ Alerta aceptada")
-    #     raise Exception (msj_alert)
-    # except TimeoutException:
-    #     pass
+    # Primero verificar si aparece un alert
 
     time.sleep(2)
 
@@ -829,16 +908,14 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         alert1 = driver.switch_to.alert
         texto_alerta = alert1.text.strip()
 
-        # Validar texto
-        if "Esta seguro de registrar la Solicitud, luego de ello no podrá ser modificada." not in texto_alerta:
-            logging.info(f"⚠️ Alerta : {texto_alerta}")
-            alert1.accept()
-            logging.info("✅ Alerta aceptada")
-            raise Exception(texto_alerta)
-
-        logging.info(f"⚠️ Alerta : ¿{texto_alerta}?")
+        logging.info(f"⚠️ Alerta : {texto_alerta}")
         alert1.accept()
         logging.info("✅ Alerta aceptada")
+
+        # Validar texto
+        if "Esta seguro de registrar la Solicitud, luego de ello no podrá ser modificada." not in texto_alerta:
+            raise Exception(texto_alerta)
+
     except TimeoutException:
         #logging.info("✅ No apareció la primera alerta, revisamos si salió el iframe...")
 

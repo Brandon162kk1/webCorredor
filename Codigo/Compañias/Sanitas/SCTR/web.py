@@ -244,7 +244,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             afiliaciones_link.click()
             logging.info("🖱️ Clic en Afiliaciones")
 
-            #pruebas_impresion(driver,wait,ramo)
+            # pruebas_impresion(driver,wait,ramo)
 
             texto_link = "Inclusión" if tipo_proceso == "IN" else "Renovación"
 
@@ -368,7 +368,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("⌛ Esperando que aparezca Modal")
 
             buscar_span = wait.until(EC.presence_of_element_located((By.NAME, "file")))
-            #buscar_span = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(@class, 'btn-file') and contains(., 'Buscar')]")))
 
             ruta_trama_xls_sanitas = f"{ruta_archivos_x_inclu}/{ramo.poliza}_97.xls"
 
@@ -377,12 +376,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             buscar_span.send_keys(ruta_trama_xls_sanitas)
             logging.info(f"✅ Trama {ramo.poliza}_97.xls adjuntada")
-
-            # if subir_trama(buscar_span,ruta_trama_xls_sanitas):               
-            #     time.sleep(3)
-            #     logging.info(f"✅ Trama {ramo.poliza}.xls adjuntada")
-            # else:
-            #     raise Exception(f"No se pudo subir la trama {ramo.poliza}.xls")
 
             btn_subir = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Subir Archivo')]")))
             btn_subir.click()
@@ -471,7 +464,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             else:
                 logging.warning("⚠️ No se encontró ninguna constancia para descargar")
-                constancia = False
+                #constancia = False
                 tipoError = "Solo existe Proformas"
                 detalleError = "Primero pagar para obtener constancias"
 
@@ -580,17 +573,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                             logging.info(f"🖱️ Clic en 'Aceptar' para cerrar el Modal")
                         except TimeoutException:
                             pass
-
-                    # #if click_descarga_documento(driver,descargar_link,alias_archivo,impresion):
-                    # if descargar_documento(driver,descargar_link,alias_archivo,impresion,pestaña=False):
-                    #     time.sleep(3)
-                    #     ruta_doc_descargado = f"{ruta_archivos_x_inclu}/{alias_archivo}.pdf"
-                    #     if os.path.exists(ruta_doc_descargado):
-                    #         logging.info(f"✅ {alias_archivo}.pdf descargado exitosamente")
-                    #     else:
-                    #         logging.warning(f"⚠️ No se encontró el archivo descargado en {ruta_archivos_x_inclu}")
-                    # else:
-                    #     logging.info(f"❌ No se logró descargar {alias_archivo}, Verifica manualmente.")
 
                 except Exception as e:
                     logging.error(f"❌ Error al intentar descargar: {nombre_documento} ,Detalle: {e}")
