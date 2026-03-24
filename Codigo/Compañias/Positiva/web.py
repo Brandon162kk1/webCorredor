@@ -10,7 +10,6 @@ from Tiempo.fechas_horas import get_fecha_hoy
 from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda,leer_pdf
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
-#from Apis.Post.webhook import enviar_constancia_anular
 #---- Import ---
 import os
 import re
@@ -300,6 +299,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             except TimeoutException:
                 pass
+
+        input("Esperar")
 
         alerta_detectada = False
 

@@ -152,16 +152,14 @@ def normalizar(texto):
         return ""
 
     texto = unicodedata.normalize("NFKD", texto).encode("ASCII", "ignore").decode("ASCII")
-    texto = re.sub(r"\s+", " ", texto)  # colapsar espacios
+    texto = texto.replace("-", " ")
+    texto = re.sub(r"\s+", " ", texto)  
     return texto.lower().strip()
 
 def detectar_constancia_en_tabla(wait):
 
-    #filas = driver.find_elements(By.XPATH, "//table[@id='createdDocumentsTable']//tr")
     tabla = wait.until(EC.presence_of_element_located((By.ID, "createdDocumentsTable")))
     filas = tabla.find_elements(By.TAG_NAME, "tr")
-
-    #filas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//table[@id='createdDocumentsTable']//tr")))
 
     encontrada_salud = False
     encontrada_pension = False
@@ -174,11 +172,9 @@ def detectar_constancia_en_tabla(wait):
 
             texto = normalizar(celdas[1].text)
 
-            # 🔥 PRIORIDAD ALTA
             if "constancia conjunta" in texto:
                 return "CONJUNTA"
 
-            # guardar pero NO devolver aún
             if "constancia salud" in texto:
                 encontrada_salud = True
 
@@ -188,7 +184,6 @@ def detectar_constancia_en_tabla(wait):
         except:
             continue
 
-    # Si NO hubo conjunta → revisar prioridades siguientes
     if encontrada_salud:
         return "SALUD"
 
@@ -368,7 +363,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("⌛ Esperando que aparezca Modal")
 
             buscar_span = wait.until(EC.presence_of_element_located((By.NAME, "file")))
-            #buscar_span = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(@class, 'btn-file') and contains(., 'Buscar')]")))
 
             ruta_trama_xls_sanitas = f"{ruta_archivos_x_inclu}/{ramo.poliza}_97.xls"
 
@@ -378,11 +372,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             buscar_span.send_keys(ruta_trama_xls_sanitas)
             logging.info(f"✅ Trama {ramo.poliza}_97.xls adjuntada")
 
-            # if subir_trama(buscar_span,ruta_trama_xls_sanitas):               
-            #     time.sleep(3)
-            #     logging.info(f"✅ Trama {ramo.poliza}.xls adjuntada")
-            # else:
-            #     raise Exception(f"No se pudo subir la trama {ramo.poliza}.xls")
 
             btn_subir = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Subir Archivo')]")))
             btn_subir.click()
@@ -481,11 +470,9 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                 if len(list_polizas) == 2:
 
-                    #proforma = True
-
                     documentos_a_descargar.append({
                         "nombreDoc": "Proforma - Sanitas Perú S.A.",
-                        "alias": f"endoso_{list_polizas[0]}", 
+                        "alias": f"endoso_{list_polizas[0]}",
                         "tittle": "Imprimir",
                         "impresion": True
                     })
@@ -499,14 +486,14 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                         "impresion": True
                     })
 
-                elif ba_codigo == '1': # Solo Salud
+                elif ba_codigo == '1':
                     documentos_a_descargar.append({
                         "nombreDoc": "Proforma - Sanitas Perú S.A.",
                         "alias": f"endoso_{ramo.poliza}",
                         "tittle": "Imprimir",
                         "impresion": True
                     })
-                elif ba_codigo == '2': # Solo Pensión
+                elif ba_codigo == '2':
                     documentos_a_descargar.append({
                         "nombreDoc":
                             "Aviso de cobranza - Protecta S.A." if i == 1
@@ -580,17 +567,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                             logging.info(f"🖱️ Clic en 'Aceptar' para cerrar el Modal")
                         except TimeoutException:
                             pass
-
-                    # #if click_descarga_documento(driver,descargar_link,alias_archivo,impresion):
-                    # if descargar_documento(driver,descargar_link,alias_archivo,impresion,pestaña=False):
-                    #     time.sleep(3)
-                    #     ruta_doc_descargado = f"{ruta_archivos_x_inclu}/{alias_archivo}.pdf"
-                    #     if os.path.exists(ruta_doc_descargado):
-                    #         logging.info(f"✅ {alias_archivo}.pdf descargado exitosamente")
-                    #     else:
-                    #         logging.warning(f"⚠️ No se encontró el archivo descargado en {ruta_archivos_x_inclu}")
-                    # else:
-                    #     logging.info(f"❌ No se logró descargar {alias_archivo}, Verifica manualmente.")
 
                 except Exception as e:
                     logging.error(f"❌ Error al intentar descargar: {nombre_documento} ,Detalle: {e}")
