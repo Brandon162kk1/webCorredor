@@ -300,8 +300,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             except TimeoutException:
                 pass
 
-        input("Esperar")
-
         alerta_detectada = False
 
         try:
