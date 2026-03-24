@@ -6,7 +6,6 @@ from Compañias.Positiva.web import login_la_positiva
 from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
 from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer_vl
 from Compañias.Sanitas.VidaLey.Protecta.web import procesar_solicitud_san_protecta_vl
-#from Compañias.Rimac.VidaLey.web_sas import realizar_solicitud_SAS
 from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
 from Plantillas.Crecer.generarplantilla import generarConstanciaInCrecer,generarConstanciaReCrecer
 # -- Froms Apis ---
