@@ -524,7 +524,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                     f"Buscar y descargar manualmente en la compañía."
                 )
                 
-def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
+def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,actividad,ramo):
  
     ov = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='OV']")))
     ov.click()
@@ -959,7 +959,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
-def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,ramo):
+def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,ramo):
 
     vidaley = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Vida Ley']")))
     vidaley.click()
@@ -985,17 +985,17 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         transacciones_span.click()
         logging.info("🖱️ Clic en Transacciones")
     except Exception as e:
-        raise e
+        raise str(e)
 
     time.sleep(3)
 
     try:
         input_element = wait.until(EC.element_to_be_clickable((By.ID, "b12-b1-Input_PolicesNumber")))
         input_element.clear()
-        input_element.send_keys(ramo.poliza)
+        input_element.send_keys("1005537087") # 1005537087 ramo.poliza
         logging.info(f"✅ Numero de Póliza ingresado: {ramo.poliza}")
     except Exception as e:
-        raise e
+        raise str(e)
 
     time.sleep(3)
 
@@ -1027,136 +1027,363 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     # driver.execute_script("document.body.click();")
 
-    boton_buscar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Buscar']]")))
+    boton_buscar = wait.until(EC.element_to_be_clickable(
+    (By.XPATH, "//button[.//div[text()='Buscar']]")
+    ))
     boton_buscar.click()
-    logging.info(f"🖱️ Clic en 'Buscar'")
+    logging.info("🖱️ Clic en 'Buscar'")
 
-    try:
-        tit = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue"))).text
-        con = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextContentValue"))).text
+
+    # 👇 Esperar cualquiera de los posibles resultados
+    resultado = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue")),   # error
+            EC.presence_of_element_located((By.ID, "b12-limpiargrilla")),          # modal sin resultados
+            EC.presence_of_element_located((By.ID, "b12-Widget_TransactionRecordList"))  # tabla
+        )
+    )
+
+    # 👇 Evaluar qué apareció
+    html = driver.page_source
+
+    # 🔴 Caso 1: mensaje de error
+    if "b12-b11-TextTitlevalue" in html:
+        tit = driver.find_element(By.ID, "b12-b11-TextTitlevalue").text
+        con = driver.find_element(By.ID, "b12-b11-TextContentValue").text
         raise Exception(f"{tit} {con}")
-    except TimeoutException:
-        pass
 
-    wait.until(EC.presence_of_element_located((By.ID, "b12-Widget_TransactionRecordList")))
-    logging.info(f"⌛ Esperando la tabla con resultados")
 
-    try:
-        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID, "b12-limpiargrilla")))
-        logging.error(f"❌ Se detectó un modal que no carga los resultados")
+    # 🔴 Caso 2: modal sin resultados
+    elif "b12-limpiargrilla" in html:
+        logging.error("❌ Se detectó un modal que no carga los resultados")
         raise Exception(f"No hay resultados para la póliza {ramo.poliza}")
-    except TimeoutException:
-        logging.info("✅ No se detectó modal")
+
+
+    # 🟢 Caso 3: tabla cargada correctamente
+    logging.info("✅ Tabla cargada correctamente")
 
     try:
-        fila = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#b12-Widget_TransactionRecordList tbody tr")))
+        # fila = wait.until(EC.element_to_be_clickable((
+        #     By.CSS_SELECTOR,
+        #     "#b12-Widget_TransactionRecordList tbody tr"
+        # )))
+
+        filas = wait.until(EC.presence_of_all_elements_located((
+            By.CSS_SELECTOR,
+            "#b12-Widget_TransactionRecordList tbody tr"
+        )))
+
+        fila_objetivo = None
+
+        for fila in filas:
+            try:
+                estado = fila.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
+        
+                if estado.lower() == "vigente":
+                    fila_objetivo = fila
+                    break
+
+            except Exception:
+                continue
+
+        if not fila_objetivo:
+            raise Exception(f"No se encontró fila Vigente para la póliza {ramo.poliza}")
+
+        inicio_vigencia = fila_objetivo.find_element(
+            By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span"
+        ).text.strip()
+
+        fin_vigencia = fila_objetivo.find_element(
+            By.XPATH, ".//td[@data-header='Fin de Vigencia']//span"
+        ).text.strip()
+
+        estado = fila_objetivo.find_element(
+            By.XPATH, ".//td[@data-header='Estado']//span"
+        ).text.strip()
+
+        indice_fila = filas.index(fila_objetivo) + 1
+
     except TimeoutException:
-        raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad Mes Adelantado")
+        raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad -> {tipo_mes}")
 
     checkbox = fila.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
 
-    actions = ActionChains(driver)
-    actions.move_to_element(checkbox).click().perform()
-    logging.info(f"✅ Se seleccionó la póliza: {ramo.poliza}")
+    ActionChains(driver).move_to_element(checkbox).click().perform()
+
+    logging.info(f"✅ Fila seleccionada: {indice_fila} | Póliza: {ramo.poliza} | Inicio: {inicio_vigencia} | Fin: {fin_vigencia} | Estado: {estado}")
+
+    # #---------------------------------------------------------------------------------------------
+    # boton_buscar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Buscar']]")))
+    # boton_buscar.click()
+    # logging.info(f"🖱️ Clic en 'Buscar'")
+
+    # try:
+    #     tit = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue"))).text
+    #     con = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextContentValue"))).text
+    #     raise Exception(f"{tit} {con}")
+    # except TimeoutException:
+    #     pass
+
+    # wait.until(EC.presence_of_element_located((By.ID, "b12-Widget_TransactionRecordList")))
+    # logging.info(f"⌛ Esperando la tabla con resultados")
+
+    # try:
+    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID, "b12-limpiargrilla")))
+    #     logging.error(f"❌ Se detectó un modal que no carga los resultados")
+    #     raise Exception(f"No hay resultados para la póliza {ramo.poliza}")
+    # except TimeoutException:
+    #     logging.info("✅ No se detectó modal")
+
+    # try:
+    #     fila = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#b12-Widget_TransactionRecordList tbody tr")))
+    # except TimeoutException:
+    #     raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad Mes Adelantado")
+
+    # checkbox = fila.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
+
+    # actions = ActionChains(driver)
+    # actions.move_to_element(checkbox).click().perform()
+    # logging.info(f"✅ Se seleccionó la póliza: {ramo.poliza}")
+    # #---------------------------------------------------------------------------------------------
 
     time.sleep(3)
 
+    # =========================
+    # CLICK EN PROCESO
+    # =========================
     if tipo_proceso == 'IN':
-        boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Inclusión']]")))
+        boton_proceso = wait.until(EC.element_to_be_clickable(
+            (By.XPATH, "//button[.//div[text()='Inclusión']]")
+        ))
     else:
-        boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Renovación']]")))
+        boton_proceso = wait.until(EC.element_to_be_clickable(
+            (By.XPATH, "//button[.//div[text()='Renovación']]")
+        ))
 
     boton_proceso.click()
-    logging.info(f"🖱️ Clic en {palabra_clave} ")
+    logging.info(f"🖱️ Clic en {palabra_clave}")
 
-    time.sleep(3)
+    # =========================
+    # ESPERAR (ERROR O VENTANA)
+    # =========================
+    resultado = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextTitlevalue")),  # error
+            EC.presence_of_element_located((By.XPATH, "//input[@type='file']"))     # ventana lista
+        )
+    )
 
-    try:
-
-        titulo = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextTitlevalue"))).text
-        contenido = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextContentValue"))).text
+    if resultado.get_attribute("id") == "b12-b2-b8-TextTitlevalue":
+        titulo = resultado.text
+        contenido = driver.find_element(By.ID, "b12-b2-b8-TextContentValue").text
         raise Exception(f"{titulo} {contenido}")
 
-    except TimeoutException:
-        pass
+    logging.info(f"🌐 Ventana de {palabra_clave} cargada correctamente")
 
-    logging.info(f"--- Se ingresó a la ventana de {palabra_clave} 🌐----")
-
-    ruta_archivo = os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsx")
-
+    # =========================
+    # SET FECHA (INCLUSIÓN)
+    # =========================
     if tipo_proceso == 'IN':
+        fecha_vigencia = wait.until(EC.element_to_be_clickable(
+            (By.ID, "b13-b1-EffectiveDateTyping")
+        ))
 
-        fecha_vigencia_solicitud = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-EffectiveDateTyping")))
         driver.execute_script("""
             arguments[0].removeAttribute('readonly');
             arguments[0].value = arguments[1];
             arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
             arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
-        """, fecha_vigencia_solicitud,ramo.f_inicio)
-        logging.info(f"📅 Fecha de Inicio de la vigencia para la {palabra_clave}: {ramo.f_inicio}")
+        """, fecha_vigencia, ramo.f_inicio)
 
-    time.sleep(2)
+        logging.info(f"📅 Fecha Inicio: {ramo.f_inicio}")
+
+    # =========================
+    # SUBIR ARCHIVO
+    # =========================
+    ruta_archivo = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx")
 
     if not os.path.exists(ruta_archivo):
-        raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
+        raise Exception(f"Archivo {ramo.poliza}.xlsx no encontrado")
 
     if tipo_proceso == 'IN':
-        input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b11-b2-b1-DropArea']//input[@type='file']")))
-        input_file.send_keys(ruta_archivo)
+        input_file = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@id='b13-b1-b11-b2-b1-DropArea']//input[@type='file']"
+        )))
     else:
-        input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b1-b2-b1-DropArea']//input[@type='file']")))
-        input_file.send_keys(ruta_archivo)
+        input_file = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@id='b13-b1-b1-b2-b1-DropArea']//input[@type='file']"
+        )))
 
-    logging.info(f"⌛ Trama {ramo.poliza}.xlsx subido para validar")
+    input_file.send_keys(ruta_archivo)
+    logging.info(f"📂 Trama {ramo.poliza}.xlsx subida")
 
-    time.sleep(5)
+    # =========================
+    # VALIDAR FORMATO (ERROR O BOTÓN VALIDAR)
+    # =========================
+    resultado = wait.until(
+        EC.any_of(
+            EC.presence_of_element_located((
+                By.XPATH,
+                "//span[contains(text(),'La planilla no está en un formato válido de excel')]"
+            )),
+            EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate"))
+        )
+    )
 
-    try:
-        msj = 'La planilla no está en un formato válido de excel'
-        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,f"//span[contains(text(), '{msj}')]")))
-        raise Exception(msj)
-    except TimeoutException:
-        logging.info("✅ No se detectó error de formato en la planilla")
+    if "formato válido" in resultado.text:
+        raise Exception("La planilla no está en un formato válido de excel")
 
+    logging.info("✅ Archivo válido")
+
+    # =========================
+    # CLICK VALIDAR
+    # =========================
     boton_validar = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate")))
     boton_validar.click()
-    logging.info(f"🖱️ Clic en Validar")
+    logging.info("🖱️ Clic en Validar")
 
-    try:
-        boton_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Aceptar']")))
-        boton_aceptar.click()
-        logging.info("✅ Clic en el botón Aceptar.")
-    except TimeoutException:
-        logging.info("✅ No se detectó advertencia de inicio de vigencia")
+    # =========================
+    # RESULTADO FINAL (TODO EN UNO)
+    # =========================
+    resultado = wait.until(
+        EC.any_of(
+            EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Aceptar']")),
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Lo sentimos')]")),
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")),
+            EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]"))
+        )
+    )
 
-    try:
-        msj = 'Lo sentimos'
-        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, f"//span[contains(text(), '{msj}')]")))
-        raise Exception(msj)
-    except TimeoutException:
-        #logging.info("✅ No se detectó errores en la Trama. Se continúa con el flujo normalmente.")
-        pass
-        
-    try:
-        wait.until(
+    texto = resultado.text.lower()
+
+    # ⚠️ Caso: Advertencia (botón Aceptar)
+    if resultado.tag_name == "button":
+        resultado.click()
+        logging.info("✅ Se aceptó advertencia de vigencia")
+
+        # 👇 luego de aceptar, esperar resultado final
+        resultado = wait.until(
             EC.any_of(
-                EC.presence_of_element_located(
-                    (By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]")
-                ),
-                EC.presence_of_element_located(
-                    (By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")
-                )
+                EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Lo sentimos')]")),
+                EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")),
+                EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]"))
             )
         )
+        texto = resultado.text.lower()
 
-        # Verificamos cuál mensaje apareció
-        if driver.find_elements(By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]"):
-            raise Exception("Encontramos algunos errores en la planilla. Descarga y corrige las observaciones")
+    # ❌ Error general
+    if "lo sentimos" in texto:
+        raise Exception("Error en la validación de la trama")
 
-        logging.info("✅ Planilla validada exitosamente. Continuando con el flujo.")
+    # ❌ Error en planilla
+    elif "encontramos algunos errores" in texto:
+        raise Exception("Planilla con errores. Descargar y corregir")
 
-    except TimeoutException:
-        raise Exception("No se pudo determinar el resultado de la validación de la planilla.")
+    # ✅ Éxito
+    elif "superó exitosamente" in texto:
+        logging.info("✅ Planilla validada correctamente")
+
+    # #---------------------------------------------------------------------------------------------------------------------------
+
+    # if tipo_proceso == 'IN':
+    #     boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Inclusión']]")))
+    # else:
+    #     boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Renovación']]")))
+
+    # boton_proceso.click()
+    # logging.info(f"🖱️ Clic en {palabra_clave} ")
+
+    # time.sleep(3)
+
+    # try:
+
+    #     titulo = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextTitlevalue"))).text
+    #     contenido = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextContentValue"))).text
+    #     raise Exception(f"{titulo} {contenido}")
+
+    # except TimeoutException:
+    #     pass
+
+    # logging.info(f"--- Se ingresó a la ventana de {palabra_clave} 🌐----")
+
+    # ruta_archivo = os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsx")
+
+    # if tipo_proceso == 'IN':
+
+    #     fecha_vigencia_solicitud = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-EffectiveDateTyping")))
+    #     driver.execute_script("""
+    #         arguments[0].removeAttribute('readonly');
+    #         arguments[0].value = arguments[1];
+    #         arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+    #         arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+    #     """, fecha_vigencia_solicitud,ramo.f_inicio)
+    #     logging.info(f"📅 Fecha de Inicio de la vigencia para la {palabra_clave}: {ramo.f_inicio}")
+
+    # time.sleep(2)
+
+    # if not os.path.exists(ruta_archivo):
+    #     raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
+
+    # if tipo_proceso == 'IN':
+    #     input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b11-b2-b1-DropArea']//input[@type='file']")))
+    #     input_file.send_keys(ruta_archivo)
+    # else:
+    #     input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b1-b2-b1-DropArea']//input[@type='file']")))
+    #     input_file.send_keys(ruta_archivo)
+
+    # logging.info(f"⌛ Trama {ramo.poliza}.xlsx subido para validar")
+
+    # time.sleep(5)
+
+    # try:
+    #     msj = 'La planilla no está en un formato válido de excel'
+    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,f"//span[contains(text(), '{msj}')]")))
+    #     raise Exception(msj)
+    # except TimeoutException:
+    #     logging.info("✅ No se detectó error de formato en la planilla")
+
+    # boton_validar = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate")))
+    # boton_validar.click()
+    # logging.info(f"🖱️ Clic en Validar")
+
+    # try:
+    #     boton_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Aceptar']")))
+    #     boton_aceptar.click()
+    #     logging.info("✅ Clic en el botón Aceptar.")
+    # except TimeoutException:
+    #     logging.info("✅ No se detectó advertencia de inicio de vigencia")
+    #     #pass
+
+    # try:
+    #     msj = 'Lo sentimos'
+    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, f"//span[contains(text(), '{msj}')]")))
+    #     raise Exception(msj)
+    # except TimeoutException:
+    #     logging.info("✅ No se detectó errores en la Trama. Se continúa con el flujo normalmente.")
+    #     #pass
+        
+    # try:
+    #     wait.until(
+    #         EC.any_of(
+    #             EC.presence_of_element_located(
+    #                 (By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]")
+    #             ),
+    #             EC.presence_of_element_located(
+    #                 (By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")
+    #             )
+    #         )
+    #     )
+
+    #     # Verificamos cuál mensaje apareció
+    #     if driver.find_elements(By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]"):
+    #         raise Exception("Encontramos algunos errores en la planilla. Descarga y corrige las observaciones")
+
+    #     logging.info("✅ Planilla validada exitosamente. Continuando con el flujo.")
+
+    # except TimeoutException:
+    #     raise Exception("No se pudo determinar el resultado de la validación de la planilla.")
+
+    # #---------------------------------------------------------------------------------------------------------------------------
 
     # try:
     #     wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'La planilla superó exitosamente')]")))
@@ -1172,13 +1399,13 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     input_correo.clear()
     input_correo.send_keys(ejecutivo_responsable)
-    logging.info("✅ Editando correo del ejecutivo")
+    logging.info(f"⌨️ Ingresando correo '{ejecutivo_responsable}'")
 
     # Esperar que el botón esté presente
     boton_calcular = wait.until(EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")))
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_calcular)
     boton_calcular.click()
-    logging.info("🖱️ Se hizo clic en el botón 'Calcular'")
+    logging.info("🖱️ Clic en 'Calcular'")
 
     if tipo_proceso == 'IN':   
         finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-InclusionValidate")))
@@ -1217,32 +1444,39 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     driver.execute_script("arguments[0].click();", boton_descargar)
     logging.info("🖱 Clic con JS en el botón de descarga")
 
-    archivos_nuevos = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=2)
-    logging.info("✅ Documentos descargados correctamente")
+    cantidad = 2 if tipo_mes == 'MA' else 1 
 
-    if archivos_nuevos:
-        # Ordenarlos por fecha de creación (más seguro)
+    archivos_nuevos = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad)
+
+    if archivos_nuevos and len(archivos_nuevos) >= cantidad:
+        logging.info(f"✅ {cantidad} documento(s) descargado(s) correctamente")
+
         archivos_nuevos = sorted(
             archivos_nuevos,
             key=os.path.getctime
         )
 
+        # Siempre existe el primero
         nombre_1 = os.path.join(
             ruta_archivos_x_inclu,
             f"{ramo.poliza}.pdf"
         )
 
-        nombre_2 = os.path.join(
-            ruta_archivos_x_inclu,
-            f"endoso_{ramo.poliza}.pdf"
-        )
-
         os.rename(archivos_nuevos[0], nombre_1)
         logging.info(f"✅ Constancia '{ramo.poliza}.pdf' renombrado correctamente")
-        os.rename(archivos_nuevos[1], nombre_2)
-        logging.info(f"✅ Endoso 'endoso_{ramo.poliza}.pdf' renombrado correctamente")
+
+        # Solo si hay 2 archivos
+        if cantidad == 2:
+            nombre_2 = os.path.join(
+                ruta_archivos_x_inclu,
+                f"endoso_{ramo.poliza}.pdf"
+            )
+
+            os.rename(archivos_nuevos[1], nombre_2)
+            logging.info(f"✅ Endoso 'endoso_{ramo.poliza}.pdf' renombrado correctamente")
+
     else:
-        logging.error("❌ No se detectaron los 2 archivos")
+        logging.error(f"❌ No se detectaron los {cantidad} archivo(s)")
 
     # if descargar_documento(driver,boton_descargar,ramo.poliza,impresion=False,pestaña=False):
     #     logging.info(f"✅ Constancia {ramo.poliza}.pdf obtenida")
@@ -1292,143 +1526,59 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
 
         return conVL,proVL,tipErVL,detErVL
 
-    # try:
-
-    #     logging.info("----------------------------")
-    #     driver.get('https://web.lapositiva.com.pe/sso_login_ui/')
-    #     logging.info("⌛ Cargando la Web de Positiva")
-     
-    #     user_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
-    #     user_field.clear()
-
-    #     mover_y_hacer_click_simple(driver, user_field)
-    #     time.sleep(random.uniform(0.97, 0.99))
-
-    #     escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)
-    #     logging.info("⌨️ Digitando el Username")
-
-    #     time.sleep(1 + random.random() * 1.5)
-
-    #     password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
-    #     password_field.clear()
-
-    #     mover_y_hacer_click_simple(driver, password_field)
-    #     time.sleep(random.uniform(0.97, 0.99))
-
-    #     escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
-    #     logging.info("⌨️ Digitando el Password")
-
-    #     time.sleep(1 + random.random() * 1.5)
-
-    #     login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
-    #     mover_y_hacer_click_simple(driver, login_button)
-    #     logging.info("🖱️ Clic en Iniciar Sesión")
-
-    #     time.sleep(3)
-
-    #     try:
-
-    #         popup_text = WebDriverWait(driver,7).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")))
-
-    #         if popup_text:
-
-    #             logging.error("❌ Usuario o contraseña incorrectos")
-    #             raise Exception ("Usuario o contraseña incorrectos")
-    #             # aceptar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//button[.//span[text()='Aceptar']]")))
-    #             # aceptar_btn.click()
-    #             # logging.info("🖱️ Clic en Aceptar")
-
-    #     except TimeoutException:
-    #         #logging.info("✅ Login exitoso")
-    #         pass
-
-    #     autogestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")))
-    #     driver.execute_script("arguments[0].click();", autogestion)
-    #     logging.info("🖱️ Clic en Autogestión")
-
-    #     ventana_menu_positiva = driver.current_window_handle
-
-    # except Exception as e:
-    #     logging.error(f"❌ Error inesperado entrando a la url: {e}")
-    #     tomar_capturar(driver, ruta_archivos_x_inclu, f"LOGIN_FALLIDO")
-    #     return False,False,"Login Fallido", str(e)
-    #-------------------------------------------------------
     try:
 
         logging.info("----------------------------")
         driver.get('https://web.lapositiva.com.pe/sso_login_ui/')
         logging.info("⌛ Cargando la Web de Positiva")
+     
+        user_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
+        user_field.clear()
 
-        for intento in range(2):
+        mover_y_hacer_click_simple(driver, user_field)
+        time.sleep(random.uniform(0.97, 0.99))
 
-            logging.info(f"🔄 Intento de login número {intento + 1}...")
-            time.sleep(3)
+        escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)
+        logging.info(f"⌨️ Digitando el Username")
 
-            try:               
+        time.sleep(1 + random.random() * 1.5)
 
-                user_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
-                user_field.clear()
+        password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
+        password_field.clear()
 
-                mover_y_hacer_click_simple(driver, user_field)
-                time.sleep(random.uniform(0.97, 0.99))
+        mover_y_hacer_click_simple(driver, password_field)
+        time.sleep(random.uniform(0.97, 0.99))
 
-                escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)
-                logging.info("⌨️ Digitando el Username")
+        escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
+        logging.info(f"⌨️ Digitando el Password")
 
-                time.sleep(1 + random.random() * 1.5)
+        time.sleep(1 + random.random() * 1.5)
 
-                password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
-                password_field.clear()
+        login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
+        mover_y_hacer_click_simple(driver, login_button)
+        logging.info("🖱️ Clic en Iniciar Sesión")
 
-                mover_y_hacer_click_simple(driver, password_field)
-                time.sleep(random.uniform(0.97, 0.99))
+        # blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]")
+        # error_login = (By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")
+        # change_password = (By.ID, "b5-b22-ChangePassword")
+        # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
+        autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
 
-                escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
-                logging.info("⌨️ Digitando el Password")
+        try:
 
-                time.sleep(1 + random.random() * 1.5)
+            autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
+            logging.info("✅ Login exitoso")
+            driver.execute_script("arguments[0].click();", autogestion)
+            logging.info("🖱️ Clic en Autogestión")
 
-                login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
-                mover_y_hacer_click_simple(driver, login_button)
-                logging.info("🖱️ Clic en Iniciar Sesión")
+            ventana_menu_positiva = driver.current_window_handle
 
-                time.sleep(3)
-
-                try:
-
-                    popup_text = WebDriverWait(driver,7).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")))
-
-                    if popup_text:
-
-                        logging.error("❌ Usuario o contraseña incorrectos")
- 
-                        if intento == 1:
-                            raise Exception("Usuario o contraseña incorrectos")
-
-                        aceptar_btn = wait.until(EC.presence_of_element_located((By.XPATH, "//button[.//span[text()='Aceptar']]")))
-                        aceptar_btn.click()
-                        logging.info("🖱️ Clic en Aceptar")
-                        time.sleep(2)
-                        driver.refresh()
-                        continue
-                except TimeoutException:
-                    logging.info("✅ Login exitoso")
-
-                autogestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")))
-                driver.execute_script("arguments[0].click();", autogestion)
-                logging.info("🖱️ Clic en Autogestión")
-
-                ventana_menu_positiva = driver.current_window_handle
-
-                break
-
-            except Exception as e:
-                logging.info(f"❌ Error durante el intento {intento+1}: {e}")
-                driver.refresh()
+        except TimeoutException:
+            raise Exception("Problemas en el Inicio de Sesión, comunícate con el ejecutivo responsable")
 
     except Exception as e:
-
-        logging.error(f"❌ Error inesperado entrando a la url: {e}")
+        logging.error(f"❌ Error entrando a la Positiva: {e}")
+        tomar_capturar(driver, ruta_archivos_x_inclu, f"LOGIN_FALLIDO")
         return False,False,"Login Fallido", str(e)
 
     if bab_codigo in ['1', '2', '3']:
@@ -1458,14 +1608,19 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     # 🔹 Mapear función según tipo_mes
     funciones = {
-        "MV": lambda: solicitud_vidaley_MV(
+        # "MV": lambda: solicitud_vidaley_MV(
+        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+        #     ejecutivo_responsable, palabra_clave,tipo_mes,
+        #     tipo_proceso, actividad, ramo
+        # ),
+        "MV": lambda: solicitud_vidaley_MA(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-            ejecutivo_responsable, palabra_clave,
-            tipo_proceso, actividad, ramo
+            ejecutivo_responsable, palabra_clave,tipo_mes,
+            tipo_proceso, ramo
         ),
         "MA": lambda: solicitud_vidaley_MA(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-            ejecutivo_responsable, palabra_clave,
+            ejecutivo_responsable, palabra_clave,tipo_mes,
             tipo_proceso, ramo
         )
     }

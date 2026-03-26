@@ -339,7 +339,6 @@ def main():
         case _:
             tipo_mes = 'MV'
 
-    # Mapa de compañías
     dispatch = {
         'SANITAS': 'SANI',
         'CRECER': 'CREC',
@@ -382,7 +381,6 @@ def main():
         if ba_codigo == '0' and bb_codigo == '5':
             raise Exception("No hay pólizas para procesar")
 
-        #--- Cases para tipos de proceso y mes ---
         match ctx.proceso.upper():
             case 'INCLUSION':
                 tipo_proc = 'IN'
@@ -399,28 +397,17 @@ def main():
 
         ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
 
-        #--- Iniciando el Driver de Chrome ---
         driver = abrirDriver(ruta_archivos_x_inclu)
         wait = WebDriverWait(driver,tiempo)
 
         PRE_RAMOS = [
-            {
-                "ramo": "SALUD",
-                "ctx": ctx.salud
-            },
-            {
-                "ramo": "PENSION",
-                "ctx": ctx.pension
-            },
-            {
-                "ramo": "VIDALEY",
-                "ctx": ctx.vida
-            }
+            {"ramo": "SALUD","ctx": ctx.salud},
+            {"ramo": "PENSION","ctx": ctx.pension},
+            {"ramo": "VIDALEY","ctx": ctx.vida}
         ]
 
         descargas_esperadas = 0
         logging.info("-----------------------------")
-        #-- Para descargar las tramas ---
         for r in PRE_RAMOS:
 
             ctx_ramo = r["ctx"]
@@ -428,17 +415,13 @@ def main():
             if ctx_ramo.activo:
                 continue
 
-            # Trama principal
             if ctx_ramo.trama:
-
                 descargas_esperadas += 1
                 logging.info(f"⌛ Descargando trama {r['ramo']}")
                 driver.get(ctx_ramo.trama)
                 time.sleep(1)
 
-            # Trama 97 (si aplica)
             if ctx_ramo.trama_97:
-
                 descargas_esperadas += 1
                 logging.info(f"⌛ Descargando trama 97 {r['ramo']}")
                 driver.get(ctx_ramo.trama_97)
@@ -459,17 +442,12 @@ def main():
             tipoErrorVL = "Fallas en la Trama con Azure"
             detalleErrorVL = "Trama no descargada"
 
-            raise Exception(
-                f"Descargas incompletas -> "
-                f"esperadas = {descargas_esperadas}, "
-                f"en carpeta = {archivos_descargados - 1 }"
-            )
+            raise Exception(f"Descargas incompletas -> "f"esperadas = {descargas_esperadas}, "f"en carpeta = {archivos_descargados - 1 }")
 
         logging.info("-----------------------------")
         logging.info(f"✅ Validación OK : {archivos_descargados - 1} archivos descargados correctamente")
         logging.info("-----------------------------")
 
-        # --- Enviando puerto a Birlik (solo una vez) ---
         if any(r["ctx"].id_poliza and not r["ctx"].activo for r in PRE_RAMOS):
             enviar_puerto_por_ramos(PRE_RAMOS, puerto)
 
@@ -576,11 +554,9 @@ def main():
 
             logging.info("-----------------------------")
 
-            # -------- ESTACA --------
             enviar_estaca_si_aplica(id_mov, ramo, constancia, proforma)
             time.sleep(1)
 
-            # -------- ERRORES --------
             tipo_error, detalle_error = obtener_error(ramo)
 
             if tipo_error and detalle_error:
@@ -594,7 +570,6 @@ def main():
                     ruta_archivos_x_inclu, const
                 )
 
-                # 🔹 enviar correo SCTR solo una vez
                 if ramo in ("SALUD","PENSION"):
 
                     if not error_sctr_enviado:
@@ -617,7 +592,6 @@ def main():
 
                 time.sleep(1)
 
-            # -------- DOCUMENTOS --------
             enviar_docs(id_mov, ramo, ctx_ramo, constancia, proforma)
             time.sleep(1)
 
