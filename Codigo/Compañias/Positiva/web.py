@@ -992,7 +992,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     try:
         input_element = wait.until(EC.element_to_be_clickable((By.ID, "b12-b1-Input_PolicesNumber")))
         input_element.clear()
-        input_element.send_keys("1005537087") # 1005537087 ramo.poliza
+        input_element.send_keys(ramo.poliza) # 1005537087 ramo.poliza
         logging.info(f"✅ Numero de Póliza ingresado: {ramo.poliza}")
     except Exception as e:
         raise str(e)
@@ -1027,9 +1027,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     # driver.execute_script("document.body.click();")
 
-    boton_buscar = wait.until(EC.element_to_be_clickable(
-    (By.XPATH, "//button[.//div[text()='Buscar']]")
-    ))
+    boton_buscar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Buscar']]")))
     boton_buscar.click()
     logging.info("🖱️ Clic en 'Buscar'")
 
@@ -1068,10 +1066,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         #     "#b12-Widget_TransactionRecordList tbody tr"
         # )))
 
-        filas = wait.until(EC.presence_of_all_elements_located((
-            By.CSS_SELECTOR,
-            "#b12-Widget_TransactionRecordList tbody tr"
-        )))
+        filas = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR,"#b12-Widget_TransactionRecordList tbody tr")))
 
         fila_objetivo = None
 
@@ -1089,17 +1084,11 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         if not fila_objetivo:
             raise Exception(f"No se encontró fila Vigente para la póliza {ramo.poliza}")
 
-        inicio_vigencia = fila_objetivo.find_element(
-            By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span"
-        ).text.strip()
+        inicio_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span").text.strip()
 
-        fin_vigencia = fila_objetivo.find_element(
-            By.XPATH, ".//td[@data-header='Fin de Vigencia']//span"
-        ).text.strip()
+        fin_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Fin de Vigencia']//span").text.strip()
 
-        estado = fila_objetivo.find_element(
-            By.XPATH, ".//td[@data-header='Estado']//span"
-        ).text.strip()
+        estado = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
 
         indice_fila = filas.index(fila_objetivo) + 1
 
@@ -1152,13 +1141,9 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # CLICK EN PROCESO
     # =========================
     if tipo_proceso == 'IN':
-        boton_proceso = wait.until(EC.element_to_be_clickable(
-            (By.XPATH, "//button[.//div[text()='Inclusión']]")
-        ))
+        boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Inclusión']]")))
     else:
-        boton_proceso = wait.until(EC.element_to_be_clickable(
-            (By.XPATH, "//button[.//div[text()='Renovación']]")
-        ))
+        boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Renovación']]")))
 
     boton_proceso.click()
     logging.info(f"🖱️ Clic en {palabra_clave}")
@@ -1184,17 +1169,14 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # SET FECHA (INCLUSIÓN)
     # =========================
     if tipo_proceso == 'IN':
-        fecha_vigencia = wait.until(EC.element_to_be_clickable(
-            (By.ID, "b13-b1-EffectiveDateTyping")
-        ))
 
+        fecha_vigencia = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-EffectiveDateTyping")))
         driver.execute_script("""
             arguments[0].removeAttribute('readonly');
             arguments[0].value = arguments[1];
             arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
             arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
         """, fecha_vigencia, ramo.f_inicio)
-
         logging.info(f"📅 Fecha Inicio: {ramo.f_inicio}")
 
     # =========================
@@ -1206,13 +1188,9 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         raise Exception(f"Archivo {ramo.poliza}.xlsx no encontrado")
 
     if tipo_proceso == 'IN':
-        input_file = wait.until(EC.presence_of_element_located((
-            By.XPATH, "//div[@id='b13-b1-b11-b2-b1-DropArea']//input[@type='file']"
-        )))
+        input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b11-b2-b1-DropArea']//input[@type='file']")))
     else:
-        input_file = wait.until(EC.presence_of_element_located((
-            By.XPATH, "//div[@id='b13-b1-b1-b2-b1-DropArea']//input[@type='file']"
-        )))
+        input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b1-b2-b1-DropArea']//input[@type='file']")))
 
     input_file.send_keys(ruta_archivo)
     logging.info(f"📂 Trama {ramo.poliza}.xlsx subida")
@@ -1222,10 +1200,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # =========================
     resultado = wait.until(
         EC.any_of(
-            EC.presence_of_element_located((
-                By.XPATH,
-                "//span[contains(text(),'La planilla no está en un formato válido de excel')]"
-            )),
+            EC.presence_of_element_located((By.XPATH,"//span[contains(text(),'La planilla no está en un formato válido de excel')]")),
             EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate"))
         )
     )
