@@ -41,7 +41,7 @@ def mover_y_hacer_click_simple(driver, elemento, steps=6, pause_between=0.06):
     # volver al elemento y click
     action.move_to_element(elemento).pause(random.uniform(0.08, 0.2)).click().perform()
 
-def validar_pagina(driver):
+def validar_pagina2(driver):
 
     asunto = ""
 
@@ -74,6 +74,60 @@ def validar_pagina(driver):
 
     except TimeoutException:
         return True,asunto
+
+def validar_pagina(driver):
+
+    asunto = ""
+
+    # =========================
+    # VALIDACIONES RÁPIDAS (SIN WAIT)
+    # =========================
+    page = driver.page_source
+
+    if "The requested URL was rejected. Please consult with your administrator." in page:
+        return False, "Página web de La Positiva fuera de Servicio"
+
+    if "404 - File or directory not found." in page:
+        return False, "Página 404 - Archivo o directorio no encontrado"
+
+    # =========================
+    # LOCATORS
+    # =========================
+    overlay = (By.ID, "ID_MODAL_PROCESS")
+    user_field_1 = (By.NAME, "txtUsuario")
+    user_field_2 = (By.NAME, "username")
+
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.any_of(
+                EC.visibility_of_element_located(overlay),
+                EC.presence_of_element_located(user_field_1),
+                EC.presence_of_element_located(user_field_2)
+            )
+        )
+
+        # =========================
+        # VALIDAR RESULTADO (ANTI-STALE)
+        # =========================
+
+        # 🔴 Loader visible
+        loader = driver.find_elements(*overlay)
+        if loader and loader[0].is_displayed():
+            return False, "La página está demorando demasiado en cargar"
+
+        # 🔴 Redirección login 1
+        if driver.find_elements(*user_field_1):
+            return False, "Redireccionó a otra página (login)"
+
+        # 🔴 Redirección login 2
+        if driver.find_elements(*user_field_2):
+            return False, "Redireccionó a otra página (login)"
+
+        return True, asunto
+
+    except TimeoutException:
+        # ✅ No apareció nada malo → página OK
+        return True, asunto
 
 def validardeuda(driver,wait):
 
