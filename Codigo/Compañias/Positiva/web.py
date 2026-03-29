@@ -1376,11 +1376,12 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     input_correo.send_keys(ejecutivo_responsable)
     logging.info(f"⌨️ Ingresando correo '{ejecutivo_responsable}'")
 
-    # Esperar que el botón esté presente
-    boton_calcular = wait.until(EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")))
-    driver.execute_script("arguments[0].scrollIntoView(true);", boton_calcular)
-    boton_calcular.click()
-    logging.info("🖱️ Clic en 'Calcular'")
+    if tipo_proceso == 'IN':
+        # Esperar que el botón esté presente
+        boton_calcular = wait.until(EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")))
+        driver.execute_script("arguments[0].scrollIntoView(true);", boton_calcular)
+        boton_calcular.click()
+        logging.info("🖱️ Clic en 'Calcular'")
 
     if tipo_proceso == 'IN':   
         finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-InclusionValidate")))
