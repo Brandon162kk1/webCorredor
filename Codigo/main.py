@@ -107,7 +107,7 @@ class Salud(RamoBase):
     def __str__(self):
         return (
             f"Salud ("
-            f"Póliza:{self.poliza}, "
+            f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
             f"Sede: {self.sede}, "
             f"Vigencia: {self.f_inicio} al {self.f_fin}"

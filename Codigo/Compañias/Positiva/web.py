@@ -2,7 +2,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException,NoAlertPresentException
+from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -40,16 +40,36 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     time.sleep(3)
 
-    try:
-        WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")))
-        raise Exception("Lo sentimos, ha ocurrido un error inesperado")
-    except TimeoutException:
-        pass
+    error_locator = (By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")
+    poliza_locator = (By.ID, "ContentPlaceHolder1_txtNroPoliza")
 
-    poliza_input = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtNroPoliza")))
-    poliza_input.clear()
-    poliza_input.send_keys(ramo.poliza)
-    logging.info(f"✅ Se Ingresó la póliza '{ramo.poliza}' en el campo")
+    resultado = wait.until(
+        EC.any_of(
+            EC.presence_of_element_located(error_locator),
+            EC.presence_of_element_located(poliza_locator)
+        )
+    )
+
+    if resultado.get_attribute("id") == "ContentPlaceHolder1_txtNroPoliza":
+        poliza_input = resultado
+        poliza_input.clear()
+        poliza_input.send_keys(ramo.poliza)
+        logging.info(f"✅ Se ingresó la póliza '{ramo.poliza}'")
+
+    else:
+        logging.error("❌ Error en la web detectado")
+        raise Exception("Lo sentimos, ha ocurrido un error inesperado")
+
+    # try:
+    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")))
+    #     raise Exception("Lo sentimos, ha ocurrido un error inesperado")
+    # except TimeoutException:
+    #     pass
+
+    # poliza_input = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtNroPoliza")))
+    # poliza_input.clear()
+    # poliza_input.send_keys(ramo.poliza)
+    # logging.info(f"✅ Se Ingresó la póliza '{ramo.poliza}' en el campo")
 
     buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnBuscar")))
     buscar_btn.click()
@@ -82,7 +102,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         fecha_vigencia_dmy = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
         fecha_vigencia_str_for = fecha_vigencia_dmy.strftime("%d/%m/%Y")
 
-        logging.info(f"📅 Fecha Fin de la vigencia en la póliza {ramo.poliza}: {fecha_vigencia_str}")
+        logging.info(f"📅 Fecha Fin de la vigencia en la póliza : {fecha_vigencia_str}")
 
         if tipo_proceso == 'IN':
 
@@ -98,51 +118,323 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         raise Exception(f"Las fechas Fin de la vigencia en la Póliza {ramo.poliza} no coinciden")
     else:
 
+        # radio_seleccion = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_gvResultado_rbSeleccion_0")))
+        # radio_seleccion.click()
+        # logging.info("🖱️ Clic en el 'Radio Button' correspondiente")
+
+        # loader = (By.ID, "ID_MODAL_PROCESS")
+        # error_modal = (By.ID, "divAlertaErrorGeneral")
+        # btn_incluir_locator = (By.ID, "ContentPlaceHolder1_btnIncluir") if tipo_proceso == 'IN' else (By.ID, "ContentPlaceHolder1_btnRenovar")
+
+        # resultado = wait.until(
+        #     EC.any_of(
+        #         EC.invisibility_of_element_located(loader),
+        #         EC.visibility_of_element_located(error_modal),
+        #         EC.element_to_be_clickable(btn_incluir_locator)
+        #     )
+        # )
+
+        # # Caso error
+        # if driver.find_elements(*error_modal):
+        #     logging.erro("Mucho demora 1")
+        #     mensaje_error = driver.find_element(By.XPATH, "//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
+        #     raise Exception(mensaje_error)
+        
+        # wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
+        # logging.info("⌛ Esperando que cargue...")
+
+        # try:
+        #     modal_error_general = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorGeneral")))
+        #     mensaje_error = modal_error_general.find_element(By.XPATH, ".//p/span[2]").text.strip()
+        #     raise Exception(mensaje_error)
+        # except TimeoutException:
+        #     pass
+
+        #------ ACA me quede -------
+
+        # if tipo_proceso == 'IN':  
+            
+        #     btn_incluir = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluir")))
+        #     btn_incluir.click()
+        #     logging.info("🖱️ Clic en Incluir")
+
+        #     modal_incluir = (By.ID, "divTipoIncluir")
+        #     siguiente_paso = (By.ID, "fuPlanillaAjax")  # o algo que aparezca si NO hay modal
+
+        #     resultado = wait.until(
+        #         EC.any_of(
+        #             EC.visibility_of_element_located(modal_incluir),
+        #             EC.presence_of_element_located(siguiente_paso)
+        #         )
+        #     )
+
+        #     if resultado.get_attribute("id") == "divTipoIncluir":
+        #         logging.info("⚠️ Apareció el modal con advertencia")
+
+        #         btn_aceptar = wait.until(
+        #             EC.element_to_be_clickable(
+        #                 (By.ID, "ContentPlaceHolder1_btnIncluirProformaSi" if tipo_mes == 'MA'
+        #                  else "ContentPlaceHolder1_btnIncluirProformaNo")
+        #             )
+        #         )
+        #         btn_aceptar.click()
+        #         nom_btn = 'Si' if tipo_mes == 'MA' else 'No'
+        #         logging.info(f"🖱️ Clic en {nom_btn}")
+
+        #     # try:
+        #     #     WebDriverWait(driver,20).until(EC.visibility_of_element_located((By.ID, "divTipoIncluir")))
+        #     #     logging.info(f"⚠️ Apareció el modal con advertencia")
+                
+        #     #     if tipo_mes == 'MA':
+        #     #         btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaSi")))
+        #     #     else:
+        #     #         btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaNo")))
+                    
+        #     #     nom_btn = 'Si' if tipo_mes == 'MA' else 'No'
+        #     #     btn_aceptar.click()
+        #     #     logging.info(f"🖱️ Clic en {nom_btn}")
+
+        #     # except TimeoutException:
+        #     #     pass
+
+        #     #-------------------------------
+        #     # mensaje_deuda = validardeuda(driver,wait)
+
+        #     # if mensaje_deuda:
+        #     #     raise Exception(f"{mensaje_deuda}")
+
+        #     #-------------------------------
+
+        #     deuda_modal = (By.ID, "divAlertas")
+        #     file_input = (By.ID, "fuPlanillaAjax")
+
+        #     resultado2 = wait.until(
+        #         EC.any_of(
+        #             EC.visibility_of_element_located(deuda_modal),
+        #             EC.presence_of_element_located(file_input)
+        #         )
+        #     )
+
+        #     if resultado2.get_attribute("id") == "divAlertas":
+        #         logging.warning("⚠️ Apareció el modal de advertencia")
+        #         mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
+        #         raise Exception(mensaje)
+
+        #     #input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
+        #     logging.info("⌛ Esperando que cargue la nueva página donde se adjunta la Trama...")
+      
+        #     input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniFecVigInc")))
+        #     input_fecha.clear()
+
+        #     driver.execute_script("""
+        #         arguments[0].value = arguments[1]; 
+        #         arguments[0].dispatchEvent(new Event('change'));
+        #         arguments[0].dispatchEvent(new Event('blur'));
+        #     """, input_fecha, ramo.f_inicio)
+
+        #     alerta_fecha = (By.ID, "divAlertas")
+        #     body_clickable = (By.TAG_NAME, "body")
+
+        #     resultado3 = wait.until(
+        #         EC.any_of(
+        #             EC.visibility_of_element_located(alerta_fecha),
+        #             EC.element_to_be_clickable(body_clickable)
+        #         )
+        #     )
+
+        #     if resultado3.get_attribute("id") == "divAlertas":
+        #         logging.info(f"⚠️ Apareció el modal con advertencia")
+        #         mensaje = driver.find_element(By.ID, "spMensaje").text
+        #         raise Exception(mensaje)
+
+        #     # try:
+        #     #     WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertas")))
+        #     #     logging.info(f"⚠️ Apareció el modal con advertencia")
+        #     #     mensaje_fecha = wait.until(EC.visibility_of_element_located((By.ID, "spMensaje"))).text
+        #     #     raise Exception(mensaje_fecha)
+        #     # except TimeoutException:
+        #     #     pass
+
+        #     driver.find_element(By.TAG_NAME, "body").click()
+
+        #     fecha_date = datetime.strptime(ramo.f_inicio,"%d/%m/%Y").date()
+
+        #     if fecha_date < get_fecha_hoy().date():
+        #         diferencia = (get_fecha_hoy().date() - fecha_date).days
+        #         cant_dias = abs(diferencia)
+        #         text_dia = "día" if cant_dias == 1 else "días"
+        #         logging.info(f"📅 Vigencia de Inicio retroactiva ingresada: {ramo.f_inicio} con {cant_dias} {text_dia} de diferencia")
+        #     else:
+        #         logging.info(f"📅 Vigencia de Inicio ingresada: {ramo.f_inicio}")
+
+        #     if ramo.poliza == '9231375':
+
+        #         select_tipo_calculo = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_cboTipoCalculoEspecial")))
+        #         select_tp = Select(select_tipo_calculo)
+        #         select_tp.select_by_value("21")
+        #         logging.info("✅ Se seleccionó la opción 'Por días' ")
+
+        # else:
+
+        #     btn_incluir = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovar")))
+        #     btn_incluir.click()
+        #     logging.info("🖱️ Clic en Renovar")
+
+        #     mensaje_deuda = validardeuda(driver,wait)
+
+        #     if mensaje_deuda:
+        #         raise Exception(f"{mensaje_deuda}")
+
+        #     wait.until(EC.visibility_of_element_located((By.ID, "divTipoRenovacion")))
+
+        #     btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovacionSi")))
+
+        #     btn_aceptar.click()
+        #     logging.info(f"🖱️ Clic en aceptar la Renovación")
+
+        #     input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
+        #     logging.info("⌛ Esperando que cargue la nueva página donde se adjunta la Trama...")
+
+        #     # Solo para este cliente: P & Q TELECOM EIRL en particular Salud: 9231375 Pensión: 30358377 
+        #     # pq las otras polizas se ponen por defecto 1 mes
+        #     if ramo.poliza == '9231375':
+
+        #         fecha_str = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))).get_attribute("value")
+
+        #         fecha = datetime.strptime(fecha_str, "%d/%m/%Y")
+
+        #         fecha_siguiente_mes = fecha + relativedelta(months=1)
+
+        #         resultado = fecha_siguiente_mes - timedelta(days=1)
+
+        #         fecha_final = resultado.strftime("%d/%m/%Y")
+
+        #         input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza")))
+
+        #         input_fecha.clear()
+        #         driver.execute_script("""
+        #             arguments[0].value = arguments[1]; 
+        #             arguments[0].dispatchEvent(new Event('change'));
+        #             arguments[0].dispatchEvent(new Event('blur'));
+        #         """, input_fecha, fecha_final)
+
+        #         # Clic fuera del input (por ejemplo, el body) para cerrar el calendario
+        #         driver.find_element(By.TAG_NAME, "body").click()
+        #         logging.info(f"📅 Vigencia de Póliza ingresada con JS Hasta : {fecha_final}")
+        #--------------
+
+        # =========================
+        # RADIO BUTTON
+        # =========================
         radio_seleccion = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_gvResultado_rbSeleccion_0")))
         radio_seleccion.click()
         logging.info("🖱️ Clic en el 'Radio Button' correspondiente")
-        
+
+        # 🔥 ESPERAR que el DOM cambie
+        wait.until(EC.staleness_of(radio_seleccion))
+
         wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
-        logging.info("⌛ Esperando que cargue...")
 
-        try:
-            modal_error_general = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorGeneral")))
-            mensaje_error = modal_error_general.find_element(By.XPATH, ".//p/span[2]").text.strip()
+        # =========================
+        # LOADER vs ERROR vs BOTÓN
+        # =========================
+        error_modal = (By.ID, "divAlertaErrorGeneral")
+
+        btn_locator = (
+            (By.ID, "ContentPlaceHolder1_btnIncluir")
+            if tipo_proceso == 'IN'
+            else (By.ID, "ContentPlaceHolder1_btnRenovar")
+        )
+
+        resultado = wait.until(
+            EC.any_of(
+                EC.visibility_of_element_located(error_modal),
+                EC.element_to_be_clickable(btn_locator)
+            )
+        )
+
+        if resultado.get_attribute("id") == "divAlertaErrorGeneral":
+        #if driver.find_elements(By.XPATH, "//div[@id='divAlertaErrorGeneral' and not(contains(@style,'display: none'))]"):
+            logging.warning("⚠️ Apareció el modal con advertencia")
+            #mensaje_error = driver.find_element(By.XPATH, "//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
+            #mensaje_error = resultado.find_element(By.XPATH, ".//p/span[2]").text.strip()
+            mensaje_error = driver.find_element(
+                By.XPATH, "//div[@id='divAlertaErrorGeneral']//p/span[2]"
+            ).text.strip()
             raise Exception(mensaje_error)
-        except TimeoutException:
-            pass
 
-        if tipo_proceso == 'IN':  
-            
-            btn_incluir = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluir")))
+        # =========================
+        # INCLUSIÓN
+        # =========================
+        if tipo_proceso == 'IN':
+
+            btn_incluir = wait.until(EC.element_to_be_clickable(btn_locator))
             btn_incluir.click()
             logging.info("🖱️ Clic en Incluir")
 
-            try:
-                WebDriverWait(driver,20).until(EC.visibility_of_element_located((By.ID, "divTipoIncluir")))
-                logging.info(f"⚠️ Apareció el modal con advertencia")
-                
-                if tipo_mes == 'MA':
-                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaSi")))
-                else:
-                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirProformaNo")))
-                    
+            wait.until(EC.staleness_of(btn_incluir))
+
+            # =========================
+            # MODAL OPCIONAL vs SIGUIENTE PASO
+            # =========================
+            modal_incluir = (By.ID, "divTipoIncluir")
+            file_input = (By.ID, "fuPlanillaAjax")
+
+            resultado2 = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(modal_incluir),
+                    EC.presence_of_element_located(file_input)
+                )
+            )
+
+            # 🔎 si aparece modal
+            if resultado2.get_attribute("id") == "divTipoIncluir":
+                logging.warning("⚠️ Apareció el modal con advertencia")
+
+                btn_aceptar = wait.until(
+                    EC.element_to_be_clickable(
+                        (
+                            By.ID,
+                            "ContentPlaceHolder1_btnIncluirProformaSi"
+                            if tipo_mes == 'MA'
+                            else "ContentPlaceHolder1_btnIncluirProformaNo"
+                        )
+                    )
+                )
+
                 nom_btn = 'Si' if tipo_mes == 'MA' else 'No'
                 btn_aceptar.click()
                 logging.info(f"🖱️ Clic en {nom_btn}")
 
-            except TimeoutException:
-                pass
+            # =========================
+            # DEUDA vs CONTINUAR
+            # =========================
+            deuda_modal = (By.ID, "divAlertas")
 
-            mensaje_deuda = validardeuda(driver,wait)
+            resultado3 = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(deuda_modal),
+                    EC.presence_of_element_located(file_input)
+                )
+            )
 
-            if mensaje_deuda:
-                raise Exception(f"{mensaje_deuda}")
+            if resultado3.get_attribute("id") == "divAlertas":
+                logging.warning("⚠️ Apareció el modal con advertencia")
+                mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
+                raise Exception(mensaje)
 
-            input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
-            logging.info("⌛ Esperando que cargue la nueva página donde se adjunta la Trama...")
-      
-            input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniFecVigInc")))
+            # =========================
+            # INPUT FILE
+            # =========================
+            input_file = wait.until(EC.presence_of_element_located(file_input))
+            logging.info("⌛ Página de carga lista (Trama)")
+
+            # =========================
+            # FECHA
+            # =========================
+            input_fecha = wait.until(
+                EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniFecVigInc"))
+            )
             input_fecha.clear()
 
             driver.execute_script("""
@@ -151,69 +443,110 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 arguments[0].dispatchEvent(new Event('blur'));
             """, input_fecha, ramo.f_inicio)
 
-            try:
-                WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertas")))
-                logging.info(f"⚠️ Apareció el modal con advertencia")
-                mensaje_fecha = wait.until(EC.visibility_of_element_located((By.ID, "spMensaje"))).text
-                raise Exception(mensaje_fecha)
-            except TimeoutException:
-                pass
+            # =========================
+            # ALERTA FECHA vs CONTINUAR
+            # =========================
+            alerta_fecha = (By.ID, "divAlertas")
+
+            resultado4 = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(alerta_fecha),
+                    EC.element_to_be_clickable((By.TAG_NAME, "body")) #puede cambiar
+                )
+            )
+
+            if resultado4.get_attribute("id") == "divAlertas":
+                logging.warning("⚠️ Apareció el modal con advertencia")
+                mensaje = driver.find_element(By.ID, "spMensaje").text
+                raise Exception(mensaje)
 
             driver.find_element(By.TAG_NAME, "body").click()
 
-            fecha_date = datetime.strptime(ramo.f_inicio,"%d/%m/%Y").date()
+            # =========================
+            # LOG FECHA
+            # =========================
+            fecha_date = datetime.strptime(ramo.f_inicio, "%d/%m/%Y").date()
 
             if fecha_date < get_fecha_hoy().date():
                 diferencia = (get_fecha_hoy().date() - fecha_date).days
                 cant_dias = abs(diferencia)
                 text_dia = "día" if cant_dias == 1 else "días"
-                logging.info(f"📅 Vigencia de Inicio retroactiva ingresada: {ramo.f_inicio} con {cant_dias} {text_dia} de diferencia")
+                logging.info(
+                    f"📅 Vigencia retroactiva: {ramo.f_inicio} ({cant_dias} {text_dia})"
+                )
             else:
-                logging.info(f"📅 Vigencia de Inicio ingresada: {ramo.f_inicio}")
+                logging.info(f"📅 Vigencia ingresada: {ramo.f_inicio}")
 
+            # =========================
+            # CASO ESPECIAL
+            # =========================
             if ramo.poliza == '9231375':
 
-                select_tipo_calculo = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_cboTipoCalculoEspecial")))
-                select_tp = Select(select_tipo_calculo)
-                select_tp.select_by_value("21")
-                logging.info("✅ Se seleccionó la opción 'Por días' ")
+                select_tipo_calculo = wait.until(
+                    EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_cboTipoCalculoEspecial"))
+                )
+                Select(select_tipo_calculo).select_by_value("21")
 
+                logging.info("✅ Se seleccionó 'Por días'")
+
+        # =========================
+        # RENOVACIÓN
+        # =========================
         else:
 
-            btn_incluir = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovar")))
-            btn_incluir.click()
+            btn_renovar = wait.until(EC.element_to_be_clickable(btn_locator))
+            btn_renovar.click()
             logging.info("🖱️ Clic en Renovar")
 
-            mensaje_deuda = validardeuda(driver,wait)
+            # =========================
+            # DEUDA vs MODAL RENOVACIÓN
+            # =========================
+            deuda_modal = (By.ID, "divAlertas")
+            modal_renovacion = (By.ID, "divTipoRenovacion")
 
-            if mensaje_deuda:
-                raise Exception(f"{mensaje_deuda}")
+            resultado5 = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(deuda_modal),
+                    EC.visibility_of_element_located(modal_renovacion)
+                )
+            )
 
-            wait.until(EC.visibility_of_element_located((By.ID, "divTipoRenovacion")))
+            if resultado5.get_attribute("id") == "divAlertas":
+                mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
+                raise Exception(mensaje)
 
-            btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovacionSi")))
-
+            # =========================
+            # ACEPTAR RENOVACIÓN
+            # =========================
+            btn_aceptar = wait.until(
+                EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovacionSi"))
+            )
             btn_aceptar.click()
-            logging.info(f"🖱️ Clic en aceptar la Renovación")
+            logging.info("🖱️ Clic en aceptar la Renovación")
 
-            input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
-            logging.info("⌛ Esperando que cargue la nueva página donde se adjunta la Trama...")
+            # =========================
+            # SIGUIENTE PANTALLA
+            # =========================
+            input_file = wait.until(
+                EC.presence_of_element_located((By.ID, "fuPlanillaAjax"))
+            )
+            logging.info("⌛ Página de carga lista (Trama)")
 
-            # Solo para este cliente: P & Q TELECOM EIRL en particular Salud: 9231375 Pensión: 30358377 
-            # pq las otras polizas se ponen por defecto 1 mes
+            # =========================
+            # CASO ESPECIAL
+            # =========================
             if ramo.poliza == '9231375':
 
-                fecha_str = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))).get_attribute("value")
+                fecha_str = wait.until(
+                    EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))
+                ).get_attribute("value")
 
                 fecha = datetime.strptime(fecha_str, "%d/%m/%Y")
+                fecha_final = (fecha + relativedelta(months=1) - timedelta(days=1)).strftime("%d/%m/%Y")
 
-                fecha_siguiente_mes = fecha + relativedelta(months=1)
-
-                resultado = fecha_siguiente_mes - timedelta(days=1)
-
-                fecha_final = resultado.strftime("%d/%m/%Y")
-
-                input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza")))
+                input_fecha = wait.until(
+                    EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza"))
+                )
 
                 input_fecha.clear()
                 driver.execute_script("""
@@ -222,10 +555,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                     arguments[0].dispatchEvent(new Event('blur'));
                 """, input_fecha, fecha_final)
 
-                # Clic fuera del input (por ejemplo, el body) para cerrar el calendario
                 driver.find_element(By.TAG_NAME, "body").click()
-                logging.info(f"📅 Vigencia de Póliza ingresada con JS Hasta : {fecha_final}")
 
+                logging.info(f"📅 Vigencia Hasta: {fecha_final}")
+
+        #--------------
         time.sleep(2)
 
         file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsx")) 
@@ -256,274 +590,570 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         except TimeoutException:
             pass
 
-        try:
-            # Posible error para la hoja de la trama , debe ser Planilla no Trabajadores
-            WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorValidacion")))
-            logging.info(f"⚠️ Apareció el modal con errores")
-            mensaje_error = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaErrorValidacion"))).text
+        #---------------------------------------------------------------------------------------------------------------------------------------------------------
+        error_validacion = (By.ID, "divAlertaErrorValidacion")
+        btn_errores = (By.ID, "btnErroresPlanilla")
+        progress_bar = (By.ID, "progressbar")
+
+        resultado = wait.until(
+            EC.any_of(
+                EC.visibility_of_element_located(error_validacion),
+                EC.visibility_of_element_located(btn_errores),
+                EC.visibility_of_element_located(progress_bar)
+            )
+        )
+
+        # 🔎 ERROR DE VALIDACIÓN (modal rojo)
+        modal = driver.find_elements(*error_validacion)
+
+        if modal and modal[0].is_displayed():
+            logging.warning("⚠️ Apareció el modal con errores")
+
+            mensaje_error = driver.find_element(By.ID, "spanAlertaErrorValidacion").text
             raise Exception(mensaje_error)
-        except TimeoutException:
 
-            try:
-                WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")))
+        # 🔎 ERRORES EN PLANILLA
+        btn = driver.find_elements(*btn_errores)
 
-                cantidad_errores = wait.until(EC.visibility_of_element_located((By.ID, "spnContadorError"))).text
-                cantidad_texto = "error" if cantidad_errores == '1' else "errores"
+        if btn and btn[0].is_displayed():
 
-                link = wait.until(EC.element_to_be_clickable((By.ID, "btnErroresPlanilla")))
-                driver.execute_script("arguments[0].click();", link)
+            cantidad_errores = driver.find_element(By.ID, "spnContadorError").text
+            cantidad_texto = "error" if cantidad_errores == '1' else "errores"
 
-                wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
+            driver.execute_script("arguments[0].click();", btn[0])
 
-                filas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")))
+            wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
 
-                errores = []
+            filas = wait.until(
+                EC.presence_of_all_elements_located(
+                    (By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")
+                )
+            )
 
-                for fila in filas:
+            errores = []
 
-                    error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
+            for fila in filas:
+                error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
+                nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
+                paterno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sPaterno']").get_attribute("title")
+                materno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sMaterno']").get_attribute("title")
+                nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
 
-                    nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
+                errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
 
-                    paterno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sPaterno']").get_attribute("title")
+            detalle_errores = "\n".join(errores)
 
-                    materno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sMaterno']").get_attribute("title")
+            raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
 
-                    nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
+        # 👇 si aparece progress, esperar a 100%
+        if driver.find_elements(*progress_bar):
+            wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
+            logging.info("✅ Proceso completado al 100%")
 
-                    errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
+        #---------------------------------------------------------------------------------------------------------------------------------------------------------
+        # try:
+        #     # Posible error para la hoja de la trama , debe ser Planilla no Trabajadores
+        #     WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorValidacion")))
+        #     logging.info(f"⚠️ Apareció el modal con errores")
+        #     mensaje_error = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaErrorValidacion"))).text
+        #     raise Exception(mensaje_error)
+        # except TimeoutException:
 
-                detalle_errores = "\n".join(errores)
+        #     try:
+        #         WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")))
 
-                raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
+        #         cantidad_errores = wait.until(EC.visibility_of_element_located((By.ID, "spnContadorError"))).text
+        #         cantidad_texto = "error" if cantidad_errores == '1' else "errores"
 
-            except TimeoutException:
-                pass
+        #         link = wait.until(EC.element_to_be_clickable((By.ID, "btnErroresPlanilla")))
+        #         driver.execute_script("arguments[0].click();", link)
 
-        alerta_detectada = False
+        #         wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
 
-        try:
-            WebDriverWait(driver,5).until(EC.alert_is_present())
-            alert = driver.switch_to.alert   
-            logging.info(f"⚠️ Alerta: {alert.text}")   
-            alert.accept()
-            alerta_detectada = True
-        except TimeoutException:
-            pass
+        #         filas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")))
+
+        #         errores = []
+
+        #         for fila in filas:
+
+        #             error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
+
+        #             nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
+
+        #             paterno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sPaterno']").get_attribute("title")
+
+        #             materno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sMaterno']").get_attribute("title")
+
+        #             nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
+
+        #             errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
+
+        #         detalle_errores = "\n".join(errores)
+
+        #         raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
+
+        #     except TimeoutException:
+        #         pass
+        #---------------------------------------------------------------------------------------------------------------------------------------------------------
+        # #ESTO FUNCIONA
+        # alerta_detectada = False
+
+        # try:
+        #     WebDriverWait(driver,5).until(EC.alert_is_present())
+        #     alert = driver.switch_to.alert   
+        #     logging.info(f"⚠️ Alerta: {alert.text}")   
+        #     alert.accept()
+        #     alerta_detectada = True
+        # except TimeoutException:
+        #     pass
             
-        if alerta_detectada:
-            raise Exception("Hubo una alerta con la Trama")
-        else:
+        # if alerta_detectada:
+        #     raise Exception("Hubo una alerta con la Trama")
+        # else:
                              
-            procesar_btn = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnProcesar")))
+        #     procesar_btn = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnProcesar")))
 
-            driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", procesar_btn)
+        #     driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", procesar_btn)
 
-            procesar_btn.click()
-            logging.info(f"🖱️ Clic en Procesar {palabra_clave}") 
+        #     procesar_btn.click()
+        #     logging.info(f"🖱️ Clic en Procesar {palabra_clave}") 
 
-            texto_mensaje = ""
+        #     texto_mensaje = ""
 
-            if tipo_proceso == 'IN':
+        #     if tipo_proceso == 'IN':
 
-                #aca carga un modal indicado si estas seguro de realziar la operacion de Inclusion
+        #         #aca carga un modal indicado si estas seguro de realziar la operacion de Inclusion
 
-                btn_si = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirSi")))
-                btn_si.click()
+        #         btn_si = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirSi")))
+        #         btn_si.click()
+        #         logging.info("🖱️ Clic en Aceptar la Inclusión")
+
+        #         time.sleep(3)
+
+        #         mensaje_span = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaInclusion")))
+        #         texto_mensaje = mensaje_span.text
+
+        #     else:
+                
+        #         mensaje_span = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaRenovacion")))
+        #         texto_mensaje = mensaje_span.text
+
+        #         btn_si = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")))
+        #         btn_si.click()
+        #         logging.info("🖱️ Clic en Aceptar la Renovación")
+
+        #         time.sleep(3)
+            
+        #     logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
+
+        #     numero_doc = None
+
+        #     if tipo_proceso == 'IN':
+
+        #         match = re.search(r'Inclusión con nro\. (\d+)', texto_mensaje)
+        #         if match:
+        #             numero_doc = match.group(1)
+        #             logging.info(f"✅ Número de {palabra_clave} extraído: {numero_doc}")
+        #         else:
+        #             logging.info(f"No se encontró el código de {palabra_clave}.")
+
+        #     else:
+
+        #         match = re.search(r'renovación con nro\. (\d+)', texto_mensaje)
+        #         if match:
+        #             numero_doc = match.group(1)
+        #             logging.info(f"✅ Número de {palabra_clave} extraído: {numero_doc}")
+        #         else:
+        #             logging.info(f"No se encontró el código de {palabra_clave}.")
+
+        #     prefijo = "INCL" if tipo_proceso == "IN" else "RENV"
+
+        #     if not numero_doc:
+        #         raise Exception(f"No se pudo obtener el número de {palabra_clave} desde el mensaje: {texto_mensaje}")
+
+        #     codigo_documento = f"{prefijo}-{numero_doc}"
+
+        #     try:
+
+        #         if tipo_proceso == 'IN':
+        #             btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarInclusion")))
+        #             btn_aceptar.click()
+        #             logging.info("🖱️ Clic en Aceptar")
+        #             time.sleep(3)
+        #         else:
+        #             try:
+        #                 btn_aceptar = WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")))
+        #                 btn_aceptar.click()
+        #                 logging.info("🖱️ Clic en Aceptar")
+        #             except TimeoutException:
+        #                 pass
+
+        #         wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
+
+        #         try:
+        #             span_numero = wait.until(EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
+        #             logging.info(f"✅ Span encontrado: {span_numero.text}")
+        #         except TimeoutException:
+        #             raise Exception(f"No se encontró el span con número {codigo_documento}")
+
+        #         try:
+        #             # Esperar que aparezca la lupa (por cualquiera de los dos tipos) -- Esto puede fallar si solo es una póliza
+        #             if len(list_polizas) == 1 and ba_codigo == '1':
+        #                 selector_xpath = (f"//img[@data-nropolizasalud='{ramo.poliza}']")
+        #             elif len(list_polizas) == 1 and ba_codigo == '2':
+        #                 selector_xpath = (f"//img[@data-nropolizapension='{ramo.poliza}']")
+        #             else:
+        #                 selector_xpath = (f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']")
+
+        #             lupa_element = wait.until(EC.element_to_be_clickable((By.XPATH, selector_xpath)))
+
+        #             driver.execute_script("arguments[0].scrollIntoView(true);", lupa_element)
+        #             lupa_element.click()
+        #             logging.info(f"🖱️ Clic en la lupa {codigo_documento} para póliza {ramo.poliza}")
+
+        #         except TimeoutException:
+        #             raise Exception(f"No se encontró la lupa {codigo_documento} asociada a la póliza {ramo.poliza}")
+        #         except Exception as e:
+        #             raise Exception(f"Error al hacer clic en la lupa -> {e}")
+
+        #         try:
+        #             WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "btnAceptarError")))
+        #             raise Exception (f"Se detecto una advertencia, el código para descagar el documento en la compañía es {codigo_documento}.")
+        #         except TimeoutException:
+        #             pass
+
+        #         wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
+        #         time.sleep(3)
+        #         logging.info("📄 Panel PDF de la constancia visible.")
+
+        #         logging.info("----------------------------")
+
+        #         boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
+
+        #         # Guardar archivos antes del clic
+        #         archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
+        #         driver.execute_script("arguments[0].click();", boton_guardar)
+        #         logging.info("🖱 Clic con JS en el botón de descarga")
+
+        #         archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+        #         logging.info(f"✅ Archivo descargado exitosamente")
+
+        #         if archivo_nuevo:
+        #             ruta_original = archivo_nuevo[0]  # ya es ruta completa
+        #             ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+        #             os.rename(ruta_original, ruta_final)
+        #             logging.info(f"🔄 Constancia renombrado a '{ramo.poliza}.pdf'")
+        #         else:
+        #             raise Exception("No se encontró constancia después de la descarga")
+
+        #         if tipo_mes == 'MA':
+
+        #             logging.info("----------------------------")
+
+        #             driver.switch_to.frame("ifContenedorPDFMaster")#iframe     
+                                
+        #             boton_embebido = wait.until(EC.element_to_be_clickable((By.ID, "open-button")))
+
+        #             # Guardar archivos antes del clic
+        #             archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
+
+        #             driver.execute_script("arguments[0].click();", boton_embebido)
+        #             logging.info("🖱 Clic con JS en el botón de descarga")
+
+        #             endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_2,".pdf",cantidad=1)
+        #             logging.info(f"✅ Archivo descargado exitosamente")
+
+        #             if archivo_nuevo:
+        #                 ruta_original = endoso[0]  # ya es ruta completa
+        #                 ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
+        #                 os.rename(ruta_original, ruta_final)
+        #                 logging.info(f"🔄 Endoso renombrado a 'endoso_{ramo.poliza}.pdf'")
+        #             else:
+        #                 raise Exception("No se descargo el endoso")
+
+        #             driver.switch_to.default_content()
+            
+        #         time.sleep(1)
+
+        #         if len(list_polizas) == 2:
+
+        #             ruta_salud = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.pdf")
+        #             ruta_pension = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[1]}.pdf")
+                
+        #             logging.info("----------------------------")
+
+        #             if os.path.exists(ruta_salud):
+        #                 shutil.copy2(ruta_salud,ruta_pension)
+        #                 logging.info(f"📄 Copia creada para constancia de Pensión")
+        #             else:
+        #                 logging.error(f"❌ No existe el archivo base Constancia Salud")
+
+        #             logging.info("----------------------------")
+
+        #             if tipo_mes == 'MA':
+
+        #                 ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[0]}.pdf")
+        #                 ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[1]}.pdf")
+
+        #                 if os.path.exists(ruta_endoso_salud):
+        #                     shutil.copy2(ruta_endoso_salud,ruta_endoso_pension)
+        #                     logging.info(f"📄 Copia creada para el endoso de Pensión")
+        #                 else:
+        #                     logging.error(f"❌ No existe el archivo base Endoso Salud")
+
+        #                 logging.info("----------------------------")
+
+        #         #btnPDFCancelarM,btnPDFEnviarM
+        #         btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
+        #         btn_cancelar_boton.click()
+        #         logging.info("✅ Cerrando panel de documentos.")
+
+        #         time.sleep(2)
+
+        #         logging.info(f"✅ {palabra_clave} en La Positiva realizada exitosamente")
+
+        #     except Exception as e:
+        #         logging.error(f"Detalles del error: {str(e)}")
+        #         raise Exception(
+        #             f"No reprocesar la {palabra_clave}, ya que se generó la solicitud con el código -> {codigo_documento}.\n"
+        #             f"Buscar y descargar manualmente en la compañía."
+        #         )
+        
+        #---------------------------------------------------------------------------------------------------------------------------------------------------------    
+        # PROBANDO MENOS TIEMPO
+
+        # =========================
+        # ALERTA vs BOTÓN PROCESAR
+        # =========================
+        btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
+
+        wait.until(
+            EC.any_of(
+                EC.alert_is_present(),
+                EC.element_to_be_clickable(btn_procesar_locator)
+            )
+        )
+
+        # 🔎 Validar alerta
+        try:
+            alert = driver.switch_to.alert
+            logging.warning(f"⚠️ Alerta: {alert.text}")
+            alert.accept()
+            raise Exception("Hubo una alerta con la Trama")
+        except:
+            pass
+
+        # 🔎 Click procesar (con retry anti-stale)
+        for _ in range(3):
+            try:
+                driver.find_element(*btn_procesar_locator).click()
+                logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
+                break
+            except StaleElementReferenceException:
+                logging.warning("♻️ Reintentando click en Procesar...")
+
+        # =========================
+        # MENSAJE + BOTONES
+        # =========================
+        texto_mensaje = ""
+
+        if tipo_proceso == 'IN':
+
+            btn_si = (By.ID, "ContentPlaceHolder1_btnIncluirSi")
+            mensaje = (By.ID, "spanAlertaInclusion")
+
+            wait.until(
+                EC.any_of(
+                    EC.element_to_be_clickable(btn_si),
+                    EC.visibility_of_element_located(mensaje)
+                )
+            )
+
+            if driver.find_elements(*btn_si):
+                driver.find_element(*btn_si).click()
                 logging.info("🖱️ Clic en Aceptar la Inclusión")
 
-                time.sleep(3)
+            texto_mensaje = wait.until(
+                EC.visibility_of_element_located(mensaje)
+            ).text
 
-                mensaje_span = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaInclusion")))
-                texto_mensaje = mensaje_span.text
+        else:
 
-            else:
-                
-                mensaje_span = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaRenovacion")))
-                texto_mensaje = mensaje_span.text
+            mensaje = (By.ID, "spanAlertaRenovacion")
+            btn_si = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
 
-                btn_si = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")))
-                btn_si.click()
-                logging.info("🖱️ Clic en Aceptar la Renovación")
-
-                time.sleep(3)
-            
-            logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
-
-            numero_doc = None
-
-            if tipo_proceso == 'IN':
-
-                match = re.search(r'Inclusión con nro\. (\d+)', texto_mensaje)
-                if match:
-                    numero_doc = match.group(1)
-                    logging.info(f"✅ Número de {palabra_clave} extraído: {numero_doc}")
-                else:
-                    logging.info(f"No se encontró el código de {palabra_clave}.")
-
-            else:
-
-                match = re.search(r'renovación con nro\. (\d+)', texto_mensaje)
-                if match:
-                    numero_doc = match.group(1)
-                    logging.info(f"✅ Número de {palabra_clave} extraído: {numero_doc}")
-                else:
-                    logging.info(f"No se encontró el código de {palabra_clave}.")
-
-            prefijo = "INCL" if tipo_proceso == "IN" else "RENV"
-
-            if not numero_doc:
-                raise Exception(f"No se pudo obtener el número de {palabra_clave} desde el mensaje: {texto_mensaje}")
-
-            codigo_documento = f"{prefijo}-{numero_doc}"
-
-            try:
-
-                if tipo_proceso == 'IN':
-                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarInclusion")))
-                    btn_aceptar.click()
-                    logging.info("🖱️ Clic en Aceptar")
-                    time.sleep(3)
-                else:
-                    try:
-                        btn_aceptar = WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")))
-                        btn_aceptar.click()
-                        logging.info("🖱️ Clic en Aceptar")
-                    except TimeoutException:
-                        pass
-
-                wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
-
-                try:
-                    span_numero = wait.until(EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
-                    logging.info(f"✅ Span encontrado: {span_numero.text}")
-                except TimeoutException:
-                    raise Exception(f"No se encontró el span con número {codigo_documento}")
-
-                try:
-                    # Esperar que aparezca la lupa (por cualquiera de los dos tipos) -- Esto puede fallar si solo es una póliza
-                    if len(list_polizas) == 1 and ba_codigo == '1':
-                        selector_xpath = (f"//img[@data-nropolizasalud='{ramo.poliza}']")
-                    elif len(list_polizas) == 1 and ba_codigo == '2':
-                        selector_xpath = (f"//img[@data-nropolizapension='{ramo.poliza}']")
-                    else:
-                        selector_xpath = (f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']")
-
-                    lupa_element = wait.until(EC.element_to_be_clickable((By.XPATH, selector_xpath)))
-
-                    driver.execute_script("arguments[0].scrollIntoView(true);", lupa_element)
-                    lupa_element.click()
-                    logging.info(f"🖱️ Clic en la lupa {codigo_documento} para póliza {ramo.poliza}")
-
-                except TimeoutException:
-                    raise Exception(f"No se encontró la lupa {codigo_documento} asociada a la póliza {ramo.poliza}")
-                except Exception as e:
-                    raise Exception(f"Error al hacer clic en la lupa -> {e}")
-
-                try:
-                    WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "btnAceptarError")))
-                    raise Exception (f"Se detecto una advertencia, el código para descagar el documento en la compañía es {codigo_documento}.")
-                except TimeoutException:
-                    pass
-
-                wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
-                time.sleep(3)
-                logging.info("📄 Panel PDF de la constancia visible.")
-
-                logging.info("----------------------------")
-
-                boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
-
-                # Guardar archivos antes del clic
-                archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
-
-                driver.execute_script("arguments[0].click();", boton_guardar)
-                logging.info("🖱 Clic con JS en el botón de descarga")
-
-                archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
-                logging.info(f"✅ Archivo descargado exitosamente")
-
-                if archivo_nuevo:
-                    ruta_original = archivo_nuevo[0]  # ya es ruta completa
-                    ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-                    os.rename(ruta_original, ruta_final)
-                    logging.info(f"🔄 Constancia renombrado a '{ramo.poliza}.pdf'")
-                else:
-                    raise Exception("No se encontró constancia después de la descarga")
-
-                if tipo_mes == 'MA':
-
-                    logging.info("----------------------------")
-
-                    driver.switch_to.frame("ifContenedorPDFMaster")#iframe     
-                                
-                    boton_embebido = wait.until(EC.element_to_be_clickable((By.ID, "open-button")))
-
-                    # Guardar archivos antes del clic
-                    archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
-
-                    driver.execute_script("arguments[0].click();", boton_embebido)
-                    logging.info("🖱 Clic con JS en el botón de descarga")
-
-                    endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_2,".pdf",cantidad=1)
-                    logging.info(f"✅ Archivo descargado exitosamente")
-
-                    if archivo_nuevo:
-                        ruta_original = endoso[0]  # ya es ruta completa
-                        ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
-                        os.rename(ruta_original, ruta_final)
-                        logging.info(f"🔄 Endoso renombrado a 'endoso_{ramo.poliza}.pdf'")
-                    else:
-                        raise Exception("No se descargo el endoso")
-
-                    driver.switch_to.default_content()
-            
-                time.sleep(1)
-
-                if len(list_polizas) == 2:
-
-                    ruta_salud = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.pdf")
-                    ruta_pension = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[1]}.pdf")
-                
-                    logging.info("----------------------------")
-
-                    if os.path.exists(ruta_salud):
-                        shutil.copy2(ruta_salud,ruta_pension)
-                        logging.info(f"📄 Copia creada para constancia de Pensión")
-                    else:
-                        logging.error(f"❌ No existe el archivo base Constancia Salud")
-
-                    logging.info("----------------------------")
-
-                    if tipo_mes == 'MA':
-
-                        ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[0]}.pdf")
-                        ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[1]}.pdf")
-
-                        if os.path.exists(ruta_endoso_salud):
-                            shutil.copy2(ruta_endoso_salud,ruta_endoso_pension)
-                            logging.info(f"📄 Copia creada para el endoso de Pensión")
-                        else:
-                            logging.error(f"❌ No existe el archivo base Endoso Salud")
-
-                        logging.info("----------------------------")
-
-                #btnPDFCancelarM,btnPDFEnviarM
-                btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
-                btn_cancelar_boton.click()
-                logging.info("✅ Cerrando panel de documentos.")
-
-                time.sleep(2)
-
-                logging.info(f"✅ {palabra_clave} en La Positiva realizada exitosamente")
-
-            except Exception as e:
-                logging.error(f"Detalles del error: {str(e)}")
-                raise Exception(
-                    f"No reprocesar la {palabra_clave}, ya que se generó la solicitud con el código -> {codigo_documento}.\n"
-                    f"Buscar y descargar manualmente en la compañía."
+            wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(mensaje),
+                    EC.element_to_be_clickable(btn_si)
                 )
-                
+            )
+
+            texto_mensaje = wait.until(
+                EC.visibility_of_element_located(mensaje)
+            ).text
+
+            driver.find_element(*btn_si).click()
+            logging.info("🖱️ Clic en Aceptar la Renovación")
+
+        logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
+
+        # =========================
+        # EXTRAER NÚMERO
+        # =========================
+        numero_doc = None
+
+        if tipo_proceso == 'IN':
+            match = re.search(r'Inclusión con nro\. (\d+)', texto_mensaje)
+        else:
+            match = re.search(r'renovación con nro\. (\d+)', texto_mensaje)
+
+        if match:
+            numero_doc = match.group(1)
+            logging.info(f"✅ Número de {palabra_clave} extraído: {numero_doc}")
+        else:
+            raise Exception(f"No se encontró el código en el mensaje: {texto_mensaje}")
+
+        prefijo = "INCL" if tipo_proceso == "IN" else "RENV"
+        codigo_documento = f"{prefijo}-{numero_doc}"
+
+        # =========================
+        # BOTÓN ACEPTAR FINAL
+        # =========================
+        btn_inc = (By.ID, "ContentPlaceHolder1_btnAceptarInclusion")
+        btn_ren = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
+
+        try:
+            wait.until(
+                EC.any_of(
+                    EC.element_to_be_clickable(btn_inc),
+                    EC.element_to_be_clickable(btn_ren)
+                )
+            )
+
+            if driver.find_elements(*btn_inc):
+                driver.find_element(*btn_inc).click()
+            elif driver.find_elements(*btn_ren):
+                driver.find_element(*btn_ren).click()
+
+            logging.info("🖱️ Clic en Aceptar")
+
+        except TimeoutException:
+            pass
+
+        # =========================
+        # ESPERAR QUE CIERRE MODAL
+        # =========================
+        wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
+
+        # =========================
+        # VALIDAR CÓDIGO
+        # =========================
+        span_numero = wait.until(
+            EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]"))
+        )
+        logging.info(f"✅ Span encontrado: {span_numero.text}")
+
+        # =========================
+        # LUPA vs ERROR
+        # =========================
+        if len(list_polizas) == 1 and ba_codigo == '1':
+            selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
+        elif len(list_polizas) == 1 and ba_codigo == '2':
+            selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
+        else:
+            selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
+
+        lupa = (By.XPATH, selector_xpath)
+        error_btn = (By.ID, "btnAceptarError")
+
+        wait.until(
+            EC.any_of(
+                EC.element_to_be_clickable(lupa),
+                EC.element_to_be_clickable(error_btn)
+            )
+        )
+
+        if driver.find_elements(*error_btn):
+            raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
+
+        driver.find_element(*lupa).click()
+        logging.info(f"🖱️ Clic en la lupa {codigo_documento}")
+
+        # =========================
+        # PANEL PDF
+        # =========================
+        wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
+        logging.info("📄 Panel PDF visible")
+
+        # =========================
+        # DESCARGA CONSTANCIA
+        # =========================
+        boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
+
+        archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
+        driver.execute_script("arguments[0].click();", boton_guardar)
+
+        archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes, ".pdf", cantidad=1)
+
+        if archivo_nuevo:
+            ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+            os.rename(archivo_nuevo[0], ruta_final)
+            logging.info(f"🔄 Constancia renombrada")
+        else:
+            raise Exception("No se descargó constancia")
+
+        # =========================
+        # ENDOSO (MA)
+        # =========================
+        if tipo_mes == 'MA':
+
+            driver.switch_to.frame("ifContenedorPDFMaster")
+
+            boton_embebido = wait.until(EC.element_to_be_clickable((By.ID, "open-button")))
+
+            archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
+
+            driver.execute_script("arguments[0].click();", boton_embebido)
+
+            endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes_2, ".pdf", cantidad=1)
+
+            if endoso:
+                ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
+                os.rename(endoso[0], ruta_final)
+                logging.info("🔄 Endoso renombrado")
+            else:
+                raise Exception("No se descargó el endoso")
+
+            driver.switch_to.default_content()
+
+        # =========================
+        # COPIAS
+        # =========================
+        if len(list_polizas) == 2:
+
+            ruta_salud = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[0]}.pdf")
+            ruta_pension = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[1]}.pdf")
+
+            if os.path.exists(ruta_salud):
+                shutil.copy2(ruta_salud, ruta_pension)
+
+            if tipo_mes == 'MA':
+                ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf")
+                ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[1]}.pdf")
+
+                if os.path.exists(ruta_endoso_salud):
+                    shutil.copy2(ruta_endoso_salud, ruta_endoso_pension)
+
+        # =========================
+        # CERRAR PANEL
+        # =========================
+        wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM"))).click()
+
+        logging.info(f"✅ {palabra_clave} realizada exitosamente")
+
 def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,actividad,ramo):
  
     ov = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='OV']")))
@@ -1584,16 +2214,16 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     # 🔹 Mapear función según tipo_mes
     funciones = {
-        # "MV": lambda: solicitud_vidaley_MV(
-        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-        #     ejecutivo_responsable, palabra_clave,tipo_mes,
-        #     tipo_proceso, actividad, ramo
-        # ),
-        "MV": lambda: solicitud_vidaley_MA(
+        "MV": lambda: solicitud_vidaley_MV(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
-            tipo_proceso, ramo
+            tipo_proceso, actividad, ramo
         ),
+        # "MV": lambda: solicitud_vidaley_MA(
+        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+        #     ejecutivo_responsable, palabra_clave,tipo_mes,
+        #     tipo_proceso, ramo
+        # ),
         "MA": lambda: solicitud_vidaley_MA(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
@@ -1616,12 +2246,10 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     except Exception as e:
         logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: {e}")
-
         resultado, asunto = validar_pagina(driver)
         tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
         detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", detalle
-
     finally:
         driver.close()
         logging.info("✅ Cerrando la pestaña Vida Ley")
