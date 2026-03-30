@@ -951,7 +951,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
                 break
             except StaleElementReferenceException:
-                logging.warning("♻️ Reintentando click en Procesar...")
+                #logging.warning("♻️ Reintentando click en Procesar...")
+                pass
 
         # =========================
         # MENSAJE + BOTONES
@@ -1019,28 +1020,16 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         codigo_documento = f"{prefijo}-{numero_doc}"
 
         # =========================
-        # BOTÓN ACEPTAR FINAL
+        # BOTÓN ACEPTAR FINAL SOLO PARA INCLUSIÓN
         # =========================
         btn_inc = (By.ID, "ContentPlaceHolder1_btnAceptarInclusion")
-        btn_ren = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
+        #btn_ren = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
 
-        try:
-            wait.until(
-                EC.any_of(
-                    EC.element_to_be_clickable(btn_inc),
-                    EC.element_to_be_clickable(btn_ren)
-                )
-            )
+        if tipo_proceso == 'IN':
 
-            if driver.find_elements(*btn_inc):
-                driver.find_element(*btn_inc).click()
-            elif driver.find_elements(*btn_ren):
-                driver.find_element(*btn_ren).click()
-
+            btn_aceptar = wait.until(EC.element_to_be_clickable(btn_inc))
+            btn_aceptar.click()
             logging.info("🖱️ Clic en Aceptar")
-
-        except TimeoutException:
-            pass
 
         # =========================
         # ESPERAR QUE CIERRE MODAL
@@ -2214,16 +2203,16 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     # 🔹 Mapear función según tipo_mes
     funciones = {
-        "MV": lambda: solicitud_vidaley_MV(
-            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-            ejecutivo_responsable, palabra_clave,tipo_mes,
-            tipo_proceso, actividad, ramo
-        ),
-        # "MV": lambda: solicitud_vidaley_MA(
+        # "MV": lambda: solicitud_vidaley_MV(
         #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
         #     ejecutivo_responsable, palabra_clave,tipo_mes,
-        #     tipo_proceso, ramo
+        #     tipo_proceso, actividad, ramo
         # ),
+        "MV": lambda: solicitud_vidaley_MA(
+            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+            ejecutivo_responsable, palabra_clave,tipo_mes,
+            tipo_proceso, ramo
+        ),
         "MA": lambda: solicitud_vidaley_MA(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
