@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # -- Froms Compañias ---
 from Compañias.Mapfre.web import realizar_solicitud_mapfre
 from Compañias.Pacifico.EnLinea.web import realizar_solicitud_pacifico
@@ -438,9 +438,9 @@ def main():
         if (archivos_descargados - 1 ) != descargas_esperadas :
 
             tipoErrorSCTR = "Fallas en la Trama con Azure"
-            detalleErrorSCTR = "Trama no descargada"
+            detalleErrorSCTR = "Problemas en la trama, comunicate con el administrador"
             tipoErrorVL = "Fallas en la Trama con Azure"
-            detalleErrorVL = "Trama no descargada"
+            detalleErrorVL = "Problemas en la trama, comunicate con el administrador"
 
             raise Exception(f"Descargas incompletas -> "f"esperadas = {descargas_esperadas}, "f"en carpeta = {archivos_descargados - 1 }")
 
