@@ -1995,22 +1995,52 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     input_correo.send_keys(ejecutivo_responsable)
     logging.info(f"⌨️ Ingresando correo '{ejecutivo_responsable}'")
 
-    if tipo_proceso == 'IN':
-        # Esperar que el botón esté presente
-        boton_calcular = wait.until(EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")))
-        driver.execute_script("arguments[0].scrollIntoView(true);", boton_calcular)
-        boton_calcular.click()
-        logging.info("🖱️ Clic en 'Calcular'")
+    #--------------------------
+    while True:
+        resultadoM = wait.until(
+            EC.any_of(
+                EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")),
+                EC.element_to_be_clickable((By.ID, "b13-InclusionValidate")),
+                EC.element_to_be_clickable((By.ID, "b13-RenewalRequest2"))
+            )
+        )
 
-    if tipo_proceso == 'IN':   
-        finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-InclusionValidate")))
-    else:
-        finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-RenewalRequest2")))
+        boton_id = resultadoM.get_attribute("id")
 
-    finalizar_btn.click()
-    logging.info(f"🖱️ Clic en 'Finalizar'")
+        # 🔵 Caso 1: Calcular
+        if boton_id == "b13-CalculatePremium":
+            driver.execute_script("arguments[0].scrollIntoView(true);", resultado)
+            resultado.click()
+            logging.info("🖱️ Clic en 'Calcular'")
+            time.sleep(2)  # opcional: pequeño respiro
+            continue  # 🔁 volver a esperar el siguiente paso
 
-    time.sleep(5)
+        # 🟢 Caso 2: Finalizar (cualquiera de los dos)
+        elif boton_id in ["b13-InclusionValidate", "b13-RenewalRequest2"]:
+            resultado.click()
+            logging.info(f"🖱️ Clic en 'Finalizar' ({boton_id})")
+            break  # ✅ terminamos flujo
+    #--------------------------
+
+    # #if tipo_proceso == 'IN':
+    #     # Esperar que el botón esté presente
+    # try:
+    #     boton_calcular = wait.until(EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")))
+    #     driver.execute_script("arguments[0].scrollIntoView(true);", boton_calcular)
+    #     boton_calcular.click()
+    #     logging.info("🖱️ Clic en 'Calcular'")
+    # except TimeoutException:
+    #     pass
+
+    # if tipo_proceso == 'IN':   
+    #     finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-InclusionValidate")))
+    # else:
+    #     finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-RenewalRequest2")))
+
+    # finalizar_btn.click()
+    # logging.info(f"🖱️ Clic en 'Finalizar'")
+
+    # time.sleep(5)
 
     # link_descargar = wait.until(
     #     EC.element_to_be_clickable(
@@ -2203,16 +2233,16 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     # 🔹 Mapear función según tipo_mes
     funciones = {
-        # "MV": lambda: solicitud_vidaley_MV(
-        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-        #     ejecutivo_responsable, palabra_clave,tipo_mes,
-        #     tipo_proceso, actividad, ramo
-        # ),
-        "MV": lambda: solicitud_vidaley_MA(
+        "MV": lambda: solicitud_vidaley_MV(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
-            tipo_proceso, ramo
+            tipo_proceso, actividad, ramo
         ),
+        # "MV": lambda: solicitud_vidaley_MA(
+        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+        #     ejecutivo_responsable, palabra_clave,tipo_mes,
+        #     tipo_proceso, ramo
+        # ),
         "MA": lambda: solicitud_vidaley_MA(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
