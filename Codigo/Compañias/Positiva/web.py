@@ -1882,7 +1882,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     # ❌ Error en planilla
     elif "encontramos algunos errores" in texto:
-        raise Exception("Planilla con errores. Descargar y corregir")
+        raise Exception(texto)
 
     # ✅ Éxito
     elif "superó exitosamente" in texto:
