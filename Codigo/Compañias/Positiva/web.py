@@ -1843,7 +1843,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         if not fila_valida:
             raise Exception(
                 f"No se encontró una fila vigente válida para la póliza {ramo.poliza}\n"
-                f"Esperado: {ramo.f_fin if tipo_proceso=='IN' else ramo.f_inicio}"
+                f"Solicitud: {ramo.f_inicio} al {ramo.f_fin}\n" 
+                f"Compañía: {inicio_vigencia} al {fin_vigencia}"
             )
 
         # (opcional) índice de fila
