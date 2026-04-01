@@ -2,7 +2,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException,ElementClickInterceptedException
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -116,6 +116,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     
     if tipo_proceso == 'IN' and ramo.f_fin != fecha_vigencia_str: 
         raise Exception(f"Las fechas Fin de la vigencia en la Póliza {ramo.poliza} no coinciden")
+    # if tipo_proceso == 'RE' and ramo.f_fin != fecha_vigencia_str:
+    #     raise Exception(f"La Póliza {ramo.poliza} ya fue renovada con el periodo: {} al {}")
     else:
 
         # radio_seleccion = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_gvResultado_rbSeleccion_0")))
@@ -346,14 +348,14 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             else (By.ID, "ContentPlaceHolder1_btnRenovar")
         )
 
-        resultado = wait.until(
+        resultadobtn = wait.until(
             EC.any_of(
                 EC.visibility_of_element_located(error_modal),
                 EC.element_to_be_clickable(btn_locator)
             )
         )
 
-        if resultado.get_attribute("id") == "divAlertaErrorGeneral":
+        if resultadobtn.get_attribute("id") == "divAlertaErrorGeneral":
         #if driver.find_elements(By.XPATH, "//div[@id='divAlertaErrorGeneral' and not(contains(@style,'display: none'))]"):
             logging.warning("⚠️ Apareció el modal con advertencia")
             #mensaje_error = driver.find_element(By.XPATH, "//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
@@ -594,7 +596,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         error_validacion = (By.ID, "divAlertaErrorValidacion")
         btn_errores = (By.ID, "btnErroresPlanilla")
         progress_bar = (By.ID, "progressbar")
-
+        
         resultado = wait.until(
             EC.any_of(
                 EC.visibility_of_element_located(error_validacion),
@@ -649,6 +651,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         if driver.find_elements(*progress_bar):
             wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
             logging.info("✅ Proceso completado al 100%")
+
+        # btn_calcularPrima = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnCalcular")))
+        # btn_calcularPrima.click()
+        # logging.info("🖱️ Clic en Calcular Prima")
+
 
         #---------------------------------------------------------------------------------------------------------------------------------------------------------
         # try:
@@ -922,41 +929,135 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         
         #---------------------------------------------------------------------------------------------------------------------------------------------------------    
         # PROBANDO MENOS TIEMPO
+        # btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
 
-        # =========================
-        # ALERTA vs BOTÓN PROCESAR
-        # =========================
+        # def boton_habilitado(driver):
+        #     try:
+        #         btn = driver.find_element(*btn_procesar_locator)
+        #         return btn if btn.is_displayed() and btn.is_enabled() and "ui-state-disabled" not in btn.get_attribute("class") else False
+        #     except:
+        #         return False
+
+        # resultadohb = wait.until(
+        #     EC.any_of(
+        #         EC.alert_is_present(),
+        #         boton_habilitado
+        #     )
+        # )
+
+        # # 🔎 ALERTA
+        # try:
+        #     alert = driver.switch_to.alert
+        #     texto = alert.text
+        #     alert.accept()
+        #     raise Exception(f"Hubo una alerta con la Trama | {texto}")
+
+        # except NoAlertPresentException:
+
+        #     for _ in range(3):
+        #         try:
+        #             driver.execute_script("arguments[0].scrollIntoView({block:'center'});", resultadohb)
+        #             time.sleep(0.5)
+
+        #             resultadohb.click()
+        #             logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
+        #             break
+
+        #         except (StaleElementReferenceException, ElementClickInterceptedException):
+        #             time.sleep(1)
+        #             resultadohb = wait.until(boton_habilitado)
+
+        #     else:
+        #         driver.execute_script("arguments[0].click();", resultadohb)
+        #         logging.info("🖱️ Clic forzado con JS")
+
+        #------ CALCULAR Y PROCESAR ----------
         btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
+        btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
 
-        wait.until(
-            EC.any_of(
-                EC.alert_is_present(),
-                EC.element_to_be_clickable(btn_procesar_locator)
-            )
-        )
+        def boton_procesar_habilitado(driver):
+            try:
+                btn = driver.find_element(*btn_procesar_locator)
+                return btn if (
+                    btn.is_displayed()
+                    and btn.is_enabled()
+                    and "ui-state-disabled" not in btn.get_attribute("class")
+                ) else False
+            except:
+                return False
 
-        # 🔎 Validar alerta
-        try:
-            alert = driver.switch_to.alert
-            logging.warning(f"⚠️ Alerta: {alert.text}")
-            alert.accept()
-            raise Exception("Hubo una alerta con la Trama")
-        except:
-            pass
+        def boton_calcular_habilitado(driver):
+            try:
+                btn = driver.find_element(*btn_calcular_locator)
 
-        # 🔎 Click procesar (con retry anti-stale)
+                if (
+                    btn.is_displayed()
+                    and btn.is_enabled()
+                    and btn.get_attribute("disabled") is None
+                    and "ui-state-disabled" not in btn.get_attribute("class")
+                ):
+                    return btn
+
+                return False
+            except:
+                return False
+
+        # 🔍 Intentar Calcular (máx 2 veces por seguridad)
+        for intento in range(2):
+
+            btn_calcular = boton_calcular_habilitado(driver)
+
+            if not btn_calcular:
+                break  # 👉 ya no se puede calcular, ir a procesar
+
+            try:
+                driver.execute_script(
+                    "arguments[0].scrollIntoView({block:'center'});",
+                    btn_calcular
+                )
+                time.sleep(0.5)
+
+                btn_calcular.click()
+                logging.info(f"🖱️ Clic en Calcular ({intento+1})")
+
+                # 🔥 Esperar cambio REAL
+                wait.until(
+                    EC.any_of(
+                        EC.alert_is_present(),
+                        boton_procesar_habilitado
+                    )
+                )
+
+            except (StaleElementReferenceException, ElementClickInterceptedException):
+                logging.warning("⚠️ Error al hacer clic en Calcular, reintentando...")
+                time.sleep(1)
+                continue
+
+
+        # 🟢 PROCESAR (sí o sí)
+        btn_procesar = wait.until(boton_procesar_habilitado)
+
         for _ in range(3):
             try:
-                driver.find_element(*btn_procesar_locator).click()
+                driver.execute_script(
+                    "arguments[0].scrollIntoView({block:'center'});",
+                    btn_procesar
+                )
+                time.sleep(0.5)
+
+                btn_procesar.click()
                 logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
                 break
-            except StaleElementReferenceException:
-                #logging.warning("♻️ Reintentando click en Procesar...")
-                pass
 
-        # =========================
+            except (StaleElementReferenceException, ElementClickInterceptedException):
+                time.sleep(1)
+                btn_procesar = wait.until(boton_procesar_habilitado)
+
+        else:
+            driver.execute_script("arguments[0].click();", btn_procesar)
+            logging.info("🖱️ Clic forzado en Procesar (JS)")
+
         # MENSAJE + BOTONES
-        # =========================
         texto_mensaje = ""
 
         if tipo_proceso == 'IN':
@@ -1000,9 +1101,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
 
-        # =========================
-        # EXTRAER NÚMERO
-        # =========================
+        # EXTRAER NÚMERO DE LA SOLICITUD
         numero_doc = None
 
         if tipo_proceso == 'IN':
@@ -1019,9 +1118,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         prefijo = "INCL" if tipo_proceso == "IN" else "RENV"
         codigo_documento = f"{prefijo}-{numero_doc}"
 
-        # =========================
         # BOTÓN ACEPTAR FINAL SOLO PARA INCLUSIÓN
-        # =========================
         btn_inc = (By.ID, "ContentPlaceHolder1_btnAceptarInclusion")
         #btn_ren = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
 
@@ -1031,22 +1128,14 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             btn_aceptar.click()
             logging.info("🖱️ Clic en Aceptar")
 
-        # =========================
         # ESPERAR QUE CIERRE MODAL
-        # =========================
         wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
 
-        # =========================
         # VALIDAR CÓDIGO
-        # =========================
-        span_numero = wait.until(
-            EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]"))
-        )
+        span_numero = wait.until(EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
         logging.info(f"✅ Span encontrado: {span_numero.text}")
 
-        # =========================
         # LUPA vs ERROR
-        # =========================
         if len(list_polizas) == 1 and ba_codigo == '1':
             selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
         elif len(list_polizas) == 1 and ba_codigo == '2':
@@ -1057,33 +1146,36 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         lupa = (By.XPATH, selector_xpath)
         error_btn = (By.ID, "btnAceptarError")
 
-        wait.until(
+        resultadol = wait.until(
             EC.any_of(
                 EC.element_to_be_clickable(lupa),
                 EC.element_to_be_clickable(error_btn)
             )
         )
 
-        if driver.find_elements(*error_btn):
+        if resultadol.get_attribute("id") == "btnAceptarError":
             raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
 
-        driver.find_element(*lupa).click()
-        logging.info(f"🖱️ Clic en la lupa {codigo_documento}")
+        # 🟢 Caso lupa
+        for _ in range(3):
+            try:
+                resultadol.click()
+                logging.info(f"🖱️ Clic en la lupa {codigo_documento}")
+                break
+            except StaleElementReferenceException:
+                resultado = wait.until(EC.element_to_be_clickable(lupa))
 
-        # =========================
         # PANEL PDF
-        # =========================
         wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
         logging.info("📄 Panel PDF visible")
 
-        # =========================
         # DESCARGA CONSTANCIA
-        # =========================
         boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
 
         archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
 
         driver.execute_script("arguments[0].click();", boton_guardar)
+        logging.info(f"🖱️ Clic en Descargar Constancia")
 
         archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes, ".pdf", cantidad=1)
 
@@ -1094,9 +1186,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         else:
             raise Exception("No se descargó constancia")
 
-        # =========================
         # ENDOSO (MA)
-        # =========================
         if tipo_mes == 'MA':
 
             driver.switch_to.frame("ifContenedorPDFMaster")
@@ -1106,6 +1196,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
 
             driver.execute_script("arguments[0].click();", boton_embebido)
+            logging.info(f"🖱️ Clic en Descargar Endoso")
 
             endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes_2, ".pdf", cantidad=1)
 
@@ -1118,9 +1209,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             driver.switch_to.default_content()
 
-        # =========================
         # COPIAS
-        # =========================
         if len(list_polizas) == 2:
 
             ruta_salud = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[0]}.pdf")
@@ -1136,9 +1225,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 if os.path.exists(ruta_endoso_salud):
                     shutil.copy2(ruta_endoso_salud, ruta_endoso_pension)
 
-        # =========================
         # CERRAR PANEL
-        # =========================
         wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM"))).click()
 
         logging.info(f"✅ {palabra_clave} realizada exitosamente")
@@ -2233,16 +2320,16 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     # 🔹 Mapear función según tipo_mes
     funciones = {
-        "MV": lambda: solicitud_vidaley_MV(
-            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-            ejecutivo_responsable, palabra_clave,tipo_mes,
-            tipo_proceso, actividad, ramo
-        ),
-        # "MV": lambda: solicitud_vidaley_MA(
+        # "MV": lambda: solicitud_vidaley_MV(
         #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
         #     ejecutivo_responsable, palabra_clave,tipo_mes,
-        #     tipo_proceso, ramo
+        #     tipo_proceso, actividad, ramo
         # ),
+        "MV": lambda: solicitud_vidaley_MA(
+            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+            ejecutivo_responsable, palabra_clave,tipo_mes,
+            tipo_proceso, ramo
+        ),
         "MA": lambda: solicitud_vidaley_MA(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
