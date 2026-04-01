@@ -116,8 +116,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     
     if tipo_proceso == 'IN' and ramo.f_fin != fecha_vigencia_str: 
         raise Exception(f"Las fechas Fin de la vigencia en la Póliza {ramo.poliza} no coinciden")
-    # if tipo_proceso == 'RE' and ramo.f_fin != fecha_vigencia_str:
-    #     raise Exception(f"La Póliza {ramo.poliza} ya fue renovada con el periodo: {} al {}")
+    # elif tipo_proceso == 'RE' and ramo.f_fin == fecha_vigencia_str:
+    #     raise Exception(f"La Póliza {ramo.poliza} ya fue renovada con el periodo: {ramo.f_inicio} al {fecha_vigencia_str}")
     else:
 
         # radio_seleccion = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_gvResultado_rbSeleccion_0")))
@@ -1739,7 +1739,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
 
     # 👇 Esperar cualquiera de los posibles resultados
-    resultado = wait.until(
+    resultado1 = wait.until(
         EC.any_of(
             EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue")),   # error
             EC.presence_of_element_located((By.ID, "b12-limpiargrilla")),          # modal sin resultados
@@ -1748,64 +1748,125 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     )
 
     # 👇 Evaluar qué apareció
-    html = driver.page_source
+    #html = driver.page_source
 
     # 🔴 Caso 1: mensaje de error
-    if "b12-b11-TextTitlevalue" in html:
+    if resultado1.get_attribute("id") == "b12-b11-TextTitlevalue":
+    #if "b12-b11-TextTitlevalue" in html:
         tit = driver.find_element(By.ID, "b12-b11-TextTitlevalue").text
         con = driver.find_element(By.ID, "b12-b11-TextContentValue").text
         raise Exception(f"{tit} {con}")
 
 
     # 🔴 Caso 2: modal sin resultados
-    elif "b12-limpiargrilla" in html:
+    if resultado1.get_attribute("id") == "b12-limpiargrilla":
+    #elif "b12-limpiargrilla" in html:
         logging.error("❌ Se detectó un modal que no carga los resultados")
         raise Exception(f"No hay resultados para la póliza {ramo.poliza}")
 
+    #----------------------------------------------------------------------------------------
+    # logging.info("✅ Tabla cargada correctamente")
 
-    # 🟢 Caso 3: tabla cargada correctamente
+    # try:
+    #     # fila = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"#b12-Widget_TransactionRecordList tbody tr")))
+    #     filas = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR,"#b12-Widget_TransactionRecordList tbody tr")))
+
+    #     fila_objetivo = None
+
+    #     for fila in filas:
+    #         try:
+    #             estado = fila.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
+        
+    #             if estado.lower() == "vigente":
+    #                 fila_objetivo = fila
+    #                 break
+
+    #         except Exception:
+    #             continue
+
+    #     if not fila_objetivo:
+    #         raise Exception(f"No se encontró fila Vigente para la póliza {ramo.poliza}")                                         # CIA          WEBHOOK
+
+    #     inicio_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span").text.strip() # 01/03/2026 # 01/04/2026
+
+    #     fin_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Fin de Vigencia']//span").text.strip()       # 01/04/2026 # 01/05/2026
+
+    #     estado = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
+
+    #     indice_fila = filas.index(fila_objetivo) + 1
+
+    # except TimeoutException:
+    #     raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad -> {tipo_mes}")
+    #----------------------------------------------------------------------------------------
     logging.info("✅ Tabla cargada correctamente")
 
     try:
-        # fila = wait.until(EC.element_to_be_clickable((
-        #     By.CSS_SELECTOR,
-        #     "#b12-Widget_TransactionRecordList tbody tr"
-        # )))
+        # 🔍 Buscar SOLO filas con estado "Vigente"
+        filas_vigentes = wait.until(
+            EC.presence_of_all_elements_located((
+                By.XPATH,
+                "//table[@id='b12-Widget_TransactionRecordList']//tbody/tr[.//td[@data-header='Estado']//span[normalize-space()='Vigente']]"
+            ))
+        )
 
-        filas = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR,"#b12-Widget_TransactionRecordList tbody tr")))
-
-        fila_objetivo = None
-
-        for fila in filas:
-            try:
-                estado = fila.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
-        
-                if estado.lower() == "vigente":
-                    fila_objetivo = fila
-                    break
-
-            except Exception:
-                continue
-
-        if not fila_objetivo:
+        if not filas_vigentes:
             raise Exception(f"No se encontró fila Vigente para la póliza {ramo.poliza}")
 
-        inicio_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span").text.strip()
+        fila_valida = None
 
-        fin_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Fin de Vigencia']//span").text.strip()
+        # 🔁 Validar cada fila vigente
+        for fila in filas_vigentes:
+            try:
+                inicio_vigencia = fila.find_element(
+                    By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span"
+                ).text.strip()
 
-        estado = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
+                fin_vigencia = fila.find_element(
+                    By.XPATH, ".//td[@data-header='Fin de Vigencia']//span"
+                ).text.strip()
 
-        indice_fila = filas.index(fila_objetivo) + 1
+                # 🔍 Validaciones según tipo de proceso
+                if tipo_proceso == 'IN':
+                    if ramo.f_fin == fin_vigencia:
+                        fila_valida = fila
+                        break
+
+                elif tipo_proceso == 'RE':
+                    if ramo.f_inicio == fin_vigencia:
+                        fila_valida = fila
+                        break
+
+            except StaleElementReferenceException:
+                continue  # 🔁 reintenta con la siguiente fila
+
+        # ❌ No encontró ninguna válida
+        if not fila_valida:
+            raise Exception(
+                f"No se encontró una fila vigente válida para la póliza {ramo.poliza}\n"
+                f"Esperado: {ramo.f_fin if tipo_proceso=='IN' else ramo.f_inicio}"
+            )
+
+        # (opcional) índice de fila
+        indice_fila = filas_vigentes.index(fila_valida) + 1
+
+        # ✅ Log de éxito
+        #logging.info(f"✅ Fila {indice_fila} vigente válida encontrada")
+
+        checkbox = fila_valida.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
+
+        ActionChains(driver).move_to_element(checkbox).click().perform()
+
+        logging.info(f"✅ Fila seleccionada: {indice_fila} | Póliza: {ramo.poliza} | Inicio: {inicio_vigencia} | Fin: {fin_vigencia}")
 
     except TimeoutException:
-        raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad -> {tipo_mes}")
+        raise Exception(f"Póliza {ramo.poliza} no figura con Modalidad -> {tipo_mes}")
+    #----------------------------------------------------------------------------------------
 
-    checkbox = fila.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
+    # checkbox = fila.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
 
-    ActionChains(driver).move_to_element(checkbox).click().perform()
+    # ActionChains(driver).move_to_element(checkbox).click().perform()
 
-    logging.info(f"✅ Fila seleccionada: {indice_fila} | Póliza: {ramo.poliza} | Inicio: {inicio_vigencia} | Fin: {fin_vigencia} | Estado: {estado}")
+    # logging.info(f"✅ Fila seleccionada: {indice_fila} | Póliza: {ramo.poliza} | Inicio: {inicio_vigencia} | Fin: {fin_vigencia} | Estado: {estado}")
 
     # #---------------------------------------------------------------------------------------------
     # boton_buscar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Buscar']]")))
@@ -1840,7 +1901,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # actions.move_to_element(checkbox).click().perform()
     # logging.info(f"✅ Se seleccionó la póliza: {ramo.poliza}")
     # #---------------------------------------------------------------------------------------------
-
     time.sleep(3)
 
     # =========================
@@ -1857,17 +1917,17 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # =========================
     # ESPERAR (ERROR O VENTANA)
     # =========================
-    resultado = wait.until(
+    resultado2 = wait.until(
         EC.any_of(
             EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextTitlevalue")),  # error
             EC.presence_of_element_located((By.XPATH, "//input[@type='file']"))     # ventana lista
         )
     )
 
-    if resultado.get_attribute("id") == "b12-b2-b8-TextTitlevalue":
-        titulo = resultado.text
+    if resultado2.get_attribute("id") == "b12-b2-b8-TextTitlevalue":
+        titulo = resultado2.text
         contenido = driver.find_element(By.ID, "b12-b2-b8-TextContentValue").text
-        raise Exception(f"{titulo} {contenido}")
+        raise Exception(f"{titulo} \n{contenido}")
 
     logging.info(f"🌐 Ventana de {palabra_clave} cargada correctamente")
 
@@ -1904,29 +1964,25 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     # =========================
     # VALIDAR FORMATO (ERROR O BOTÓN VALIDAR)
     # =========================
-    resultado = wait.until(
+    resultado3 = wait.until(
         EC.any_of(
             EC.presence_of_element_located((By.XPATH,"//span[contains(text(),'La planilla no está en un formato válido de excel')]")),
             EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate"))
         )
     )
 
-    if "formato válido" in resultado.text:
+    if "formato válido" in resultado3.text:
         raise Exception("La planilla no está en un formato válido de excel")
 
     logging.info("✅ Archivo válido")
 
-    # =========================
     # CLICK VALIDAR
-    # =========================
     boton_validar = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate")))
     boton_validar.click()
     logging.info("🖱️ Clic en Validar")
 
-    # =========================
     # RESULTADO FINAL (TODO EN UNO)
-    # =========================
-    resultado = wait.until(
+    resultado4 = wait.until(
         EC.any_of(
             EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Aceptar']")),
             EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Lo sentimos')]")),
@@ -1935,30 +1991,32 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         )
     )
 
-    texto = resultado.text.lower()
+    texto = resultado4.text.lower()
 
     # ⚠️ Caso: Advertencia (botón Aceptar)
-    if resultado.tag_name == "button":
-        resultado.click()
+    if resultado4.tag_name == "button":
+        resultado4.click()
         logging.info("✅ Se aceptó advertencia de vigencia")
 
         # 👇 luego de aceptar, esperar resultado final
-        resultado = wait.until(
+        resultado5 = wait.until(
             EC.any_of(
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Lo sentimos')]")),
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")),
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]"))
             )
         )
-        texto = resultado.text.lower()
+        texto = resultado5.text.lower()
 
     # ❌ Error general
     if "lo sentimos" in texto:
-        raise Exception("Error en la validación de la trama")
+        tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
+        con = driver.find_element(By.ID, "b13-b1-b5-TextContentValue").text
+        raise Exception(f"{tit} \n{con}")
 
     # ❌ Error en planilla
     elif "encontramos algunos errores" in texto:
-        raise Exception(texto)
+        raise Exception("Encontramos algunos errores en la planilla")
 
     # ✅ Éxito
     elif "superó exitosamente" in texto:
@@ -2084,7 +2142,7 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     #--------------------------
     while True:
-        resultadoM = wait.until(
+        resultado6 = wait.until(
             EC.any_of(
                 EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")),
                 EC.element_to_be_clickable((By.ID, "b13-InclusionValidate")),
@@ -2092,19 +2150,19 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             )
         )
 
-        boton_id = resultadoM.get_attribute("id")
+        boton_id = resultado6.get_attribute("id")
 
         # 🔵 Caso 1: Calcular
         if boton_id == "b13-CalculatePremium":
-            driver.execute_script("arguments[0].scrollIntoView(true);", resultado)
-            resultado.click()
+            driver.execute_script("arguments[0].scrollIntoView(true);", resultado6)
+            resultado6.click()
             logging.info("🖱️ Clic en 'Calcular'")
             time.sleep(2)  # opcional: pequeño respiro
             continue  # 🔁 volver a esperar el siguiente paso
 
         # 🟢 Caso 2: Finalizar (cualquiera de los dos)
         elif boton_id in ["b13-InclusionValidate", "b13-RenewalRequest2"]:
-            resultado.click()
+            resultado6.click()
             logging.info(f"🖱️ Clic en 'Finalizar' ({boton_id})")
             break  # ✅ terminamos flujo
     #--------------------------
