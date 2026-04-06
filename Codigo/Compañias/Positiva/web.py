@@ -122,11 +122,9 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         #fecha_web = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
         fecha_ramo_fin = datetime.strptime(ramo.f_fin, "%d/%m/%Y")
 
-        if fecha_ramo_fin >= fecha_vigencia_dmy:
+        if fecha_ramo_fin == fecha_vigencia_dmy:
             raise Exception(
-                f"La Póliza {ramo.poliza} ya fue renovada.\n"
-                f"Periodo actual en web termina en {fecha_vigencia_str}, "
-                f"pero intentas renovar hasta {ramo.f_fin}"
+                f"La Póliza {ramo.poliza} ya fue renovada hasta el {fecha_vigencia_str}."
             )
 
         elif fecha_ramo_fin < fecha_vigencia_dmy:
@@ -315,6 +313,16 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             EC.presence_of_element_located((By.ID, "fuPlanillaAjax"))
         )
         logging.info("⌛ Página de carga lista (Trama)")
+
+        #ContentPlaceHolder1_txtFinVigPoliza
+        fecha_fin_web = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza"))).get_attribute("value")
+        fecha_fin = datetime.strptime(fecha_fin_web, "%d/%m/%Y")
+
+        if ramo.f_fin != fecha_fin :
+            raise Exception(
+                f"Intentas renovar la póliza {ramo.poliza} del {ramo.f_inicio} al {ramo.f_fin}.\n"
+                f"Comunicate con el ejecutivo."
+            )
 
         # CASO ESPECIAL
         if ramo.poliza == '9231375':
@@ -1273,8 +1281,16 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     input_archivo_xls = wait.until(EC.presence_of_element_located((By.ID, "fichero7")))
     ruta_trama_final_xls1 = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}_97.xls")
-    input_archivo_xls.send_keys(ruta_trama_final_xls1)
-    logging.info(f"📤 Se subió el archivo {ramo.poliza}_97.xls ")
+
+    if not os.path.exists(ruta_trama_final_xls1):
+        raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
+    else:
+        input_archivo_xls.send_keys(ruta_trama_final_xls1)
+        logging.info(f"📤 Se subió el archivo {ramo.poliza}_97.xls ")
+
+    # ruta_trama_final_xls1 = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}_97.xls")
+    # input_archivo_xls.send_keys(ruta_trama_final_xls1)
+    # logging.info(f"📤 Se subió el archivo {ramo.poliza}_97.xls ")
 
     time.sleep(2)
 
@@ -1358,8 +1374,15 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     input_archivo = wait.until(EC.presence_of_element_located((By.ID, "fichero4")))
     ruta_trama_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx")
-    input_archivo.send_keys(ruta_trama_final)
-    logging.info(f"📤 Se subió el archivo: {ramo.poliza}.xlsx")
+
+    if not os.path.exists(ruta_trama_final):
+        raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
+    else:
+        input_archivo.send_keys(ruta_trama_final)
+        logging.info(f"📤 Se subió el archivo: {ramo.poliza}.xlsx")
+
+    # input_archivo.send_keys(ruta_trama_final)
+    # logging.info(f"📤 Se subió el archivo: {ramo.poliza}.xlsx")
 
     # Guardar archivos antes del clic
     archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
