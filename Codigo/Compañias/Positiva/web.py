@@ -1808,6 +1808,17 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
         """, fecha_vigencia, ramo.f_inicio)
         logging.info(f"📅 Fecha Inicio: {ramo.f_inicio}")
+    else:
+    #if tipo_proceso == 'RE':
+
+        fecha_fin_web = wait.until(EC.visibility_of_element_located((By.ID, "EndOfValidityTyping"))).get_attribute("value")
+        fecha_fin = datetime.strptime(fecha_fin_web, "%d/%m/%Y")
+
+        if ramo.f_fin != fecha_fin :
+            raise Exception(
+                f"Intentas renovar la póliza {ramo.poliza} del {ramo.f_inicio} al {ramo.f_fin}.\n"
+                f"Comunicate con el ejecutivo."
+            )
 
     # =========================
     # SUBIR ARCHIVO
