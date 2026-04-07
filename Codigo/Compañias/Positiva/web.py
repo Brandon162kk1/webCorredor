@@ -381,67 +381,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         pass
 
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
-    error_validacion = (By.ID, "divAlertaErrorValidacion")
-    btn_errores = (By.ID, "btnErroresPlanilla")
-    progress_bar = (By.ID, "progressbar")
-
-    resultado6 = wait.until(
-        EC.any_of(
-            EC.visibility_of_element_located(error_validacion),
-            EC.visibility_of_element_located(btn_errores),
-            EC.visibility_of_element_located(progress_bar)
-        )
-    )
-
-    elemento_id = resultado6.get_attribute("id")
-
-    # 🔴 ERROR DE VALIDACIÓN
-    if elemento_id == "divAlertaErrorValidacion":
-        logging.warning("⚠️ Apareció el modal con errores")
-
-        mensaje_error = driver.find_element(By.ID, "spanAlertaErrorValidacion").text
-        raise Exception(mensaje_error)
-
-    # 🟡 ERRORES EN PLANILLA
-    elif elemento_id == "btnErroresPlanilla":
-
-        cantidad_errores = driver.find_element(By.ID, "spnContadorError").text
-        cantidad_texto = "error" if cantidad_errores == '1' else "errores"
-
-        driver.execute_script("arguments[0].click();", resultado6)
-
-        wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
-
-        filas = wait.until(
-            EC.presence_of_all_elements_located(
-                (By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")
-            )
-        )
-
-        errores = []
-
-        for fila in filas:
-            error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
-            nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
-            paterno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sPaterno']").get_attribute("title")
-            materno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sMaterno']").get_attribute("title")
-            nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
-
-            errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
-
-        detalle_errores = "\n".join(errores)
-
-        raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
-
-    # 🟢 PROGRESS BAR
-    elif elemento_id == "progressbar":
-        wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
-        logging.info("✅ Proceso completado al 100%")
     # error_validacion = (By.ID, "divAlertaErrorValidacion")
     # btn_errores = (By.ID, "btnErroresPlanilla")
     # progress_bar = (By.ID, "progressbar")
-        
-    # resultado = wait.until(
+
+    # resultado6 = wait.until(
     #     EC.any_of(
     #         EC.visibility_of_element_located(error_validacion),
     #         EC.visibility_of_element_located(btn_errores),
@@ -449,24 +393,22 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     #     )
     # )
 
-    # # 🔎 ERROR DE VALIDACIÓN (modal rojo)
-    # modal = driver.find_elements(*error_validacion)
+    # elemento_id = resultado6.get_attribute("id")
 
-    # if modal and modal[0].is_displayed():
+    # # 🔴 ERROR DE VALIDACIÓN
+    # if elemento_id == "divAlertaErrorValidacion":
     #     logging.warning("⚠️ Apareció el modal con errores")
 
     #     mensaje_error = driver.find_element(By.ID, "spanAlertaErrorValidacion").text
     #     raise Exception(mensaje_error)
 
-    # # 🔎 ERRORES EN PLANILLA
-    # btn = driver.find_elements(*btn_errores)
-
-    # if btn and btn[0].is_displayed():
+    # # 🟡 ERRORES EN PLANILLA
+    # elif elemento_id == "btnErroresPlanilla":
 
     #     cantidad_errores = driver.find_element(By.ID, "spnContadorError").text
     #     cantidad_texto = "error" if cantidad_errores == '1' else "errores"
 
-    #     driver.execute_script("arguments[0].click();", btn[0])
+    #     driver.execute_script("arguments[0].click();", resultado6)
 
     #     wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
 
@@ -491,10 +433,70 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     #     raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
 
-    # # 👇 si aparece progress, esperar a 100%
-    # if driver.find_elements(*progress_bar):
+    # # 🟢 PROGRESS BAR
+    # elif elemento_id == "progressbar":
     #     wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
     #     logging.info("✅ Proceso completado al 100%")
+
+    #------------------------------------------------------------------------------------
+    error_validacion = (By.ID, "divAlertaErrorValidacion")
+    btn_errores = (By.ID, "btnErroresPlanilla")
+    progress_bar = (By.ID, "progressbar")
+        
+    resultado = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located(error_validacion),
+            EC.visibility_of_element_located(btn_errores),
+            EC.visibility_of_element_located(progress_bar)
+        )
+    )
+
+    # 🔎 ERROR DE VALIDACIÓN (modal rojo)
+    modal = driver.find_elements(*error_validacion)
+
+    if modal and modal[0].is_displayed():
+        logging.warning("⚠️ Apareció el modal con errores")
+
+        mensaje_error = driver.find_element(By.ID, "spanAlertaErrorValidacion").text
+        raise Exception(mensaje_error)
+
+    # 🔎 ERRORES EN PLANILLA
+    btn = driver.find_elements(*btn_errores)
+
+    if btn and btn[0].is_displayed():
+
+        cantidad_errores = driver.find_element(By.ID, "spnContadorError").text
+        cantidad_texto = "error" if cantidad_errores == '1' else "errores"
+
+        driver.execute_script("arguments[0].click();", btn[0])
+
+        wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
+
+        filas = wait.until(
+            EC.presence_of_all_elements_located(
+                (By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")
+            )
+        )
+
+        errores = []
+
+        for fila in filas:
+            error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
+            nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
+            paterno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sPaterno']").get_attribute("title")
+            materno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sMaterno']").get_attribute("title")
+            nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
+
+            errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
+
+        detalle_errores = "\n".join(errores)
+
+        raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
+
+    # 👇 si aparece progress, esperar a 100%
+    if driver.find_elements(*progress_bar):
+        wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
+        logging.info("✅ Proceso completado al 100%")
 
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
     # btn_calcularPrima = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnCalcular")))
@@ -820,9 +822,10 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
     btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
 
-    def boton_procesar_habilitado(driver):
+    def boton_procesar_habilitado(driver,timeout=10):
         try:
             btn = driver.find_element(*btn_procesar_locator)
+            #btn = WebDriverWait(driver, timeout).until(EC.presence_of_element_located(btn_procesar_locator))
             return btn if (
                 btn.is_displayed()
                 and btn.is_enabled()
@@ -834,7 +837,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     def boton_calcular_habilitado(driver):
         try:
             btn = driver.find_element(*btn_calcular_locator)
-
+            #btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
             if (
                 btn.is_displayed()
                 and btn.is_enabled()
