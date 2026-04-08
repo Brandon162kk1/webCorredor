@@ -17,6 +17,7 @@ import logging
 import time
 import random
 import shutil
+import pandas as pd
 
 # --- Variables globales ---
 ventana_menu_positiva = None
@@ -181,11 +182,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         # MODAL OPCIONAL vs SIGUIENTE PASO
         modal_incluir = (By.ID, "divTipoIncluir")
         file_input = (By.ID, "fuPlanillaAjax")
+        deuda_modal = (By.ID, "divAlertas")
 
         resultado2 = wait.until(
             EC.any_of(
                 EC.visibility_of_element_located(modal_incluir),
-                EC.presence_of_element_located(file_input)
+                EC.presence_of_element_located(file_input),
+                EC.visibility_of_element_located(deuda_modal),
             )
         )
 
@@ -209,16 +212,16 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             logging.info(f"🖱️ Clic en {nom_btn}")
 
         # DEUDA vs CONTINUAR
-        deuda_modal = (By.ID, "divAlertas")
+        #deuda_modal = (By.ID, "divAlertas")
 
-        resultado3 = wait.until(
-            EC.any_of(
-                EC.visibility_of_element_located(deuda_modal),
-                EC.presence_of_element_located(file_input)
-            )
-        )
+        # resultado3 = wait.until(
+        #     EC.any_of(
+        #         EC.visibility_of_element_located(deuda_modal),
+        #         EC.presence_of_element_located(file_input)
+        #     )
+        # )
 
-        if resultado3.get_attribute("id") == "divAlertas":
+        if resultado2.get_attribute("id") == "divAlertas":
             logging.warning("⚠️ Apareció el modal con advertencia")
             mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
             raise Exception(mensaje)
@@ -819,30 +822,62 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     #         logging.info("🖱️ Clic forzado con JS")
 
     #------ CALCULAR Y PROCESAR ----------
+    time.sleep(3)
+
     btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
     btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
 
-    def boton_procesar_habilitado(driver,timeout=10):
+    def boton_procesar_habilitado(wait):
+        # try:
+        #     btn = driver.find_element(*btn_procesar_locator)
+        #     #btn = WebDriverWait(driver, timeout).until(EC.presence_of_element_located(btn_procesar_locator))
+        #     return btn if (
+        #         btn.is_displayed()
+        #         and btn.is_enabled()
+        #         and "ui-state-disabled" not in btn.get_attribute("class")
+        #     ) else False
+        # except:
+        #     return False
         try:
-            btn = driver.find_element(*btn_procesar_locator)
-            #btn = WebDriverWait(driver, timeout).until(EC.presence_of_element_located(btn_procesar_locator))
-            return btn if (
+
+            btn = wait.until(EC.presence_of_element_located(btn_procesar_locator))
+
+            clase = btn.get_attribute("class") or ""
+            disabled = btn.get_attribute("disabled")
+            href = btn.get_attribute("href")
+            onclick = btn.get_attribute("onclick")
+
+            if (
                 btn.is_displayed()
-                and btn.is_enabled()
-                and "ui-state-disabled" not in btn.get_attribute("class")
-            ) else False
+                and "ui-state-disabled" not in clase
+                and disabled is None
+                and href is not None
+                and "__doPostBack" in href
+                and onclick is not None
+                and onclick.strip() != ""
+            ):
+                return btn
+
+            return False
+
         except:
             return False
 
-    def boton_calcular_habilitado(driver):
+    def boton_calcular_habilitado(wait):
         try:
-            btn = driver.find_element(*btn_calcular_locator)
+            #btn = driver.find_element(*btn_calcular_locator)
             #btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
+            btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
+
+            clase = btn.get_attribute("class") or ""
+            disabled = btn.get_attribute("disabled")
+            href = btn.get_attribute("href")
+
             if (
                 btn.is_displayed()
-                and btn.is_enabled()
-                and btn.get_attribute("disabled") is None
-                and "ui-state-disabled" not in btn.get_attribute("class")
+                and "ui-state-disabled" not in clase
+                and disabled is None
+                and href is not None
             ):
                 return btn
 
@@ -853,17 +888,18 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     # 🔍 Intentar Calcular (máx 2 veces por seguridad)
     for intento in range(2):
 
-        btn_calcular = boton_calcular_habilitado(driver)
+        btn_calcular = boton_calcular_habilitado(wait)
 
         if not btn_calcular:
-            break  # 👉 ya no se puede calcular, ir a procesar
+            logging.info("⏭️ Botón Calcular no habilitado, paso a Procesar")
+            break
 
         try:
             driver.execute_script(
                 "arguments[0].scrollIntoView({block:'center'});",
                 btn_calcular
             )
-            time.sleep(0.5)
+            time.sleep(1)
 
             btn_calcular.click()
             logging.info(f"🖱️ Clic en Calcular ({intento+1})")
@@ -890,8 +926,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 "arguments[0].scrollIntoView({block:'center'});",
                 btn_procesar
             )
-            time.sleep(0.5)
-
+            time.sleep(1)
             btn_procesar.click()
             logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
             break
@@ -1894,7 +1929,44 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     # ❌ Error en planilla
     elif "encontramos algunos errores" in texto:
-        raise Exception("Encontramos algunos errores en la planilla")
+
+        # <button data-button="" class="btn border-radius-rounded margin-right-m" type="button" id="b13-b1-b11-b3-btnObserv"><span class="padding-x-m">Descargar observaciones</span></button>
+
+        # 3. Esperar que sea clickeable y clicar
+        btn_des_obs = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-b11-b3-btnObserv")))
+
+        archivos_antes_des_obs = set(os.listdir(ruta_archivos_x_inclu))
+
+        driver.execute_script("arguments[0].click();", btn_des_obs)
+        logging.info("🖱 Clic con JS en el botón 'Descargar Observaciones'")
+
+        archivo_obs = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_des_obs,".xlsx",cantidad=1)
+
+        if archivo_obs:
+
+            ruta_des_obs = archivo_obs[0]
+            ruta_final_des_obs = os.path.join(ruta_archivos_x_inclu, f"observaciones_{ramo.poliza}.xlsx")
+            os.rename(ruta_des_obs, ruta_final_des_obs)
+            logging.info(f"📂 Archivo con Observaciones renombrado")
+
+            df = pd.read_excel(ruta_final_des_obs, engine="openpyxl")
+
+            mensajes = []
+
+            df_obs = df[df["Observaciones"].notna()]
+
+            for _, row in df_obs.iterrows():
+                dni = row["NroDoc"]
+                observacion = row["Observaciones"]
+                mensajes.append(f"{dni}: {observacion}")
+
+            mensaje_final = "\n".join(mensajes)
+
+            raise Exception(f"Encontramos algunos errores en la planilla:\n{mensaje_final}")
+        else:   
+            raise Exception("No se puedo descargar el archivo con las observaciones")
+
+        #raise Exception("Encontramos algunos errores en la planilla")
 
     # ✅ Éxito
     elif "superó exitosamente" in texto:
