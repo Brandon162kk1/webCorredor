@@ -192,6 +192,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             )
         )
 
+        if resultado2.get_attribute("id") == "divAlertas":
+            logging.warning("⚠️ Apareció el modal con advertencia")
+            mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
+            raise Exception(mensaje)
+
         # 🔎 si aparece modal
         if resultado2.get_attribute("id") == "divTipoIncluir":
             logging.warning("⚠️ Apareció el modal con advertencia")
@@ -221,10 +226,10 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         #     )
         # )
 
-        if resultado2.get_attribute("id") == "divAlertas":
-            logging.warning("⚠️ Apareció el modal con advertencia")
-            mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
-            raise Exception(mensaje)
+        # if resultado2.get_attribute("id") == "divAlertas":
+        #     logging.warning("⚠️ Apareció el modal con advertencia")
+        #     mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
+        #     raise Exception(mensaje)
 
         # INPUT FILE
         input_file = wait.until(EC.presence_of_element_located(file_input))
@@ -383,7 +388,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     except TimeoutException:
         pass
 
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------
+    #---------------------- ESTO FUNCIONA EN LOCAL NO PRODUCCION --------------------------------
     # error_validacion = (By.ID, "divAlertaErrorValidacion")
     # btn_errores = (By.ID, "btnErroresPlanilla")
     # progress_bar = (By.ID, "progressbar")
@@ -441,7 +446,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     #     wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
     #     logging.info("✅ Proceso completado al 100%")
 
-    #------------------------------------------------------------------------------------
+    #---------------------- ESTO FUNCIONA --------------------------------
+
     error_validacion = (By.ID, "divAlertaErrorValidacion")
     btn_errores = (By.ID, "btnErroresPlanilla")
     progress_bar = (By.ID, "progressbar")
@@ -501,7 +507,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
         logging.info("✅ Proceso completado al 100%")
 
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+
     # btn_calcularPrima = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnCalcular")))
     # btn_calcularPrima.click()
     # logging.info("🖱️ Clic en Calcular Prima")
