@@ -829,122 +829,164 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     #         logging.info("🖱️ Clic forzado con JS")
 
     #------ CALCULAR Y PROCESAR ----------
-    time.sleep(3)
 
-    btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
     btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
+    btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
 
-    def boton_procesar_habilitado(wait):
-        # try:
-        #     btn = driver.find_element(*btn_procesar_locator)
-        #     #btn = WebDriverWait(driver, timeout).until(EC.presence_of_element_located(btn_procesar_locator))
-        #     return btn if (
-        #         btn.is_displayed()
-        #         and btn.is_enabled()
-        #         and "ui-state-disabled" not in btn.get_attribute("class")
-        #     ) else False
-        # except:
-        #     return False
-        try:
+    def esperar_boton_habilitado(locator):
+        return wait.until(lambda d: (
+            (btn := d.find_element(*locator)) and
+            btn.is_displayed()
+            and btn.is_enabled()
+            and "ui-state-disabled" not in (btn.get_attribute("class") or "")
+        ) and btn)
 
-            btn = wait.until(EC.presence_of_element_located(btn_procesar_locator))
+    def click_boton_seguro(locator):
+        for _ in range(3):
+            try:
+                btn = esperar_boton_habilitado(locator)
 
-            clase = btn.get_attribute("class") or ""
-            disabled = btn.get_attribute("disabled")
-            href = btn.get_attribute("href")
-            onclick = btn.get_attribute("onclick")
-
-            if (
-                btn.is_displayed()
-                and "ui-state-disabled" not in clase
-                and disabled is None
-                and href is not None
-                and "__doPostBack" in href
-                and onclick is not None
-                and onclick.strip() != ""
-            ):
-                return btn
-
-            return False
-
-        except:
-            return False
-
-    def boton_calcular_habilitado(wait):
-        try:
-            #btn = driver.find_element(*btn_calcular_locator)
-            #btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
-            btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
-
-            clase = btn.get_attribute("class") or ""
-            disabled = btn.get_attribute("disabled")
-            href = btn.get_attribute("href")
-
-            if (
-                btn.is_displayed()
-                and "ui-state-disabled" not in clase
-                and disabled is None
-                and href is not None
-            ):
-                return btn
-
-            return False
-        except:
-            return False
-
-    # 🔍 Intentar Calcular (máx 2 veces por seguridad)
-    for intento in range(2):
-
-        btn_calcular = boton_calcular_habilitado(wait)
-
-        if not btn_calcular:
-            logging.info("⏭️ Botón Calcular no habilitado, paso a Procesar")
-            break
-
-        try:
-            driver.execute_script(
-                "arguments[0].scrollIntoView({block:'center'});",
-                btn_calcular
-            )
-            time.sleep(1)
-
-            btn_calcular.click()
-            logging.info(f"🖱️ Clic en Calcular ({intento+1})")
-
-            # 🔥 Esperar cambio REAL
-            wait.until(
-                EC.any_of(
-                    EC.alert_is_present(),
-                    boton_procesar_habilitado
+                driver.execute_script(
+                    "arguments[0].scrollIntoView({block:'center'});",
+                    btn
                 )
-            )
 
-        except (StaleElementReferenceException, ElementClickInterceptedException):
-            logging.warning("⚠️ Error al hacer clic en Calcular, reintentando...")
-            time.sleep(1)
-            continue
+                btn.click()
+                return True
 
-    # 🟢 PROCESAR (sí o sí)
-    btn_procesar = wait.until(boton_procesar_habilitado)
+            except StaleElementReferenceException:
+                time.sleep(0.5)
 
-    for _ in range(3):
-        try:
-            driver.execute_script(
-                "arguments[0].scrollIntoView({block:'center'});",
-                btn_procesar
-            )
-            time.sleep(1)
-            btn_procesar.click()
-            logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
-            break
+        # fallback JS
+        btn = esperar_boton_habilitado(locator)
+        driver.execute_script("arguments[0].click();", btn)
+        return True
 
-        except (StaleElementReferenceException, ElementClickInterceptedException):
-            time.sleep(1)
-            btn_procesar = wait.until(boton_procesar_habilitado)
+    click_boton_seguro(btn_calcular_locator)
+    logging.info("🖱️ Clic en Calcular")
 
-    else:
-        driver.execute_script("arguments[0].click();", btn_procesar)
-        logging.info("🖱️ Clic forzado en Procesar (JS)")
+    click_boton_seguro(btn_procesar_locator)
+    logging.info("🖱️ Clic en Procesar")
+
+    # #-------------------------------------
+    # time.sleep(3)
+
+    # btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
+    # btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
+
+    # def boton_procesar_habilitado(wait):
+    #     try:
+    #         #btn = driver.find_element(*btn_procesar_locator)
+    #         btn = wait.until(EC.presence_of_element_located(btn_procesar_locator))
+    #         return btn if (
+    #             btn.is_displayed()
+    #             and btn.is_enabled()
+    #             and "ui-state-disabled" not in btn.get_attribute("class")
+    #         ) else False
+    #     except:
+    #         return False
+    #     # try:
+
+    #     #     btn = wait.until(EC.presence_of_element_located(btn_procesar_locator))
+
+    #     #     clase = btn.get_attribute("class") or ""
+    #     #     disabled = btn.get_attribute("disabled")
+    #     #     href = btn.get_attribute("href")
+    #     #     onclick = btn.get_attribute("onclick")
+
+    #     #     if (
+    #     #         btn.is_displayed()
+    #     #         and "ui-state-disabled" not in clase
+    #     #         and disabled is None
+    #     #         and href is not None
+    #     #         and "__doPostBack" in href
+    #     #         and onclick is not None
+    #     #         and onclick.strip() != ""
+    #     #     ):
+    #     #         return btn
+
+    #     #     return False
+
+    #     # except:
+    #     #     return False
+
+    # def boton_calcular_habilitado(wait):
+    #     try:
+    #         #btn = driver.find_element(*btn_calcular_locator)
+    #         #btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
+    #         btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
+
+    #         clase = btn.get_attribute("class") or ""
+    #         disabled = btn.get_attribute("disabled")
+    #         href = btn.get_attribute("href")
+
+    #         if (
+    #             btn.is_displayed()
+    #             and "ui-state-disabled" not in clase
+    #             and disabled is None
+    #             and href is not None
+    #         ):
+    #             return btn
+
+    #         return False
+    #     except:
+    #         return False
+
+    # # 🔍 Intentar Calcular (máx 2 veces por seguridad)
+    # for intento in range(2):
+
+    #     btn_calcular = boton_calcular_habilitado(wait)
+
+    #     if not btn_calcular:
+    #         logging.info("⏭️ Botón Calcular no habilitado, paso a Procesar")
+    #         break
+
+    #     try:
+    #         driver.execute_script(
+    #             "arguments[0].scrollIntoView({block:'center'});",
+    #             btn_calcular
+    #         )
+    #         time.sleep(1)
+
+    #         btn_calcular.click()
+    #         logging.info(f"🖱️ Clic en Calcular ({intento+1})")
+
+    #         # 🔥 Esperar cambio REAL
+    #         wait.until(
+    #             EC.any_of(
+    #                 EC.alert_is_present(),
+    #                 boton_procesar_habilitado
+    #             )
+    #         )
+
+    #     except (StaleElementReferenceException, ElementClickInterceptedException):
+    #         logging.warning("⚠️ Error al hacer clic en Calcular, reintentando...")
+    #         time.sleep(1)
+    #         continue
+
+    # # 🟢 PROCESAR (sí o sí)
+    # btn_procesar = wait.until(boton_procesar_habilitado)
+
+    # for _ in range(3):
+    #     try:
+    #         driver.execute_script(
+    #             "arguments[0].scrollIntoView({block:'center'});",
+    #             btn_procesar
+    #         )
+    #         time.sleep(1)
+    #         btn_procesar.click()
+    #         logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
+    #         break
+
+    #     except (StaleElementReferenceException, ElementClickInterceptedException):
+    #         time.sleep(1)
+    #         btn_procesar = wait.until(boton_procesar_habilitado)
+
+    # else:
+    #     driver.execute_script("arguments[0].click();", btn_procesar)
+    #     logging.info("🖱️ Clic forzado en Procesar (JS)")
+
+    # #--------------------------------
 
     # MENSAJE + BOTONES
     texto_mensaje = ""
