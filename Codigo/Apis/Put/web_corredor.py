@@ -1,8 +1,11 @@
-﻿import requests
+import requests
 import logging
 import os
 import json
+from dotenv import load_dotenv
 from LinuxDebian.Carpetas.rutas import obtener_imagenes_error
+
+load_dotenv("/app/variables.env")
 
 # --- Variables de Entorno ---
 API_KEY = os.getenv("API_KEY")

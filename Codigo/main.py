@@ -68,9 +68,10 @@ class ContextoRPA:
         return pformat(data)
 
 class RamoBase:
-    def __init__(self, activo: bool,proforma: bool, poliza: str):
+    def __init__(self, activo: bool,proforma: bool, facturacion: bool, poliza: str):
         self.activo = activo
         self.proforma = proforma
+        self.facturacion = facturacion
         self.poliza = str(poliza or "0")
 
     def tiene_poliza(self) -> bool:
@@ -89,7 +90,8 @@ class Salud(RamoBase):
     def __init__(self, data: dict):
         super().__init__(
             activo=to_bool(data.get("estacaSalud")),
-            proforma=to_bool(data.get("proformaSalud")),
+            proforma=to_bool(data.get("estacaProformaSalud")),
+            facturacion=to_bool(data.get("facturacionSalud")),
             poliza=data.get("poliza_salud")
         )
 
@@ -109,6 +111,7 @@ class Salud(RamoBase):
             f"Salud ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
+            f"Facturación Multiple: {self.facturacion}, "
             f"Sede: {self.sede}, "
             f"Vigencia: {self.f_inicio} al {self.f_fin}"
             f")"
@@ -118,7 +121,8 @@ class Pension(RamoBase):
     def __init__(self, data: dict):
         super().__init__(
             activo=to_bool(data.get("estacaPension")),
-            proforma=to_bool(data.get("proformaSalud")),
+            proforma=to_bool(data.get("estacaProformaPension")),
+            facturacion=to_bool(data.get("facturacionPension")),
             poliza=data.get("poliza_pension")
         )
 
@@ -138,6 +142,7 @@ class Pension(RamoBase):
             f"Pensión ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
+            f"Facturación Multiple: {self.facturacion}, "
             f"Sede: {self.sede}, "
             f"Vigencia: {self.f_inicio} al {self.f_fin}"
             f")"
@@ -147,7 +152,8 @@ class VidaLey(RamoBase):
     def __init__(self, data: dict):
         super().__init__(
             activo=to_bool(data.get("estacaVida")),
-            proforma=to_bool(data.get("proformaSalud")),
+            proforma=to_bool(data.get("estacaProformaVida")),
+            facturacion=to_bool(data.get("facturacionVida")),
             poliza=data.get("poliza_vida")
         )
 
@@ -167,6 +173,7 @@ class VidaLey(RamoBase):
             f"Vida Ley ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
+            f"Facturación Multiple: {self.facturacion}, "
             f"Sede: {self.sede}, "
             f"Vigencia: {self.f_inicio} al {self.f_fin}"
             f")"

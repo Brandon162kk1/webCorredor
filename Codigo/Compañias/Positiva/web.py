@@ -33,13 +33,9 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     driver.switch_to.window(driver.window_handles[-1])
     logging.info("⌛ Esperando la nueva ventana...")
 
-    #Metodo para buscar y descargar constancias si es que falla la web
-
     transacciones = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Transacciones y Consultas")))
     transacciones.click()
     logging.info("🖱️ Clic en Transacciones y Consultas")
-
-    time.sleep(3)
 
     error_locator = (By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")
     poliza_locator = (By.ID, "ContentPlaceHolder1_txtNroPoliza")
@@ -61,17 +57,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         logging.error("❌ Error en la web detectado")
         raise Exception("Lo sentimos, ha ocurrido un error inesperado")
 
-    # try:
-    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")))
-    #     raise Exception("Lo sentimos, ha ocurrido un error inesperado")
-    # except TimeoutException:
-    #     pass
-
-    # poliza_input = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_txtNroPoliza")))
-    # poliza_input.clear()
-    # poliza_input.send_keys(ramo.poliza)
-    # logging.info(f"✅ Se Ingresó la póliza '{ramo.poliza}' en el campo")
-
     buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnBuscar")))
     buscar_btn.click()
     logging.info("🖱️ Clic en Buscar")
@@ -82,51 +67,51 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     except Exception as e:
         raise Exception(f"No se encontró la póliza {ramo.poliza} en la compañía")
 
-    try:
+    tipo_facturacion = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblTipoFacturacion_0"))).text
 
-        # Obtener la fecha de vigencia (formato: dd/mm/yyyy)
-        fecha_emision_element = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaEmision_0")))
-        fecha_emision_str = fecha_emision_element.text.strip()
-        fecha_emision = datetime.strptime(fecha_emision_str, "%d/%m/%Y")
-        # Calcular el primer día del mes siguiente
-        if fecha_emision.month == 12:
-            primer_dia_mes_siguiente = datetime(fecha_emision.year + 1, 1, 1)
-        else:
-            primer_dia_mes_siguiente = datetime(fecha_emision.year, fecha_emision.month + 1, 1)
+    logging.info(f"📌 Tipo de Facturación: {tipo_facturacion}")
 
-        primer_dia_mes_siguiente_str = primer_dia_mes_siguiente.strftime("%d/%m/%Y")
+    if ramo.facturacion and tipo_facturacion != "Facturación Multiple":
+            raise Exception(f"El tipo de facturación de la póliza {ramo.poliza} es {tipo_facturacion} y no coincide con el de la compañia")
 
-        # Obtener la fecha de vigencia (formato: dd/mm/yyyy)
-        fecha_vigencia_element = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaVigencia_0")))
-        fecha_vigencia_str = fecha_vigencia_element.text.strip() 
-        # Convertir la fecha a objeto datetime
-        fecha_vigencia_dmy = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
-        fecha_vigencia_str_for = fecha_vigencia_dmy.strftime("%d/%m/%Y")
+    fecha_emision_element = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaEmision_0")))
+    fecha_emision_str = fecha_emision_element.text.strip()
+    fecha_emision = datetime.strptime(fecha_emision_str, "%d/%m/%Y")
 
-        logging.info(f"📅 Fecha Fin de la vigencia en la póliza : {fecha_vigencia_str}")
+    if fecha_emision.month == 12:
+        primer_dia_mes_siguiente = datetime(fecha_emision.year + 1, 1, 1)
+    else:
+        primer_dia_mes_siguiente = datetime(fecha_emision.year, fecha_emision.month + 1, 1)
 
-        if tipo_proceso == 'IN':
+    primer_dia_mes_siguiente_str = primer_dia_mes_siguiente.strftime("%d/%m/%Y")
 
-            # # Definir rango permitido solo para inclusiones
-            # rango_inicio = fecha_vigencia_dmy.date() - timedelta(days=2)  # 2 días antes
-            # rango_fin = fecha_vigencia_dmy.date() + timedelta(days=2)     # 2 días después
-            logging.info(f"📅 Rango permitido para la {palabra_clave}: {primer_dia_mes_siguiente_str} a {fecha_vigencia_str_for}")
 
-    except Exception as e:
-        raise Exception(f"Error al parsear la fecha de vigencia,Motivo - {e}")
+    fecha_vigencia_element = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaVigencia_0")))
+    fecha_vigencia_str = fecha_vigencia_element.text.strip() 
+    fecha_vigencia_dmy = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
+    fecha_vigencia_str_for = fecha_vigencia_dmy.strftime("%d/%m/%Y")
+
+    logging.info(f"📅 Fecha Fin de la vigencia en la póliza : {fecha_vigencia_str}")
+
+    # if tipo_proceso == 'IN':
+
+    #     # # Definir rango permitido solo para inclusiones
+    #     # rango_inicio = fecha_vigencia_dmy.date() - timedelta(days=2)  # 2 días antes
+    #     # rango_fin = fecha_vigencia_dmy.date() + timedelta(days=2)     # 2 días después
+    #     logging.info(f"📅 Rango permitido para la {palabra_clave}: {primer_dia_mes_siguiente_str} a {fecha_vigencia_str_for}")
+
+    #except Exception as e:
+        #raise Exception(f"Error al parsear la fecha de vigencia,Motivo - {e}")
     
-    if tipo_proceso == 'IN': # and ramo.f_fin != fecha_vigencia_str:
+    if tipo_proceso == 'IN':
         if ramo.f_fin != fecha_vigencia_str:
             raise Exception(f"Las fechas Fin de la vigencia en la Póliza {ramo.poliza} no coinciden")
-    else: # tipo_proceso == 'RE':
+    else: 
 
-        #fecha_web = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
         fecha_ramo_fin = datetime.strptime(ramo.f_fin, "%d/%m/%Y")
 
         if fecha_ramo_fin == fecha_vigencia_dmy:
-            raise Exception(
-                f"La Póliza {ramo.poliza} ya fue renovada hasta el {fecha_vigencia_str}."
-            )
+            raise Exception(f"La Póliza {ramo.poliza} ya fue renovada hasta el {fecha_vigencia_str}.")
 
         elif fecha_ramo_fin < fecha_vigencia_dmy:
             raise Exception(
@@ -134,17 +119,14 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 f"Web: {fecha_vigencia_str} | Ramo: {ramo.f_fin}"
             )
 
-    # RADIO BUTTON
     radio_seleccion = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_gvResultado_rbSeleccion_0")))
     radio_seleccion.click()
     logging.info("🖱️ Clic en el 'Radio Button' correspondiente")
 
-    # 🔥 ESPERAR que el DOM cambie
     wait.until(EC.staleness_of(radio_seleccion))
 
     wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
 
-    # LOADER vs ERROR vs BOTÓN
     error_modal = (By.ID, "divAlertaErrorGeneral")
 
     btn_locator = (
@@ -161,16 +143,10 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     )
 
     if resultadobtn.get_attribute("id") == "divAlertaErrorGeneral":
-    #if driver.find_elements(By.XPATH, "//div[@id='divAlertaErrorGeneral' and not(contains(@style,'display: none'))]"):
         logging.warning("⚠️ Apareció el modal con advertencia")
-        #mensaje_error = driver.find_element(By.XPATH, "//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
-        #mensaje_error = resultado.find_element(By.XPATH, ".//p/span[2]").text.strip()
-        mensaje_error = driver.find_element(
-            By.XPATH, "//div[@id='divAlertaErrorGeneral']//p/span[2]"
-        ).text.strip()
+        mensaje_error = driver.find_element(By.XPATH, "//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
         raise Exception(mensaje_error)
 
-    # INCLUSIÓN
     if tipo_proceso == 'IN':
 
         btn_incluir = wait.until(EC.element_to_be_clickable(btn_locator))
@@ -179,7 +155,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         wait.until(EC.staleness_of(btn_incluir))
 
-        # MODAL OPCIONAL vs SIGUIENTE PASO
         modal_incluir = (By.ID, "divTipoIncluir")
         file_input = (By.ID, "fuPlanillaAjax")
         deuda_modal = (By.ID, "divAlertas")
@@ -197,7 +172,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
             raise Exception(mensaje)
 
-        # 🔎 si aparece modal
         if resultado2.get_attribute("id") == "divTipoIncluir":
             logging.warning("⚠️ Apareció el modal con advertencia")
 
@@ -206,7 +180,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                     (
                         By.ID,
                         "ContentPlaceHolder1_btnIncluirProformaSi"
-                        if tipo_mes == 'MA'
+                        if not ramo.facturacion #tipo_mes == 'MA'
                         else "ContentPlaceHolder1_btnIncluirProformaNo"
                     )
                 )
@@ -216,29 +190,10 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             btn_aceptar.click()
             logging.info(f"🖱️ Clic en {nom_btn}")
 
-        # DEUDA vs CONTINUAR
-        #deuda_modal = (By.ID, "divAlertas")
-
-        # resultado3 = wait.until(
-        #     EC.any_of(
-        #         EC.visibility_of_element_located(deuda_modal),
-        #         EC.presence_of_element_located(file_input)
-        #     )
-        # )
-
-        # if resultado2.get_attribute("id") == "divAlertas":
-        #     logging.warning("⚠️ Apareció el modal con advertencia")
-        #     mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
-        #     raise Exception(mensaje)
-
-        # INPUT FILE
         input_file = wait.until(EC.presence_of_element_located(file_input))
         logging.info("⌛ Página de carga lista (Trama)")
 
-        # FECHA
-        input_fecha = wait.until(
-            EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniFecVigInc"))
-        )
+        input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniFecVigInc")))
         input_fecha.clear()
 
         driver.execute_script("""
@@ -247,7 +202,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             arguments[0].dispatchEvent(new Event('blur'));
         """, input_fecha, ramo.f_inicio)
 
-        # ALERTA FECHA vs CONTINUAR
         alerta_fecha = (By.ID, "divAlertas")
 
         resultado4 = wait.until(
@@ -264,7 +218,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         driver.find_element(By.TAG_NAME, "body").click()
 
-        # LOG FECHA
         fecha_date = datetime.strptime(ramo.f_inicio, "%d/%m/%Y").date()
 
         if fecha_date < get_fecha_hoy().date():
@@ -277,24 +230,18 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         else:
             logging.info(f"📅 Vigencia ingresada: {ramo.f_inicio}")
 
-        # CASO ESPECIAL
         if ramo.poliza == '9231375':
 
-            select_tipo_calculo = wait.until(
-                EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_cboTipoCalculoEspecial"))
-            )
+            select_tipo_calculo = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_cboTipoCalculoEspecial")))
             Select(select_tipo_calculo).select_by_value("21")
-
             logging.info("✅ Se seleccionó 'Por días'")
 
-    # RENOVACIÓN
     else:
 
         btn_renovar = wait.until(EC.element_to_be_clickable(btn_locator))
         btn_renovar.click()
         logging.info("🖱️ Clic en Renovar")
 
-        # DEUDA vs MODAL RENOVACIÓN
         deuda_modal = (By.ID, "divAlertas")
         modal_renovacion = (By.ID, "divTipoRenovacion")
 
@@ -309,20 +256,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
             raise Exception(mensaje)
 
-        # ACEPTAR RENOVACIÓN
-        btn_aceptar = wait.until(
-            EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovacionSi"))
-        )
+        btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnRenovacionSi")))
         btn_aceptar.click()
         logging.info("🖱️ Clic en aceptar la Renovación")
 
-        # SIGUIENTE PANTALLA
-        input_file = wait.until(
-            EC.presence_of_element_located((By.ID, "fuPlanillaAjax"))
-        )
+        input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
         logging.info("⌛ Página de carga lista (Trama)")
 
-        #ContentPlaceHolder1_txtFinVigPoliza
         fecha_fin_web = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza"))).get_attribute("value")
         fecha_fin = datetime.strptime(fecha_fin_web, "%d/%m/%Y")
 
@@ -332,20 +272,14 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 f"Comunicate con el ejecutivo."
             )
 
-        # CASO ESPECIAL
         if ramo.poliza == '9231375':
 
-            fecha_str = wait.until(
-                EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))
-            ).get_attribute("value")
+            fecha_str = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))).get_attribute("value")
 
             fecha = datetime.strptime(fecha_str, "%d/%m/%Y")
             fecha_final = (fecha + relativedelta(months=1) - timedelta(days=1)).strftime("%d/%m/%Y")
 
-            input_fecha = wait.until(
-                EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza"))
-            )
-
+            input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza")))
             input_fecha.clear()
             driver.execute_script("""
                 arguments[0].value = arguments[1]; 
@@ -357,7 +291,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             logging.info(f"📅 Vigencia Hasta: {fecha_final}")
 
-    #--------------
     time.sleep(2)
 
     file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsx")) 
@@ -460,16 +393,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         )
     )
 
-    # 🔎 ERROR DE VALIDACIÓN (modal rojo)
     modal = driver.find_elements(*error_validacion)
 
     if modal and modal[0].is_displayed():
         logging.warning("⚠️ Apareció el modal con errores")
-
         mensaje_error = driver.find_element(By.ID, "spanAlertaErrorValidacion").text
         raise Exception(mensaje_error)
 
-    # 🔎 ERRORES EN PLANILLA
     btn = driver.find_elements(*btn_errores)
 
     if btn and btn[0].is_displayed():
@@ -502,338 +432,16 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
 
-    # 👇 si aparece progress, esperar a 100%
     if driver.find_elements(*progress_bar):
         wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
         logging.info("✅ Proceso completado al 100%")
 
-    #------------------------------------------------------------------------------------
-
-    # btn_calcularPrima = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnCalcular")))
-    # btn_calcularPrima.click()
-    # logging.info("🖱️ Clic en Calcular Prima")
-
-
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------
-    # try:
-    #     # Posible error para la hoja de la trama , debe ser Planilla no Trabajadores
-    #     WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertaErrorValidacion")))
-    #     logging.info(f"⚠️ Apareció el modal con errores")
-    #     mensaje_error = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaErrorValidacion"))).text
-    #     raise Exception(mensaje_error)
-    # except TimeoutException:
-
-    #     try:
-    #         WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "btnErroresPlanilla")))
-
-    #         cantidad_errores = wait.until(EC.visibility_of_element_located((By.ID, "spnContadorError"))).text
-    #         cantidad_texto = "error" if cantidad_errores == '1' else "errores"
-
-    #         link = wait.until(EC.element_to_be_clickable((By.ID, "btnErroresPlanilla")))
-    #         driver.execute_script("arguments[0].click();", link)
-
-    #         wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
-
-    #         filas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")))
-
-    #         errores = []
-
-    #         for fila in filas:
-
-    #             error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
-
-    #             nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
-
-    #             paterno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sPaterno']").get_attribute("title")
-
-    #             materno = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sMaterno']").get_attribute("title")
-
-    #             nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
-
-    #             errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
-
-    #         detalle_errores = "\n".join(errores)
-
-    #         raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
-
-    #     except TimeoutException:
-    #         pass
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------
-    # #ESTO FUNCIONA
-    # alerta_detectada = False
-
-    # try:
-    #     WebDriverWait(driver,5).until(EC.alert_is_present())
-    #     alert = driver.switch_to.alert   
-    #     logging.info(f"⚠️ Alerta: {alert.text}")   
-    #     alert.accept()
-    #     alerta_detectada = True
-    # except TimeoutException:
-    #     pass
-            
-    # if alerta_detectada:
-    #     raise Exception("Hubo una alerta con la Trama")
-    # else:
-                             
-    #     procesar_btn = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnProcesar")))
-
-    #     driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", procesar_btn)
-
-    #     procesar_btn.click()
-    #     logging.info(f"🖱️ Clic en Procesar {palabra_clave}") 
-
-    #     texto_mensaje = ""
-
-    #     if tipo_proceso == 'IN':
-
-    #         #aca carga un modal indicado si estas seguro de realziar la operacion de Inclusion
-
-    #         btn_si = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnIncluirSi")))
-    #         btn_si.click()
-    #         logging.info("🖱️ Clic en Aceptar la Inclusión")
-
-    #         time.sleep(3)
-
-    #         mensaje_span = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaInclusion")))
-    #         texto_mensaje = mensaje_span.text
-
-    #     else:
-                
-    #         mensaje_span = wait.until(EC.visibility_of_element_located((By.ID, "spanAlertaRenovacion")))
-    #         texto_mensaje = mensaje_span.text
-
-    #         btn_si = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")))
-    #         btn_si.click()
-    #         logging.info("🖱️ Clic en Aceptar la Renovación")
-
-    #         time.sleep(3)
-            
-    #     logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
-
-    #     numero_doc = None
-
-    #     if tipo_proceso == 'IN':
-
-    #         match = re.search(r'Inclusión con nro\. (\d+)', texto_mensaje)
-    #         if match:
-    #             numero_doc = match.group(1)
-    #             logging.info(f"✅ Número de {palabra_clave} extraído: {numero_doc}")
-    #         else:
-    #             logging.info(f"No se encontró el código de {palabra_clave}.")
-
-    #     else:
-
-    #         match = re.search(r'renovación con nro\. (\d+)', texto_mensaje)
-    #         if match:
-    #             numero_doc = match.group(1)
-    #             logging.info(f"✅ Número de {palabra_clave} extraído: {numero_doc}")
-    #         else:
-    #             logging.info(f"No se encontró el código de {palabra_clave}.")
-
-    #     prefijo = "INCL" if tipo_proceso == "IN" else "RENV"
-
-    #     if not numero_doc:
-    #         raise Exception(f"No se pudo obtener el número de {palabra_clave} desde el mensaje: {texto_mensaje}")
-
-    #     codigo_documento = f"{prefijo}-{numero_doc}"
-
-    #     try:
-
-    #         if tipo_proceso == 'IN':
-    #             btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarInclusion")))
-    #             btn_aceptar.click()
-    #             logging.info("🖱️ Clic en Aceptar")
-    #             time.sleep(3)
-    #         else:
-    #             try:
-    #                 btn_aceptar = WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")))
-    #                 btn_aceptar.click()
-    #                 logging.info("🖱️ Clic en Aceptar")
-    #             except TimeoutException:
-    #                 pass
-
-    #         wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
-
-    #         try:
-    #             span_numero = wait.until(EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
-    #             logging.info(f"✅ Span encontrado: {span_numero.text}")
-    #         except TimeoutException:
-    #             raise Exception(f"No se encontró el span con número {codigo_documento}")
-
-    #         try:
-    #             # Esperar que aparezca la lupa (por cualquiera de los dos tipos) -- Esto puede fallar si solo es una póliza
-    #             if len(list_polizas) == 1 and ba_codigo == '1':
-    #                 selector_xpath = (f"//img[@data-nropolizasalud='{ramo.poliza}']")
-    #             elif len(list_polizas) == 1 and ba_codigo == '2':
-    #                 selector_xpath = (f"//img[@data-nropolizapension='{ramo.poliza}']")
-    #             else:
-    #                 selector_xpath = (f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']")
-
-    #             lupa_element = wait.until(EC.element_to_be_clickable((By.XPATH, selector_xpath)))
-
-    #             driver.execute_script("arguments[0].scrollIntoView(true);", lupa_element)
-    #             lupa_element.click()
-    #             logging.info(f"🖱️ Clic en la lupa {codigo_documento} para póliza {ramo.poliza}")
-
-    #         except TimeoutException:
-    #             raise Exception(f"No se encontró la lupa {codigo_documento} asociada a la póliza {ramo.poliza}")
-    #         except Exception as e:
-    #             raise Exception(f"Error al hacer clic en la lupa -> {e}")
-
-    #         try:
-    #             WebDriverWait(driver,7).until(EC.element_to_be_clickable((By.ID, "btnAceptarError")))
-    #             raise Exception (f"Se detecto una advertencia, el código para descagar el documento en la compañía es {codigo_documento}.")
-    #         except TimeoutException:
-    #             pass
-
-    #         wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
-    #         time.sleep(3)
-    #         logging.info("📄 Panel PDF de la constancia visible.")
-
-    #         logging.info("----------------------------")
-
-    #         boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
-
-    #         # Guardar archivos antes del clic
-    #         archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
-
-    #         driver.execute_script("arguments[0].click();", boton_guardar)
-    #         logging.info("🖱 Clic con JS en el botón de descarga")
-
-    #         archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
-    #         logging.info(f"✅ Archivo descargado exitosamente")
-
-    #         if archivo_nuevo:
-    #             ruta_original = archivo_nuevo[0]  # ya es ruta completa
-    #             ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-    #             os.rename(ruta_original, ruta_final)
-    #             logging.info(f"🔄 Constancia renombrado a '{ramo.poliza}.pdf'")
-    #         else:
-    #             raise Exception("No se encontró constancia después de la descarga")
-
-    #         if tipo_mes == 'MA':
-
-    #             logging.info("----------------------------")
-
-    #             driver.switch_to.frame("ifContenedorPDFMaster")#iframe     
-                                
-    #             boton_embebido = wait.until(EC.element_to_be_clickable((By.ID, "open-button")))
-
-    #             # Guardar archivos antes del clic
-    #             archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
-
-    #             driver.execute_script("arguments[0].click();", boton_embebido)
-    #             logging.info("🖱 Clic con JS en el botón de descarga")
-
-    #             endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes_2,".pdf",cantidad=1)
-    #             logging.info(f"✅ Archivo descargado exitosamente")
-
-    #             if archivo_nuevo:
-    #                 ruta_original = endoso[0]  # ya es ruta completa
-    #                 ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
-    #                 os.rename(ruta_original, ruta_final)
-    #                 logging.info(f"🔄 Endoso renombrado a 'endoso_{ramo.poliza}.pdf'")
-    #             else:
-    #                 raise Exception("No se descargo el endoso")
-
-    #             driver.switch_to.default_content()
-            
-    #         time.sleep(1)
-
-    #         if len(list_polizas) == 2:
-
-    #             ruta_salud = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.pdf")
-    #             ruta_pension = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[1]}.pdf")
-                
-    #             logging.info("----------------------------")
-
-    #             if os.path.exists(ruta_salud):
-    #                 shutil.copy2(ruta_salud,ruta_pension)
-    #                 logging.info(f"📄 Copia creada para constancia de Pensión")
-    #             else:
-    #                 logging.error(f"❌ No existe el archivo base Constancia Salud")
-
-    #             logging.info("----------------------------")
-
-    #             if tipo_mes == 'MA':
-
-    #                 ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[0]}.pdf")
-    #                 ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu,f"endoso_{list_polizas[1]}.pdf")
-
-    #                 if os.path.exists(ruta_endoso_salud):
-    #                     shutil.copy2(ruta_endoso_salud,ruta_endoso_pension)
-    #                     logging.info(f"📄 Copia creada para el endoso de Pensión")
-    #                 else:
-    #                     logging.error(f"❌ No existe el archivo base Endoso Salud")
-
-    #                 logging.info("----------------------------")
-
-    #         #btnPDFCancelarM,btnPDFEnviarM
-    #         btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
-    #         btn_cancelar_boton.click()
-    #         logging.info("✅ Cerrando panel de documentos.")
-
-    #         time.sleep(2)
-
-    #         logging.info(f"✅ {palabra_clave} en La Positiva realizada exitosamente")
-
-    #     except Exception as e:
-    #         logging.error(f"Detalles del error: {str(e)}")
-    #         raise Exception(
-    #             f"No reprocesar la {palabra_clave}, ya que se generó la solicitud con el código -> {codigo_documento}.\n"
-    #             f"Buscar y descargar manualmente en la compañía."
-    #         )
-        
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------    
-    # PROBANDO MENOS TIEMPO
-    # btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
-
-    # def boton_habilitado(driver):
-    #     try:
-    #         btn = driver.find_element(*btn_procesar_locator)
-    #         return btn if btn.is_displayed() and btn.is_enabled() and "ui-state-disabled" not in btn.get_attribute("class") else False
-    #     except:
-    #         return False
-
-    # resultadohb = wait.until(
-    #     EC.any_of(
-    #         EC.alert_is_present(),
-    #         boton_habilitado
-    #     )
-    # )
-
-    # # 🔎 ALERTA
-    # try:
-    #     alert = driver.switch_to.alert
-    #     texto = alert.text
-    #     alert.accept()
-    #     raise Exception(f"Hubo una alerta con la Trama | {texto}")
-
-    # except NoAlertPresentException:
-
-    #     for _ in range(3):
-    #         try:
-    #             driver.execute_script("arguments[0].scrollIntoView({block:'center'});", resultadohb)
-    #             time.sleep(0.5)
-
-    #             resultadohb.click()
-    #             logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
-    #             break
-
-    #         except (StaleElementReferenceException, ElementClickInterceptedException):
-    #             time.sleep(1)
-    #             resultadohb = wait.until(boton_habilitado)
-
-    #     else:
-    #         driver.execute_script("arguments[0].click();", resultadohb)
-    #         logging.info("🖱️ Clic forzado con JS")
-
-    #------ CALCULAR Y PROCESAR ----------
 
     btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
     btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
 
     def esperar_boton_habilitado(locator):
+
         return wait.until(lambda d: (
             (btn := d.find_element(*locator)) and
             btn.is_displayed()
@@ -842,22 +450,18 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         ) and btn)
 
     def click_boton_seguro(locator):
+
         for _ in range(3):
             try:
+
                 btn = esperar_boton_habilitado(locator)
-
-                driver.execute_script(
-                    "arguments[0].scrollIntoView({block:'center'});",
-                    btn
-                )
-
+                driver.execute_script("arguments[0].scrollIntoView({block:'center'});",btn)
                 btn.click()
                 return True
 
             except StaleElementReferenceException:
                 time.sleep(0.5)
 
-        # fallback JS
         btn = esperar_boton_habilitado(locator)
         driver.execute_script("arguments[0].click();", btn)
         return True
@@ -868,127 +472,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     click_boton_seguro(btn_procesar_locator)
     logging.info("🖱️ Clic en Procesar")
 
-    # #-------------------------------------
-    # time.sleep(3)
-
-    # btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
-    # btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
-
-    # def boton_procesar_habilitado(wait):
-    #     try:
-    #         #btn = driver.find_element(*btn_procesar_locator)
-    #         btn = wait.until(EC.presence_of_element_located(btn_procesar_locator))
-    #         return btn if (
-    #             btn.is_displayed()
-    #             and btn.is_enabled()
-    #             and "ui-state-disabled" not in btn.get_attribute("class")
-    #         ) else False
-    #     except:
-    #         return False
-    #     # try:
-
-    #     #     btn = wait.until(EC.presence_of_element_located(btn_procesar_locator))
-
-    #     #     clase = btn.get_attribute("class") or ""
-    #     #     disabled = btn.get_attribute("disabled")
-    #     #     href = btn.get_attribute("href")
-    #     #     onclick = btn.get_attribute("onclick")
-
-    #     #     if (
-    #     #         btn.is_displayed()
-    #     #         and "ui-state-disabled" not in clase
-    #     #         and disabled is None
-    #     #         and href is not None
-    #     #         and "__doPostBack" in href
-    #     #         and onclick is not None
-    #     #         and onclick.strip() != ""
-    #     #     ):
-    #     #         return btn
-
-    #     #     return False
-
-    #     # except:
-    #     #     return False
-
-    # def boton_calcular_habilitado(wait):
-    #     try:
-    #         #btn = driver.find_element(*btn_calcular_locator)
-    #         #btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
-    #         btn = wait.until(EC.presence_of_element_located(btn_calcular_locator))
-
-    #         clase = btn.get_attribute("class") or ""
-    #         disabled = btn.get_attribute("disabled")
-    #         href = btn.get_attribute("href")
-
-    #         if (
-    #             btn.is_displayed()
-    #             and "ui-state-disabled" not in clase
-    #             and disabled is None
-    #             and href is not None
-    #         ):
-    #             return btn
-
-    #         return False
-    #     except:
-    #         return False
-
-    # # 🔍 Intentar Calcular (máx 2 veces por seguridad)
-    # for intento in range(2):
-
-    #     btn_calcular = boton_calcular_habilitado(wait)
-
-    #     if not btn_calcular:
-    #         logging.info("⏭️ Botón Calcular no habilitado, paso a Procesar")
-    #         break
-
-    #     try:
-    #         driver.execute_script(
-    #             "arguments[0].scrollIntoView({block:'center'});",
-    #             btn_calcular
-    #         )
-    #         time.sleep(1)
-
-    #         btn_calcular.click()
-    #         logging.info(f"🖱️ Clic en Calcular ({intento+1})")
-
-    #         # 🔥 Esperar cambio REAL
-    #         wait.until(
-    #             EC.any_of(
-    #                 EC.alert_is_present(),
-    #                 boton_procesar_habilitado
-    #             )
-    #         )
-
-    #     except (StaleElementReferenceException, ElementClickInterceptedException):
-    #         logging.warning("⚠️ Error al hacer clic en Calcular, reintentando...")
-    #         time.sleep(1)
-    #         continue
-
-    # # 🟢 PROCESAR (sí o sí)
-    # btn_procesar = wait.until(boton_procesar_habilitado)
-
-    # for _ in range(3):
-    #     try:
-    #         driver.execute_script(
-    #             "arguments[0].scrollIntoView({block:'center'});",
-    #             btn_procesar
-    #         )
-    #         time.sleep(1)
-    #         btn_procesar.click()
-    #         logging.info(f"🖱️ Clic en Procesar {palabra_clave}")
-    #         break
-
-    #     except (StaleElementReferenceException, ElementClickInterceptedException):
-    #         time.sleep(1)
-    #         btn_procesar = wait.until(boton_procesar_habilitado)
-
-    # else:
-    #     driver.execute_script("arguments[0].click();", btn_procesar)
-    #     logging.info("🖱️ Clic forzado en Procesar (JS)")
-
-    # #--------------------------------
-
-    # MENSAJE + BOTONES
     texto_mensaje = ""
 
     if tipo_proceso == 'IN':
@@ -1005,15 +488,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         elemento_id = resultado7.get_attribute("id")
 
-        #if driver.find_elements(*btn_si):
         if elemento_id == "ContentPlaceHolder1_btnIncluirSi":
             resultado7.click()
-            #driver.find_element(*btn_si).click()
             logging.info("🖱️ Clic en Aceptar la Inclusión")
 
-        texto_mensaje = wait.until(
-            EC.visibility_of_element_located(mensaje)
-        ).text
+        texto_mensaje = wait.until(EC.visibility_of_element_located(mensaje)).text
 
     else:
 
@@ -1027,16 +506,12 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             )
         )
 
-        texto_mensaje = wait.until(
-            EC.visibility_of_element_located(mensaje)
-        ).text
-
+        texto_mensaje = wait.until(EC.visibility_of_element_located(mensaje)).text
         driver.find_element(*btn_si).click()
         logging.info("🖱️ Clic en Aceptar la Renovación")
 
     logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
 
-    # EXTRAER NÚMERO DE LA SOLICITUD
     numero_doc = None
 
     if tipo_proceso == 'IN':
@@ -1053,24 +528,19 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     prefijo = "INCL" if tipo_proceso == "IN" else "RENV"
     codigo_documento = f"{prefijo}-{numero_doc}"
 
-    # BOTÓN ACEPTAR FINAL SOLO PARA INCLUSIÓN
     btn_inc = (By.ID, "ContentPlaceHolder1_btnAceptarInclusion")
     #btn_ren = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
 
     if tipo_proceso == 'IN':
-
         btn_aceptar = wait.until(EC.element_to_be_clickable(btn_inc))
         btn_aceptar.click()
         logging.info("🖱️ Clic en Aceptar")
 
-    # ESPERAR QUE CIERRE MODAL
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
 
-    # VALIDAR CÓDIGO
     span_numero = wait.until(EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
     logging.info(f"✅ Span encontrado: {span_numero.text}")
 
-    # LUPA vs ERROR
     if len(list_polizas) == 1 and ba_codigo == '1':
         selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
     elif len(list_polizas) == 1 and ba_codigo == '2':
@@ -1091,7 +561,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     if resultadol.get_attribute("id") == "btnAceptarError":
         raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
 
-    # 🟢 Caso lupa
     for _ in range(3):
         try:
             resultadol.click()
@@ -1100,11 +569,9 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         except StaleElementReferenceException:
             resultado = wait.until(EC.element_to_be_clickable(lupa))
 
-    # PANEL PDF
     wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
     logging.info("📄 Panel PDF visible")
 
-    # DESCARGA CONSTANCIA
     boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
 
     archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
@@ -1121,7 +588,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     else:
         raise Exception("No se descargó constancia")
 
-    # ENDOSO (MA)
     if tipo_mes == 'MA':
 
         driver.switch_to.frame("ifContenedorPDFMaster")
@@ -1144,7 +610,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         driver.switch_to.default_content()
 
-    # COPIAS
     if len(list_polizas) == 2:
 
         ruta_salud = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[0]}.pdf")
@@ -1160,7 +625,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             if os.path.exists(ruta_endoso_salud):
                 shutil.copy2(ruta_endoso_salud, ruta_endoso_pension)
 
-    # CERRAR PANEL
     wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM"))).click()
 
     logging.info(f"✅ {palabra_clave} realizada exitosamente")
@@ -1173,10 +637,8 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     time.sleep(2)
 
-    # Espera a que se abra la nueva ventana (aumenta el tiempo de espera si es necesario)
     wait.until(lambda d: len(d.window_handles) > 1)
 
-    # Cambiar a la nueva ventana
     driver.switch_to.window(driver.window_handles[-1])
 
     try:
@@ -1185,7 +647,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         alert.accept()
         logging.info("✅ Alerta aceptada")
     except:
-        #logging.info("✅ No apareció ninguna alerta")
         pass
 
     resultado,asunto = validar_pagina(driver)
@@ -1210,7 +671,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info ("--- Se ingresó a Formulario Genérico de Solicitud de Póliza 🌐---")
 
-    # 4. Cambiar a la nueva pagina si es necesario, Si se abre en la misma pesta a, no hace falta cambiar de handle y Si se abre en otra pesta a, hay que cambiar el contexto:
     if len(driver.window_handles) > 1:
         driver.switch_to.window(driver.window_handles[-1])
         
@@ -1246,17 +706,14 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     iframe = wait.until(EC.presence_of_element_located((By.NAME, "frCliente")))
     driver.switch_to.frame(iframe)
 
-    # Guardar las ventanas actuales
     handle_ventana_principal = driver.current_window_handle
 
-    # Guardar handles antes de abrir la segunda ventana
     handles_antes_ventana2 = set(driver.window_handles)
 
     buscar_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@id='dtcliBuscar']//a")))
     driver.execute_script("arguments[0].click();", buscar_link)
     logging.info("🖱️ Clic en la lupa 🔍")
 
-    # --- Paso 5: Manejar el alert (si aparece) ---
     try:
         alert = wait.until(EC.alert_is_present())
         logging.info(f"⚠️ Alerta presente: {alert.text}")
@@ -1265,7 +722,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except:
         logging.info("✅ No apareció ninguna alerta")
 
-    # Esperar y cambiar a la segunda ventana
     wait.until(lambda d: len(d.window_handles) > len(handles_antes_ventana2))
     nueva_ventana2 = (set(driver.window_handles) - handles_antes_ventana2).pop()
     driver.switch_to.window(nueva_ventana2)
@@ -1273,7 +729,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     time.sleep(3)
 
-    # 💡 Lógica en segunda ventana
     tipo_documento = wait.until(EC.presence_of_element_located((By.NAME, "lscTipoBusqueda")))
     Select(tipo_documento).select_by_value("2" if len(str(ruc_empresa)) == 11 else "1")
     logging.info("✅ Se seleccionó 'RUC'" if len(str(ruc_empresa)) == 11 else "✅ Se eligió 'DNI'")
@@ -1295,7 +750,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         tipo.select_by_value("2")
         logging.info(f"✅ RUC de tipo Jurídico")
 
-    # Guardar handle actual (segunda ventana) ANTES de abrir tercera
     handle_segunda_ventana = driver.current_window_handle
     handles_antes_ventana3 = set(driver.window_handles)
 
@@ -1303,7 +757,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     driver.execute_script("arguments[0].click();", buscar_btn)
     logging.info("🖱️ Se hizo clic en 'Buscar' 🔍")
 
-    # Esperar y cambiar a la tercera ventana
     wait.until(lambda d: len(d.window_handles) > len(handles_antes_ventana3))
     handle_ventana3 = (set(driver.window_handles) - handles_antes_ventana3).pop()
     driver.switch_to.window(handle_ventana3)
@@ -1320,7 +773,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except Exception as e:
         raise Exception(e)
 
-    # --- Esperar que se cierre la ventana 3 y volver a la 2
     time.sleep(3)
     ventanas_actuales = set(driver.window_handles)
 
@@ -1338,18 +790,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     driver.execute_script("arguments[0].scrollIntoView(true);", aceptar_btn)
     driver.execute_script("arguments[0].click();", aceptar_btn)
     logging.info("🖱️ Clic en botón 'Aceptar'")
-
-    # # Primero verificar si aparece un alert
-    # try:
-    #     WebDriverWait(driver,5).until(EC.alert_is_present())
-    #     alert_v2 = driver.switch_to.alert
-    #     msj_alert =  alert_v2.text
-    #     logging.info(f"⚠️ Alerta : {msj_alert}")
-    #     alert_v2.accept()
-    #     logging.info("✅ Alerta aceptada")
-    #     raise Exception (msj_alert)
-    # except TimeoutException:
-    #     pass
 
     time.sleep(2)
 
@@ -1374,10 +814,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     else:
         input_archivo_xls.send_keys(ruta_trama_final_xls1)
         logging.info(f"📤 Se subió el archivo {ramo.poliza}_97.xls ")
-
-    # ruta_trama_final_xls1 = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}_97.xls")
-    # input_archivo_xls.send_keys(ruta_trama_final_xls1)
-    # logging.info(f"📤 Se subió el archivo {ramo.poliza}_97.xls ")
 
     time.sleep(2)
 
@@ -1404,11 +840,9 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     actividad_upper = actividad.upper()
 
     if "MINA" in actividad_upper or "MINER" in actividad_upper:
-        # Caso MINERA
         selectTS.select_by_value("2")
         logging.info("✅ Se seleccionó la opción 'MINERA'")
     else:
-        # Caso NO MINERA
         selectTS.select_by_value("1")
         logging.info("✅ Se seleccionó la opción 'NO MINERA'")
 
@@ -1417,7 +851,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     actividad_input.send_keys(actividad)
     logging.info(f"✅ Actividad registrada: {actividad}")
 
-    # Salir del iframe y volver al contenido principal
     driver.switch_to.default_content()
 
     poliza_input = wait.until(EC.visibility_of_element_located((By.ID, "tctPoliza")))
@@ -1429,7 +862,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     poliza_input.send_keys(ramo.poliza)
     logging.info(f"✅ Número de póliza ingresado: {ramo.poliza}")
 
-    # Scrollea hasta el botón por si está fuera de vista
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
     time.sleep(2)
@@ -1468,23 +900,18 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         input_archivo.send_keys(ruta_trama_final)
         logging.info(f"📤 Se subió el archivo: {ramo.poliza}.xlsx")
 
-    # input_archivo.send_keys(ruta_trama_final)
-    # logging.info(f"📤 Se subió el archivo: {ramo.poliza}.xlsx")
-
-    # Guardar archivos antes del clic
     archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
 
     btn_registrar = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#dtRegistrar a")))
     btn_registrar.click()
     logging.info("🖱️ Clic en 'Enviar' realizado correctamente.")
 
-    # Primero verificar si aparece un alert
     try:
+
         WebDriverWait(driver,5).until(EC.alert_is_present())
         alert1 = driver.switch_to.alert
         texto_alerta = alert1.text.strip()
 
-        # Validar texto
         if "Esta seguro de registrar la Solicitud, luego de ello no podrá ser modificada." not in texto_alerta:
             logging.info(f"⚠️ Alerta : {texto_alerta}")
             alert1.accept()
@@ -1494,10 +921,9 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         logging.info(f"⚠️ Alerta : ¿{texto_alerta}?")
         alert1.accept()
         logging.info("✅ Alerta aceptada")
-    except TimeoutException:
-        #logging.info("✅ No apareció la primera alerta, revisamos si salió el iframe...")
 
-        # Si no hay alert → entonces revisar el iframe
+    except TimeoutException:
+
         try:
             iframe = wait.until(EC.presence_of_element_located((By.ID, "modalIframe")))
             driver.switch_to.frame(iframe)
@@ -1519,7 +945,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
                 driver.execute_script("cerrarVentanaModal();")
                 logging.info("🖱️ Clic en 'Cerrar' ejecutado con JS")
 
-            # 👇 Aquí validas si aparece la alerta después del iframe
             try:
                 WebDriverWait(driver,5).until(EC.alert_is_present())
                 alert0 = driver.switch_to.alert
@@ -1531,7 +956,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             except NoAlertPresentException:
                 logging.info("⚠️ Selenium detectó alerta, pero desapareció antes de leerla")
             finally:
-                # Siempre regresar al DOM principal
                 driver.switch_to.default_content()
 
         except TimeoutException:
@@ -1565,12 +989,10 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
         logging.info(f"⚠️ Alerta : {mensaje}")
 
-        # ---- Evaluación del mensaje ----
         if mensaje.startswith("Corregir errores encontrados en la Trama."):
             alert.accept()
             logging.info("✅ Alerta aceptada")
 
-            #--- capturar el mensaje del pdf que se descargo para enviarlo por error
             ruta_pdf_errores = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
             error_pdf = leer_pdf(ruta_pdf_errores)
             raise Exception(f"{error_pdf}")
@@ -1598,21 +1020,6 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except TimeoutException:
         logging.info("❌ No apareció ninguna alerta")
 
-
-    # ruta_cons = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-    # tramite = obtener_tramite_pdf(ruta_cons)
-
-    # if tramite is False:
-
-    #     # Enviar documento a ejecutivo para anular
-    #     enviar_constancia_anular(ejecutivo_responsable,ramo,ruta_cons)
-
-    #     raise Exception("Se genero la constancia sin valores de la Trama , enviando correo para anular")
-    # elif tramite is None:
-    #     raise Exception("No se encontró número de trámite de la constancia")
-    # else:
-    #     logging.info(f"✅ Número de trámite encontrado: {tramite}")
-
     logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
 def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,ramo):
@@ -1624,17 +1031,13 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     wait.until(lambda d: len(d.window_handles) > 1)
 
     driver.switch_to.window(driver.window_handles[-1])
-    logging.info("🔙  Redireccionando en la nueva ventana")
-
-    time.sleep(5)
+    logging.info("🔙 Redireccionando en la nueva ventana")
 
     icon = wait.until( EC.element_to_be_clickable((By.CLASS_NAME, "icon-menuside-right-arrow")))
 
     actions = ActionChains(driver)
     actions.move_to_element(icon).click().perform()
     logging.info("🖱️ Clic en el Menú despegable de la izquierda")
-
-    time.sleep(3)
 
     try:
         transacciones_span = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Transacciones']")))
@@ -1643,24 +1046,18 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except Exception as e:
         raise str(e)
 
-    time.sleep(3)
-
     try:
         input_element = wait.until(EC.element_to_be_clickable((By.ID, "b12-b1-Input_PolicesNumber")))
         input_element.clear()
-        input_element.send_keys(ramo.poliza) # 1005537087 ramo.poliza
+        input_element.send_keys(ramo.poliza)
         logging.info(f"✅ Numero de Póliza ingresado: {ramo.poliza}")
     except Exception as e:
         raise str(e)
-
-    time.sleep(3)
 
     # input_ruc = wait.until(EC.element_to_be_clickable((By.ID, "b12-b1-Input_RUCContratante2")))
     # input_ruc.clear()
     # input_ruc.send_keys(ruc_empresa)
     # logging.info(f"✅ Numero de RUC ingresado: {ruc_empresa}")
-
-    # time.sleep(3)
 
     # fecha_dt = datetime.strptime(ramo.f_inicio, "%d/%m/%Y")
     # primer_dia_mes = fecha_dt.replace(day=1)
@@ -1673,9 +1070,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     #     arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
     # """, fechai_vigencia, primer_dia_mes)
 
-    # # Esperar a que el sistema autocomplete el segundo campo
-    # time.sleep(2)
-
     # input_fin = driver.find_element(By.ID, "b12-b1-Input_RegistrationDateEnd")
     # fecha_fin_actual = input_fin.get_attribute("value")
     # logging.info(f"📅 Fecha de Inicio de la vigencia: {primer_dia_mes}")
@@ -1687,8 +1081,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     boton_buscar.click()
     logging.info("🖱️ Clic en 'Buscar'")
 
-
-    # 👇 Esperar cualquiera de los posibles resultados
     resultado1 = wait.until(
         EC.any_of(
             EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue")),   # error
@@ -1697,61 +1089,17 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         )
     )
 
-    # 👇 Evaluar qué apareció
-    #html = driver.page_source
-
-    # 🔴 Caso 1: mensaje de error
     if resultado1.get_attribute("id") == "b12-b11-TextTitlevalue":
-    #if "b12-b11-TextTitlevalue" in html:
         tit = driver.find_element(By.ID, "b12-b11-TextTitlevalue").text
         con = driver.find_element(By.ID, "b12-b11-TextContentValue").text
         raise Exception(f"{tit} {con}")
 
-
-    # 🔴 Caso 2: modal sin resultados
     if resultado1.get_attribute("id") == "b12-limpiargrilla":
-    #elif "b12-limpiargrilla" in html:
         logging.error("❌ Se detectó un modal que no carga los resultados")
         raise Exception(f"No hay resultados para la póliza {ramo.poliza}")
 
-    #----------------------------------------------------------------------------------------
-    # logging.info("✅ Tabla cargada correctamente")
-
-    # try:
-    #     # fila = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"#b12-Widget_TransactionRecordList tbody tr")))
-    #     filas = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR,"#b12-Widget_TransactionRecordList tbody tr")))
-
-    #     fila_objetivo = None
-
-    #     for fila in filas:
-    #         try:
-    #             estado = fila.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
-        
-    #             if estado.lower() == "vigente":
-    #                 fila_objetivo = fila
-    #                 break
-
-    #         except Exception:
-    #             continue
-
-    #     if not fila_objetivo:
-    #         raise Exception(f"No se encontró fila Vigente para la póliza {ramo.poliza}")                                         # CIA          WEBHOOK
-
-    #     inicio_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span").text.strip() # 01/03/2026 # 01/04/2026
-
-    #     fin_vigencia = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Fin de Vigencia']//span").text.strip()       # 01/04/2026 # 01/05/2026
-
-    #     estado = fila_objetivo.find_element(By.XPATH, ".//td[@data-header='Estado']//span").text.strip()
-
-    #     indice_fila = filas.index(fila_objetivo) + 1
-
-    # except TimeoutException:
-    #     raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad -> {tipo_mes}")
-    #----------------------------------------------------------------------------------------
-    logging.info("✅ Tabla cargada correctamente")
-
     try:
-        # 🔍 Buscar SOLO filas con estado "Vigente"
+
         filas_vigentes = wait.until(
             EC.presence_of_all_elements_located((
                 By.XPATH,
@@ -1759,23 +1107,19 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             ))
         )
 
+        logging.info("✅ Tabla cargada correctamente")
+
         if not filas_vigentes:
             raise Exception(f"No se encontró fila Vigente para la póliza {ramo.poliza}")
 
         fila_valida = None
 
-        # 🔁 Validar cada fila vigente
         for fila in filas_vigentes:
             try:
-                inicio_vigencia = fila.find_element(
-                    By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span"
-                ).text.strip()
 
-                fin_vigencia = fila.find_element(
-                    By.XPATH, ".//td[@data-header='Fin de Vigencia']//span"
-                ).text.strip()
+                inicio_vigencia = fila.find_element(By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span").text.strip()
+                fin_vigencia = fila.find_element(By.XPATH, ".//td[@data-header='Fin de Vigencia']//span").text.strip()
 
-                # 🔍 Validaciones según tipo de proceso
                 if tipo_proceso == 'IN':
                     if ramo.f_fin == fin_vigencia:
                         fila_valida = fila
@@ -1787,9 +1131,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
                         break
 
             except StaleElementReferenceException:
-                continue  # 🔁 reintenta con la siguiente fila
+                continue 
 
-        # ❌ No encontró ninguna válida
         if not fila_valida:
             raise Exception(
                 f"No se encontró una fila vigente válida para la póliza {ramo.poliza}\n"
@@ -1797,66 +1140,14 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
                 f"Compañía: {inicio_vigencia} al {fin_vigencia}"
             )
 
-        # (opcional) índice de fila
         indice_fila = filas_vigentes.index(fila_valida) + 1
-
-        # ✅ Log de éxito
-        #logging.info(f"✅ Fila {indice_fila} vigente válida encontrada")
-
         checkbox = fila_valida.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
-
         ActionChains(driver).move_to_element(checkbox).click().perform()
-
         logging.info(f"✅ Fila seleccionada: {indice_fila} | Póliza: {ramo.poliza} | Inicio: {inicio_vigencia} | Fin: {fin_vigencia}")
 
     except TimeoutException:
         raise Exception(f"Póliza {ramo.poliza} figura con estado 'No vigente'")
-    #----------------------------------------------------------------------------------------
 
-    # checkbox = fila.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
-
-    # ActionChains(driver).move_to_element(checkbox).click().perform()
-
-    # logging.info(f"✅ Fila seleccionada: {indice_fila} | Póliza: {ramo.poliza} | Inicio: {inicio_vigencia} | Fin: {fin_vigencia} | Estado: {estado}")
-
-    # #---------------------------------------------------------------------------------------------
-    # boton_buscar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Buscar']]")))
-    # boton_buscar.click()
-    # logging.info(f"🖱️ Clic en 'Buscar'")
-
-    # try:
-    #     tit = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue"))).text
-    #     con = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "b12-b11-TextContentValue"))).text
-    #     raise Exception(f"{tit} {con}")
-    # except TimeoutException:
-    #     pass
-
-    # wait.until(EC.presence_of_element_located((By.ID, "b12-Widget_TransactionRecordList")))
-    # logging.info(f"⌛ Esperando la tabla con resultados")
-
-    # try:
-    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID, "b12-limpiargrilla")))
-    #     logging.error(f"❌ Se detectó un modal que no carga los resultados")
-    #     raise Exception(f"No hay resultados para la póliza {ramo.poliza}")
-    # except TimeoutException:
-    #     logging.info("✅ No se detectó modal")
-
-    # try:
-    #     fila = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#b12-Widget_TransactionRecordList tbody tr")))
-    # except TimeoutException:
-    #     raise Exception(f"Poliza {ramo.poliza} no figura con Modalidad Mes Adelantado")
-
-    # checkbox = fila.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
-
-    # actions = ActionChains(driver)
-    # actions.move_to_element(checkbox).click().perform()
-    # logging.info(f"✅ Se seleccionó la póliza: {ramo.poliza}")
-    # #---------------------------------------------------------------------------------------------
-    time.sleep(3)
-
-    # =========================
-    # CLICK EN PROCESO
-    # =========================
     if tipo_proceso == 'IN':
         boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Inclusión']]")))
     else:
@@ -1865,9 +1156,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     boton_proceso.click()
     logging.info(f"🖱️ Clic en {palabra_clave}")
 
-    # =========================
-    # ESPERAR (ERROR O VENTANA)
-    # =========================
     resultado2 = wait.until(
         EC.any_of(
             EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextTitlevalue")),  # error
@@ -1882,9 +1170,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info(f"🌐 Ventana de {palabra_clave} cargada correctamente")
 
-    # =========================
-    # SET FECHA (INCLUSIÓN)
-    # =========================
     if tipo_proceso == 'IN':
 
         fecha_vigencia = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-EffectiveDateTyping")))
@@ -1895,8 +1180,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
         """, fecha_vigencia, ramo.f_inicio)
         logging.info(f"📅 Fecha Inicio: {ramo.f_inicio}")
+
     else:
-    #if tipo_proceso == 'RE':
 
         fecha_fin_web = wait.until(EC.visibility_of_element_located((By.ID, "EndOfValidityTyping"))).get_attribute("value")
         fecha_fin = datetime.strptime(fecha_fin_web, "%d/%m/%Y")
@@ -1907,9 +1192,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
                 f"Comunicate con el ejecutivo."
             )
 
-    # =========================
-    # SUBIR ARCHIVO
-    # =========================
     ruta_archivo = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx")
 
     if not os.path.exists(ruta_archivo):
@@ -1923,9 +1205,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     input_file.send_keys(ruta_archivo)
     logging.info(f"📂 Trama {ramo.poliza}.xlsx subida")
 
-    # =========================
-    # VALIDAR FORMATO (ERROR O BOTÓN VALIDAR)
-    # =========================
     resultado3 = wait.until(
         EC.any_of(
             EC.presence_of_element_located((By.XPATH,"//span[contains(text(),'La planilla no está en un formato válido de excel')]")),
@@ -1938,12 +1217,10 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info("✅ Archivo válido")
 
-    # CLICK VALIDAR
     boton_validar = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate")))
     boton_validar.click()
     logging.info("🖱️ Clic en Validar")
 
-    # RESULTADO FINAL (TODO EN UNO)
     resultado4 = wait.until(
         EC.any_of(
             EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Aceptar']")),
@@ -1955,12 +1232,10 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     texto = resultado4.text.lower()
 
-    # ⚠️ Caso: Advertencia (botón Aceptar)
     if resultado4.tag_name == "button":
         resultado4.click()
         logging.info("✅ Se aceptó advertencia de vigencia")
 
-        # 👇 luego de aceptar, esperar resultado final
         resultado5 = wait.until(
             EC.any_of(
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Lo sentimos')]")),
@@ -1970,18 +1245,13 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         )
         texto = resultado5.text.lower()
 
-    # ❌ Error general
     if "lo sentimos" in texto:
         tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
         con = driver.find_element(By.ID, "b13-b1-b5-TextContentValue").text
         raise Exception(f"{tit} \n{con}")
 
-    # ❌ Error en planilla
     elif "encontramos algunos errores" in texto:
 
-        # <button data-button="" class="btn border-radius-rounded margin-right-m" type="button" id="b13-b1-b11-b3-btnObserv"><span class="padding-x-m">Descargar observaciones</span></button>
-
-        # 3. Esperar que sea clickeable y clicar
         btn_des_obs = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-b11-b3-btnObserv")))
 
         archivos_antes_des_obs = set(os.listdir(ruta_archivos_x_inclu))
@@ -2015,131 +1285,15 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         else:   
             raise Exception("No se puedo descargar el archivo con las observaciones")
 
-        #raise Exception("Encontramos algunos errores en la planilla")
-
-    # ✅ Éxito
     elif "superó exitosamente" in texto:
         logging.info("✅ Planilla validada correctamente")
 
-    # #---------------------------------------------------------------------------------------------------------------------------
-
-    # if tipo_proceso == 'IN':
-    #     boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Inclusión']]")))
-    # else:
-    #     boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Renovación']]")))
-
-    # boton_proceso.click()
-    # logging.info(f"🖱️ Clic en {palabra_clave} ")
-
-    # time.sleep(3)
-
-    # try:
-
-    #     titulo = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextTitlevalue"))).text
-    #     contenido = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextContentValue"))).text
-    #     raise Exception(f"{titulo} {contenido}")
-
-    # except TimeoutException:
-    #     pass
-
-    # logging.info(f"--- Se ingresó a la ventana de {palabra_clave} 🌐----")
-
-    # ruta_archivo = os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsx")
-
-    # if tipo_proceso == 'IN':
-
-    #     fecha_vigencia_solicitud = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-EffectiveDateTyping")))
-    #     driver.execute_script("""
-    #         arguments[0].removeAttribute('readonly');
-    #         arguments[0].value = arguments[1];
-    #         arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
-    #         arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
-    #     """, fecha_vigencia_solicitud,ramo.f_inicio)
-    #     logging.info(f"📅 Fecha de Inicio de la vigencia para la {palabra_clave}: {ramo.f_inicio}")
-
-    # time.sleep(2)
-
-    # if not os.path.exists(ruta_archivo):
-    #     raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
-
-    # if tipo_proceso == 'IN':
-    #     input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b11-b2-b1-DropArea']//input[@type='file']")))
-    #     input_file.send_keys(ruta_archivo)
-    # else:
-    #     input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b1-b2-b1-DropArea']//input[@type='file']")))
-    #     input_file.send_keys(ruta_archivo)
-
-    # logging.info(f"⌛ Trama {ramo.poliza}.xlsx subido para validar")
-
-    # time.sleep(5)
-
-    # try:
-    #     msj = 'La planilla no está en un formato válido de excel'
-    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,f"//span[contains(text(), '{msj}')]")))
-    #     raise Exception(msj)
-    # except TimeoutException:
-    #     logging.info("✅ No se detectó error de formato en la planilla")
-
-    # boton_validar = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate")))
-    # boton_validar.click()
-    # logging.info(f"🖱️ Clic en Validar")
-
-    # try:
-    #     boton_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Aceptar']")))
-    #     boton_aceptar.click()
-    #     logging.info("✅ Clic en el botón Aceptar.")
-    # except TimeoutException:
-    #     logging.info("✅ No se detectó advertencia de inicio de vigencia")
-    #     #pass
-
-    # try:
-    #     msj = 'Lo sentimos'
-    #     WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, f"//span[contains(text(), '{msj}')]")))
-    #     raise Exception(msj)
-    # except TimeoutException:
-    #     logging.info("✅ No se detectó errores en la Trama. Se continúa con el flujo normalmente.")
-    #     #pass
-        
-    # try:
-    #     wait.until(
-    #         EC.any_of(
-    #             EC.presence_of_element_located(
-    #                 (By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]")
-    #             ),
-    #             EC.presence_of_element_located(
-    #                 (By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")
-    #             )
-    #         )
-    #     )
-
-    #     # Verificamos cuál mensaje apareció
-    #     if driver.find_elements(By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]"):
-    #         raise Exception("Encontramos algunos errores en la planilla. Descarga y corrige las observaciones")
-
-    #     logging.info("✅ Planilla validada exitosamente. Continuando con el flujo.")
-
-    # except TimeoutException:
-    #     raise Exception("No se pudo determinar el resultado de la validación de la planilla.")
-
-    # #---------------------------------------------------------------------------------------------------------------------------
-
-    # try:
-    #     wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'La planilla superó exitosamente')]")))
-    #     logging.info("✅ Planilla validada exitosamente. Continuando con el flujo.")
-    # except TimeoutException:       
-    #     raise Exception("La validación de la planilla falló o no se completó")
-            
-    #Nuevo Correo del cliente
     input_correo = wait.until(EC.element_to_be_clickable((By.ID, "b13-Input_ContractingEmail")))
-
-    # Hace scroll hasta el botón
     driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'})", input_correo)
-
     input_correo.clear()
     input_correo.send_keys(ejecutivo_responsable)
     logging.info(f"⌨️ Ingresando correo '{ejecutivo_responsable}'")
 
-    #--------------------------
     while True:
         resultado6 = wait.until(
             EC.any_of(
@@ -2151,61 +1305,23 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
         boton_id = resultado6.get_attribute("id")
 
-        # 🔵 Caso 1: Calcular
         if boton_id == "b13-CalculatePremium":
             driver.execute_script("arguments[0].scrollIntoView(true);", resultado6)
             resultado6.click()
             logging.info("🖱️ Clic en 'Calcular'")
-            time.sleep(2)  # opcional: pequeño respiro
-            continue  # 🔁 volver a esperar el siguiente paso
+            time.sleep(2) 
+            continue  
 
-        # 🟢 Caso 2: Finalizar (cualquiera de los dos)
         elif boton_id in ["b13-InclusionValidate", "b13-RenewalRequest2"]:
             resultado6.click()
             logging.info(f"🖱️ Clic en 'Finalizar' ({boton_id})")
-            break  # ✅ terminamos flujo
-    #--------------------------
+            break
 
-    # #if tipo_proceso == 'IN':
-    #     # Esperar que el botón esté presente
-    # try:
-    #     boton_calcular = wait.until(EC.element_to_be_clickable((By.ID, "b13-CalculatePremium")))
-    #     driver.execute_script("arguments[0].scrollIntoView(true);", boton_calcular)
-    #     boton_calcular.click()
-    #     logging.info("🖱️ Clic en 'Calcular'")
-    # except TimeoutException:
-    #     pass
-
-    # if tipo_proceso == 'IN':   
-    #     finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-InclusionValidate")))
-    # else:
-    #     finalizar_btn = wait.until(EC.element_to_be_clickable((By.ID, "b13-RenewalRequest2")))
-
-    # finalizar_btn.click()
-    # logging.info(f"🖱️ Clic en 'Finalizar'")
-
-    # time.sleep(5)
-
-    # link_descargar = wait.until(
-    #     EC.element_to_be_clickable(
-    #         (By.XPATH, "//a[.//span[normalize-space()='Descargar documentos']]")
-    #     )
-    # )
-    # link_descargar.click()
-
-    # span = wait.until(EC.presence_of_element_located((By.ID, "b13-b48-b1-TextContentValue")))
-    # texto = span.text.strip()
-    # logging.info(f"📄 Texto obtenido del popup: {texto}")
-
-    # 1. Esperar que exista en el DOM
     wait.until(EC.presence_of_element_located((By.XPATH,"//span[normalize-space()='Descargar documentos']")))
 
-    # 2. Esperar que sea visible
     wait.until(EC.visibility_of_element_located((By.XPATH,"//span[normalize-space()='Descargar documentos']")))
 
-    # 3. Esperar que sea clickeable y clicar
     boton_descargar = wait.until(EC.element_to_be_clickable((By.XPATH,"//span[normalize-space()='Descargar documentos']/ancestor::a")))
-    #driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"solicitud_{get_timestamp()}.png"))
     tomar_capturar(driver,ruta_archivos_x_inclu,f"Solicitud")
 
     archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
@@ -2225,7 +1341,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             key=os.path.getctime
         )
 
-        # Siempre existe el primero
         nombre_1 = os.path.join(
             ruta_archivos_x_inclu,
             f"{ramo.poliza}.pdf"
@@ -2234,7 +1349,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         os.rename(archivos_nuevos[0], nombre_1)
         logging.info(f"✅ Constancia '{ramo.poliza}.pdf' renombrado correctamente")
 
-        # Solo si hay 2 archivos
         if cantidad == 2:
             nombre_2 = os.path.join(
                 ruta_archivos_x_inclu,
@@ -2246,35 +1360,6 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     else:
         logging.error(f"❌ No se detectaron los {cantidad} archivo(s)")
-
-    # if descargar_documento(driver,boton_descargar,ramo.poliza,impresion=False,pestaña=False):
-    #     logging.info(f"✅ Constancia {ramo.poliza}.pdf obtenida")
-    # else:
-    #     raise Exception ("No se logró descargar la Constancia")
-
-    # time.sleep(5)
-    # endoso_poliza = f"endoso_{ramo.poliza}"
-
-    # try:
-
-    #     logging.info("⌛ Esperando la segunda ventana descarga de Linux Debian")
-
-    #     if not esperar_ventana("Save File"):
-    #         raise Exception("No apareció la ventana de descarga")
-
-    #     subprocess.run(["xdotool", "search", "--name", "Save File", "windowactivate", "windowfocus"])
-    #     logging.info("💡 Se hizo FOCO en la nueva ventana de dialogo de Linux Debian")
-    #     subprocess.run(["xdotool", "type","--delay", "100", endoso_poliza])
-    #     logging.info("📄 Se cambio el nombre del documento")
-    #     time.sleep(2)
-    #     subprocess.run(["xdotool", "key", "Return"])
-    #     logging.info("🖱️ Se presionó 'Enter' para confirmar la descarga")
-    #     time.sleep(2)
-
-    # except Exception as e:
-    #     raise Exception(f"Error al descargar el endoso, Motivo -> {e}")
-
-    # logging.info(f"✅ Endoso de {palabra_clave} obtenida, Documento : {endoso_poliza}.pdf")
 
     boton_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Aceptar')]")))
     boton_aceptar.click()
@@ -2375,26 +1460,32 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
 def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave,
                                 tipo_proceso,actividad, ramo, tipo_mes, tipoError, detalleError):
 
-    # 🔹 Mapear función según tipo_mes
+    tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu)
+
+    if not tipo_vl:
+        return False, False, "LAPO-VIDALEY", "No se pudo determinar el tipo (OV/VL)"
+
+    logging.info(f"📂 Tipo detectado: {tipo_vl}")
+
     funciones = {
-        # "MV": lambda: solicitud_vidaley_MV(
-        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-        #     ejecutivo_responsable, palabra_clave,tipo_mes,
-        #     tipo_proceso, actividad, ramo
-        # ),
-        "MV": lambda: solicitud_vidaley_MA(
+        "OV": lambda: solicitud_vidaley_MV(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
-            tipo_proceso, ramo
+            tipo_proceso, actividad, ramo
         ),
-        "MA": lambda: solicitud_vidaley_MA(
+        # "MV": lambda: solicitud_vidaley_MA(
+        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+        #     ejecutivo_responsable, palabra_clave,tipo_mes,
+        #     tipo_proceso, ramo
+        # ),
+        "VL": lambda: solicitud_vidaley_MA(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
             tipo_proceso, ramo
         )
     }
 
-    funcion = funciones.get(tipo_mes)
+    funcion = funciones.get(tipo_vl)
 
     if not funcion:
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de mes inválido"
@@ -2402,7 +1493,6 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
     try:
         funcion()
 
-        # 🔹 Solo cambia este flag según tipo
         flag_extra = True if tipo_mes == "MA" else False
 
         return True, flag_extra, tipoError, detalleError
@@ -2418,3 +1508,17 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
         logging.info("✅ Cerrando la pestaña Vida Ley")
         driver.switch_to.window(driver.window_handles[0])
         logging.info("🔙 Retornando al menú principal")
+
+def detectar_tipo_mes(ruta_archivos):
+
+    archivos = os.listdir(ruta_archivos)
+
+    archivos_xlsx = [f for f in archivos if f.endswith(".xlsx")]
+    archivos_xls = [f for f in archivos if f.endswith(".xls")]
+
+    if len(archivos_xlsx) == 1 and len(archivos_xls) == 1:
+        return "OV"
+    elif len(archivos_xlsx) == 1 and len(archivos_xls) == 0:
+        return "VL"
+    else:
+        return None
