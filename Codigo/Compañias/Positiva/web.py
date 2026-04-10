@@ -1033,18 +1033,25 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     driver.switch_to.window(driver.window_handles[-1])
     logging.info("🔙 Redireccionando en la nueva ventana")
 
+    time.sleep(5)
+
     icon = wait.until( EC.element_to_be_clickable((By.CLASS_NAME, "icon-menuside-right-arrow")))
 
     actions = ActionChains(driver)
     actions.move_to_element(icon).click().perform()
     logging.info("🖱️ Clic en el Menú despegable de la izquierda")
 
+    time.sleep(3)
+
     try:
         transacciones_span = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Transacciones']")))
         transacciones_span.click()
         logging.info("🖱️ Clic en Transacciones")
+        time.sleep(3)
     except Exception as e:
         raise str(e)
+    finally:
+        time.sleep(3)
 
     try:
         input_element = wait.until(EC.element_to_be_clickable((By.ID, "b12-b1-Input_PolicesNumber")))
@@ -1053,6 +1060,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         logging.info(f"✅ Numero de Póliza ingresado: {ramo.poliza}")
     except Exception as e:
         raise str(e)
+    finally:
+        time.sleep(3)
 
     # input_ruc = wait.until(EC.element_to_be_clickable((By.ID, "b12-b1-Input_RUCContratante2")))
     # input_ruc.clear()
@@ -1148,6 +1157,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     except TimeoutException:
         raise Exception(f"Póliza {ramo.poliza} figura con estado 'No vigente'")
 
+    time.sleep(3)
+
     if tipo_proceso == 'IN':
         boton_proceso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//div[text()='Inclusión']]")))
     else:
@@ -1155,6 +1166,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     boton_proceso.click()
     logging.info(f"🖱️ Clic en {palabra_clave}")
+
+    time.sleep(3)
 
     resultado2 = wait.until(
         EC.any_of(
@@ -1180,6 +1193,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
         """, fecha_vigencia, ramo.f_inicio)
         logging.info(f"📅 Fecha Inicio: {ramo.f_inicio}")
+
+        time.sleep(2)
 
     else:
 
@@ -1316,6 +1331,8 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
             resultado6.click()
             logging.info(f"🖱️ Clic en 'Finalizar' ({boton_id})")
             break
+
+    time.sleep(5)
 
     wait.until(EC.presence_of_element_located((By.XPATH,"//span[normalize-space()='Descargar documentos']")))
 
