@@ -20,9 +20,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 import os,json,logging,sys,time,io
 from pprint import pformat
 
-# Forzar la salida en UTF-8 para evitar UnicodeEncodeError
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-# Variables de entorno
+
 puerto = os.getenv("puerto")
 
 def to_bool(value):
@@ -234,13 +233,6 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
                              ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave, 
                              tipo_proceso,nombre_cliente,actividad,ramo):
 
-    # -------------------------------
-    # 🔹 Funciones internas por compañía
-    # -------------------------------
-    # PortalWeb: Facturas, Incluciones-VidaLey(MA), Polizas y SOAT.
-    # SAS: MV VidaLey.
-    # WebCorredores: SCTR (MV-MA) y Ver Facturas.
- 
     def ejecutar_mapfre():
         logging.info("✅ Compañía: Mapfre")
         return realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,

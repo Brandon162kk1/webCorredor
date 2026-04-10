@@ -1516,9 +1516,9 @@ def detectar_tipo_mes(ruta_archivos):
     archivos_xlsx = [f for f in archivos if f.endswith(".xlsx")]
     archivos_xls = [f for f in archivos if f.endswith(".xls")]
 
-    if len(archivos_xlsx) == 1 and len(archivos_xls) == 1:
+    if len(archivos_xls) == 1:
         return "OV"
-    elif len(archivos_xlsx) == 1 and len(archivos_xls) == 0:
+    elif len(archivos_xlsx) >= 1 :
         return "VL"
     else:
         return None
