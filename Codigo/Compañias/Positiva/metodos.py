@@ -41,47 +41,10 @@ def mover_y_hacer_click_simple(driver, elemento, steps=6, pause_between=0.06):
     # volver al elemento y click
     action.move_to_element(elemento).pause(random.uniform(0.08, 0.2)).click().perform()
 
-def validar_pagina2(driver):
-
-    asunto = ""
-
-    try:
-
-        page = driver.page_source
-
-        # Error de seguridad
-        if "The requested URL was rejected. Please consult with your administrator." in page:
-            asunto = "Página web de La Positiva fuera de Servicio"
-            return False, asunto
-
-        # Error 404
-        if "404 - File or directory not found." in page:
-            asunto = "Página 404 - Archivo o directorio no encontrado"
-            return False, asunto
-
-        overlay =  WebDriverWait(driver,10).until(EC.presence_of_element_located((By.ID, "ID_MODAL_PROCESS")))
-        if overlay.is_displayed():
-            return False, "La página está demorando demasiado en cargar"
-
-        # Validar si aparece el campo de usuario
-        user_field = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.NAME, "txtUsuario")))
-        if user_field:
-            return False,"Redirecciono a otra página"
-
-        userName_input = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.NAME, "username")))
-        if userName_input:
-            return False,"Redirecciono a otra página"
-
-    except TimeoutException:
-        return True,asunto
-
 def validar_pagina(driver):
 
     asunto = ""
 
-    # =========================
-    # VALIDACIONES RÁPIDAS (SIN WAIT)
-    # =========================
     page = driver.page_source
 
     if "The requested URL was rejected. Please consult with your administrator." in page:
@@ -90,9 +53,6 @@ def validar_pagina(driver):
     if "404 - File or directory not found." in page:
         return False, "Página 404 - Archivo o directorio no encontrado"
 
-    # =========================
-    # LOCATORS
-    # =========================
     overlay = (By.ID, "ID_MODAL_PROCESS")
     user_field_1 = (By.NAME, "txtUsuario")
     user_field_2 = (By.NAME, "username")
@@ -106,44 +66,20 @@ def validar_pagina(driver):
             )
         )
 
-        # =========================
-        # VALIDAR RESULTADO (ANTI-STALE)
-        # =========================
-
-        # 🔴 Loader visible
         loader = driver.find_elements(*overlay)
         if loader and loader[0].is_displayed():
             return False, "La página está demorando demasiado en cargar"
 
-        # 🔴 Redirección login 1
         if driver.find_elements(*user_field_1):
             return False, "Redireccionó a otra página (login)"
 
-        # 🔴 Redirección login 2
         if driver.find_elements(*user_field_2):
             return False, "Redireccionó a otra página (login)"
 
         return True, asunto
 
     except TimeoutException:
-        # ✅ No apareció nada malo → página OK
         return True, asunto
-
-def validardeuda(driver,wait):
-
-    try:
-
-        WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "divAlertas")))
-        logging.warning("⚠️ Apareció el modal de advertencia.")
-
-        mensaje_deuda = wait.until(EC.visibility_of_element_located((By.ID, "spMensaje")))
-        deuda_advertencia = mensaje_deuda.get_attribute("innerText").strip()
-
-        logging.warning(f"📄 Mensaje de advertencia detectado:\n{deuda_advertencia}")
-        return deuda_advertencia
-
-    except TimeoutException:
-        return False
 
 def obtener_tramite_pdf(ruta_pdf):
 

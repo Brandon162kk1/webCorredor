@@ -7,7 +7,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from Tiempo.fechas_horas import get_fecha_hoy
-from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,validardeuda,leer_pdf
+from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,leer_pdf
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
 #---- Import ---
@@ -21,6 +21,7 @@ import pandas as pd
 
 # --- Variables globales ---
 ventana_menu_positiva = None
+login_exitoso = False
 
 def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
     
@@ -881,7 +882,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info("✅ N° Certificados : 1 ")
 
-    observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: Mes Vencido"
+    observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: {'Mes Vencido' if tipo_mes == 'MV' else 'Mes Adelantado'}"
 
     textarea = wait.until(EC.presence_of_element_located((By.ID, "textarea1")))
     textarea.clear()
@@ -1022,7 +1023,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
-def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,ramo):
+def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,ramo):
 
     vidaley = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Vida Ley']")))
     vidaley.click()
@@ -1386,93 +1387,104 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
                                    ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
   
     global ventana_menu_positiva
+    global login_exitoso
 
     tipoError = ""
     detalleError = ""
 
-    if ba_codigo == '3' and bab_codigo == '4':
-        conVL,proVL,tipErVL,detErVL = solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,
-                                                                  palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,
-                                                                  detalleError)
-
-        return conVL,proVL,tipErVL,detErVL
-
-    try:
-
-        logging.info("----------------------------")
-        driver.get('https://web.lapositiva.com.pe/sso_login_ui/')
-        logging.info("⌛ Cargando la Web de Positiva")
-     
-        user_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
-        user_field.clear()
-
-        mover_y_hacer_click_simple(driver, user_field)
-        time.sleep(random.uniform(0.97, 0.99))
-
-        escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)
-        logging.info(f"⌨️ Digitando el Username")
-
-        time.sleep(1 + random.random() * 1.5)
-
-        password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
-        password_field.clear()
-
-        mover_y_hacer_click_simple(driver, password_field)
-        time.sleep(random.uniform(0.97, 0.99))
-
-        escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
-        logging.info(f"⌨️ Digitando el Password")
-
-        time.sleep(1 + random.random() * 1.5)
-
-        login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
-        mover_y_hacer_click_simple(driver, login_button)
-        logging.info("🖱️ Clic en Iniciar Sesión")
-
-        # blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]")
-        # error_login = (By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")
-        # change_password = (By.ID, "b5-b22-ChangePassword")
-        # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
-        autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
+    if not login_exitoso:
 
         try:
 
-            autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
-            logging.info("✅ Login exitoso")
-            driver.execute_script("arguments[0].click();", autogestion)
-            logging.info("🖱️ Clic en Autogestión")
+            logging.info("----------------------------")
+            driver.get('https://web.lapositiva.com.pe/sso_login_ui/')
+            logging.info("⌛ Cargando la Web de Positiva")
+     
+            user_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
+            user_field.clear()
 
-            ventana_menu_positiva = driver.current_window_handle
+            mover_y_hacer_click_simple(driver, user_field)
+            time.sleep(random.uniform(0.97, 0.99))
 
-        except TimeoutException:
-            raise Exception("Problemas en el Inicio de Sesión, comunícate con el ejecutivo responsable")
+            escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)
+            logging.info(f"⌨️ Digitando el Username")
 
-    except Exception as e:
-        logging.error(f"❌ Error entrando a la Positiva: {e}")
-        tomar_capturar(driver, ruta_archivos_x_inclu, f"LOGIN_FALLIDO")
-        return False,False,"Login Fallido", str(e)
+            time.sleep(1 + random.random() * 1.5)
+
+            password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
+            password_field.clear()
+
+            mover_y_hacer_click_simple(driver, password_field)
+            time.sleep(random.uniform(0.97, 0.99))
+
+            escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
+            logging.info(f"⌨️ Digitando el Password")
+
+            time.sleep(1 + random.random() * 1.5)
+
+            login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
+            mover_y_hacer_click_simple(driver, login_button)
+            logging.info("🖱️ Clic en Iniciar Sesión")
+
+            # blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]")
+            # error_login = (By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")
+            # change_password = (By.ID, "b5-b22-ChangePassword")
+            # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
+            autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
+
+            try:
+                autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
+                login_exitoso = True
+                logging.info("✅ Login exitoso")
+                driver.execute_script("arguments[0].click();", autogestion)
+                logging.info("🖱️ Clic en Autogestión")
+                ventana_menu_positiva = driver.current_window_handle
+            except TimeoutException:
+                raise Exception("Problemas en el Inicio de Sesión, comunícate con el ejecutivo responsable para reprocesarlo")
+
+        except Exception as e:
+            logging.error(f"❌ Error entrando a la Positiva: {e}")
+            tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
+            driver.refresh()
+            wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
+            return False,False,"Login Fallido", str(e)
+
+    # if ba_codigo == '3' and bab_codigo == '4':
+    #     conVL,proVL,tipErVL,detErVL = solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,
+    #                                                               palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,
+    #                                                               detalleError)
+
+    #     return conVL,proVL,tipErVL,detErVL
 
     if bab_codigo in ['1', '2', '3']:
 
-        try:
-            solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo)
-            return True, True if tipo_mes == 'MA' else False, tipoError, detalleError
-        except Exception as e:
-            resultado, asunto = validar_pagina(driver)
-            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_SCTR_{tipo_mes}")
-            detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
-            logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {detalle}")
-            return False, False, f"LAPO-SCTR-{tipo_mes}", detalle
-        finally:
-            driver.close()
-            logging.info("✅ Cerrando la Pestaña SED Positiva-SCTR")
-            driver.switch_to.window(driver.window_handles[0])
-            logging.info("🔙 Retornando al menú principal tras cerrar SED")
+        return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
+
+        # try:
+        #     solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo)
+        #     return True, True if tipo_mes == 'MA' else False, tipoError, detalleError
+        # except Exception as e:
+        #     resultado, asunto = validar_pagina(driver)
+        #     tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_SCTR_{tipo_mes}")
+        #     detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
+        #     logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {detalle}")
+        #     return False, False, f"LAPO-SCTR-{tipo_mes}", detalle
+        # finally:
+        #     driver.close()
+        #     logging.info("✅ Cerrando la Pestaña SED Positiva-SCTR")
+        #     driver.switch_to.window(driver.window_handles[0])
+        #     logging.info("🔙 Retornando al menú principal tras cerrar SED")
 
     else: 
-        conVL,proVL,tipErVL,detErVL = solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,
-                                                                  palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,detalleError)
-        return conVL,proVL,tipErVL,detErVL
+        # conVL,proVL,tipErVL,detErVL = solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,
+        #                                                           palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,detalleError)
+        # return conVL,proVL,tipErVL,detErVL
+
+        return solicitud_vidaley_x_tipo_Mes(
+            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+            ejecutivo_responsable, palabra_clave, tipo_proceso,
+            actividad, ramo, tipo_mes, tipoError, detalleError
+        )
 
 def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave,
                                 tipo_proceso,actividad, ramo, tipo_mes, tipoError, detalleError):
@@ -1490,13 +1502,8 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
             ejecutivo_responsable, palabra_clave,tipo_mes,
             tipo_proceso, actividad, ramo
         ),
-        # "MV": lambda: solicitud_vidaley_MA(
-        #     driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-        #     ejecutivo_responsable, palabra_clave,tipo_mes,
-        #     tipo_proceso, ramo
-        # ),
         "VL": lambda: solicitud_vidaley_MA(
-            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+            driver, wait, ruta_archivos_x_inclu,
             ejecutivo_responsable, palabra_clave,tipo_mes,
             tipo_proceso, ramo
         )
@@ -1507,22 +1514,42 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
     if not funcion:
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de mes inválido"
 
+    return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
+
+    # try:
+    #     funcion()
+
+    #     flag_extra = True if tipo_mes == "MA" else False
+
+    #     return True, flag_extra, tipoError, detalleError
+
+    # except Exception as e:
+    #     logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: {e}")
+    #     resultado, asunto = validar_pagina(driver)
+    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
+    #     detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
+    #     return False, False, f"LAPO-VIDALEY-{tipo_mes}", detalle
+    # finally:
+    #     driver.close()
+    #     logging.info("✅ Cerrando la pestaña Vida Ley")
+    #     driver.switch_to.window(driver.window_handles[0])
+    #     logging.info("🔙 Retornando al menú principal")
+
+def ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
+
     try:
         funcion()
-
         flag_extra = True if tipo_mes == "MA" else False
-
-        return True, flag_extra, tipoError, detalleError
-
+        return True, flag_extra, "", ""
     except Exception as e:
-        logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: {e}")
         resultado, asunto = validar_pagina(driver)
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
-        detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
-        return False, False, f"LAPO-VIDALEY-{tipo_mes}", detalle
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
+        detalle = (f"{asunto}, intentar entre 5 a 10 minutos de nuevo"if not resultado else str(e))
+        logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
+        return False, False, f"LAPO-{tipo}-{tipo_mes}", detalle
     finally:
         driver.close()
-        logging.info("✅ Cerrando la pestaña Vida Ley")
+        logging.info(f"✅ Cerrando la pestaña {tipo}")
         driver.switch_to.window(driver.window_handles[0])
         logging.info("🔙 Retornando al menú principal")
 
