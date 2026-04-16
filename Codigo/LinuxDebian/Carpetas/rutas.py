@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # -- Imports --
 import os
 import logging
@@ -32,9 +32,8 @@ def obtener_imagenes_error(ruta_carpeta, const):
 
     return imagenes_payload
 
-def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compania_BB, poliza1, poliza2, poliza3):
+def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compania_BB,entorno, poliza1, poliza2, poliza3):
 
-    # --- 👇 CREAR UN BUFFER NUEVO POR CADA CORREO ---
     log_buffer = StringIO()
     logging.basicConfig(
         level=logging.INFO,
@@ -43,12 +42,15 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
         force=True
     )
 
-    if tipo_proceso == 'IN':
-        nombre_carpeta_dia = f"Inclusiones_{get_dia()}_{get_mes()}"
-    elif tipo_proceso == 'RE':
-        nombre_carpeta_dia = f"Renovaciones_{get_dia()}_{get_mes()}"
-    else:
-        nombre_carpeta_dia = f"DescargasConstancias_{get_dia()}_{get_mes()}"
+    prefijo = "PRUEBAS_" if entorno == "LOCAL" else ""
+
+    mapa_procesos = {
+        "IN": "Inclusiones",
+        "RE": "Renovaciones"
+    }
+
+    nombre_base = mapa_procesos.get(tipo_proceso)
+    nombre_carpeta_dia = f"{prefijo}{nombre_base}_{get_dia()}_{get_mes()}"
 
     carpeta_dia = os.path.join(download_path, nombre_carpeta_dia)
 
@@ -62,7 +64,6 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
     os.makedirs(carpeta_dia, exist_ok=True)
     os.makedirs(subcarpeta_inclusion, exist_ok=True)
 
-    # Logger definitivo solo para este correo
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
 
@@ -70,7 +71,6 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
     file_handler.setFormatter(logging.Formatter("%(message)s"))
     root_logger.addHandler(file_handler)
 
-    # --- Pasar logs temporales al archivo ---
     log_buffer.seek(0)
     for line in log_buffer.readlines():
         logging.info(line.strip())

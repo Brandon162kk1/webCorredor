@@ -41,6 +41,7 @@ data = json.loads(os.getenv("DATA"))
 class ContextoRPA:
 
     def __init__(self, data: dict):
+        self.entorno = data["entorno"]
         self.cliente = data["cliente"]
         self.correo = data["correo"]
         self.ruc = data["ruc"]
@@ -394,7 +395,7 @@ def main():
                 palabra_clave = 'descarga de Constancia'
                 tiempo = 90
 
-        ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
+        ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx.entorno,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
 
         driver = abrirDriver(ruta_archivos_x_inclu)
         wait = WebDriverWait(driver,tiempo)
@@ -472,7 +473,8 @@ def main():
                 logging.info("-----------------------------")
                 logging.info(f"⌛ Procesando {palabra_clave} en SCTR ({' y '.join(polizas_sctr)})")
 
-                contexto_sctr = ctx.salud if ctx.salud.debe_procesarse() else ctx.pension
+                #contexto_sctr = ctx.salud if ctx.salud.debe_procesarse() else ctx.pension
+                contexto_sctr = ctx.pension if ctx.pension.debe_procesarse() else ctx.salud
 
                 conSCTR, endSCTR, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
                     driver, wait, polizas_sctr, compania_BA, ba_codigo, tipo_mes,
@@ -496,7 +498,6 @@ def main():
          
     except Exception as e:
         logging.error(f"⚠️ Conclusión: {e}")
-
     finally:
 
         if driver:
@@ -561,33 +562,16 @@ def main():
             if tipo_error and detalle_error:
 
                 const = "SCTR" if ramo in ("SALUD","PENSION") else "VIDALEY"
-
                 logging.info(f"⌛ Enviando error '{ramo}' → {id_mov}")
-
-                enviar_error_movimiento(
-                    id_mov, ramo, tipo_error, detalle_error,
-                    ruta_archivos_x_inclu, const
-                )
+                enviar_error_movimiento(id_mov, ramo, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
 
                 if ramo in ("SALUD","PENSION"):
 
                     if not error_sctr_enviado:
-
-                        enviar_error_interno(
-                            ctx.cliente, ctx.proceso, ctx_ramo,
-                            palabra_clave, tipo_error, detalle_error,
-                            ruta_archivos_x_inclu, const
-                        )
-
+                        enviar_error_interno(ctx.cliente, ctx.proceso, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
                         error_sctr_enviado = True
-
                 else:
-
-                    enviar_error_interno(
-                        ctx.cliente, ctx.proceso, ctx_ramo,
-                        palabra_clave, tipo_error, detalle_error,
-                        ruta_archivos_x_inclu, const
-                    )
+                    enviar_error_interno(ctx.cliente, ctx.proceso, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
 
                 time.sleep(1)
 

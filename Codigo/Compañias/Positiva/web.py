@@ -1449,42 +1449,10 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
             wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
             return False,False,"Login Fallido", str(e)
 
-    # if ba_codigo == '3' and bab_codigo == '4':
-    #     conVL,proVL,tipErVL,detErVL = solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,
-    #                                                               palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,
-    #                                                               detalleError)
-
-    #     return conVL,proVL,tipErVL,detErVL
-
     if bab_codigo in ['1', '2', '3']:
-
-        return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
-
-        # try:
-        #     solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo)
-        #     return True, True if tipo_mes == 'MA' else False, tipoError, detalleError
-        # except Exception as e:
-        #     resultado, asunto = validar_pagina(driver)
-        #     tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_SCTR_{tipo_mes}")
-        #     detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
-        #     logging.error(f"❌ Error en La Positiva (SCTR) - {tipo_mes}: {detalle}")
-        #     return False, False, f"LAPO-SCTR-{tipo_mes}", detalle
-        # finally:
-        #     driver.close()
-        #     logging.info("✅ Cerrando la Pestaña SED Positiva-SCTR")
-        #     driver.switch_to.window(driver.window_handles[0])
-        #     logging.info("🔙 Retornando al menú principal tras cerrar SED")
-
-    else: 
-        # conVL,proVL,tipErVL,detErVL = solicitud_vidaley_x_tipo_Mes(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,
-        #                                                           palabra_clave,tipo_proceso,actividad,ramo,tipo_mes,tipoError,detalleError)
-        # return conVL,proVL,tipErVL,detErVL
-
-        return solicitud_vidaley_x_tipo_Mes(
-            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-            ejecutivo_responsable, palabra_clave, tipo_proceso,
-            actividad, ramo, tipo_mes, tipoError, detalleError
-        )
+        return ejecutar_con_manejo(driver,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
+    else:
+        return solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave, tipo_proceso,actividad, ramo, tipo_mes, tipoError, detalleError)
 
 def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave,
                                 tipo_proceso,actividad, ramo, tipo_mes, tipoError, detalleError):
@@ -1535,7 +1503,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
     #     driver.switch_to.window(driver.window_handles[0])
     #     logging.info("🔙 Retornando al menú principal")
 
-def ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
+def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
     try:
         funcion()
