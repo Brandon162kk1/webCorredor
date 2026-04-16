@@ -630,7 +630,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     logging.info(f"✅ {palabra_clave} realizada exitosamente")
 
-def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,actividad,ramo):
+def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,actividad,ramo):
  
     ov = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='OV']")))
     ov.click()
@@ -1023,7 +1023,7 @@ def solicitud_vidaley_MV(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info(f"✅ Constancia obtenida para la {palabra_clave} con numero de póliza '{ramo.poliza}'")
 
-def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,ramo):
+def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,ramo):
 
     vidaley = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Vida Ley']")))
     vidaley.click()
@@ -1383,14 +1383,14 @@ def solicitud_vidaley_MA(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     boton_aceptar.click()
     logging.info("🖱️ Clic en 'Aceptar' final")
 
-def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,ruta_archivos_x_inclu,
+def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,ruta_archivos_x_inclu,
                                    ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
   
     global ventana_menu_positiva
     global login_exitoso
 
-    tipoError = ""
-    detalleError = ""
+    # tipoError = ""
+    # detalleError = ""
 
     if not login_exitoso:
 
@@ -1450,14 +1450,14 @@ def login_la_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,rut
             return False,False,"Login Fallido", str(e)
 
     if bab_codigo in ['1', '2', '3']:
-        return ejecutar_con_manejo(driver,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
+        return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
     else:
-        return solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave, tipo_proceso,actividad, ramo, tipo_mes, tipoError, detalleError)
+        return solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave, tipo_proceso,actividad, ramo, tipo_mes)
 
 def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave,
-                                tipo_proceso,actividad, ramo, tipo_mes, tipoError, detalleError):
+                                tipo_proceso,actividad, ramo, tipo_mes):
 
-    tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu)
+    tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu,ramo)
 
     if not tipo_vl:
         return False, False, "LAPO-VIDALEY", "No se pudo determinar el tipo (OV/VL)"
@@ -1465,12 +1465,12 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
     logging.info(f"📂 Tipo detectado: {tipo_vl}")
 
     funciones = {
-        "OV": lambda: solicitud_vidaley_MV(
+        "OV": lambda: solicitud_vidaley_ov(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
             ejecutivo_responsable, palabra_clave,tipo_mes,
             tipo_proceso, actividad, ramo
         ),
-        "VL": lambda: solicitud_vidaley_MA(
+        "VL": lambda: solicitud_vidaley_vl(
             driver, wait, ruta_archivos_x_inclu,
             ejecutivo_responsable, palabra_clave,tipo_mes,
             tipo_proceso, ramo
@@ -1484,26 +1484,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
 
-    # try:
-    #     funcion()
-
-    #     flag_extra = True if tipo_mes == "MA" else False
-
-    #     return True, flag_extra, tipoError, detalleError
-
-    # except Exception as e:
-    #     logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: {e}")
-    #     resultado, asunto = validar_pagina(driver)
-    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
-    #     detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo" if not resultado else str(e)
-    #     return False, False, f"LAPO-VIDALEY-{tipo_mes}", detalle
-    # finally:
-    #     driver.close()
-    #     logging.info("✅ Cerrando la pestaña Vida Ley")
-    #     driver.switch_to.window(driver.window_handles[0])
-    #     logging.info("🔙 Retornando al menú principal")
-
-def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
+def ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
     try:
         funcion()
@@ -1521,16 +1502,22 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
         driver.switch_to.window(driver.window_handles[0])
         logging.info("🔙 Retornando al menú principal")
 
-def detectar_tipo_mes(ruta_archivos):
+def detectar_tipo_mes(ruta_archivos,ramo):
 
     archivos = os.listdir(ruta_archivos)
 
-    archivos_xlsx = [f for f in archivos if f.endswith(".xlsx")]
-    archivos_xls = [f for f in archivos if f.endswith(".xls")]
+    poliza = str(ramo.poliza)
 
-    if len(archivos_xlsx) >= 1:
+    archivos_poliza = [f for f in archivos if f.startswith(poliza)]
+
+    archivos_xlsx = [f for f in archivos_poliza if f.endswith(".xlsx")]
+    archivos_xls = [f for f in archivos_poliza if f.endswith(".xls")]
+
+    logging.info(f"📂 Archivos '.xlsx' encontrados: {len(archivos_xlsx)} y '.xls' encontrados: {len(archivos_xls)}")
+
+    if len(archivos_xlsx) == 1 and len(archivos_xls) == 0:
         return "VL"
-    elif len(archivos_xls) == 1 :
+    elif len(archivos_xls) == 1 and len(archivos_xlsx) == 1:
         return "OV"
     else:
         return None

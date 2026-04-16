@@ -2,7 +2,7 @@
 # -- Froms Compañias ---
 from Compañias.Mapfre.web import realizar_solicitud_mapfre
 from Compañias.Pacifico.EnLinea.web import realizar_solicitud_pacifico
-from Compañias.Positiva.web import login_la_positiva
+from Compañias.Positiva.web import realizar_solicitud_positiva
 from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
 from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer_vl
 from Compañias.Sanitas.VidaLey.Protecta.web import procesar_solicitud_san_protecta_vl
@@ -203,7 +203,7 @@ def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_me
 
     def ejecutar_lapositiva():
         logging.info("✅ Compañía: La Positiva")
-        return login_la_positiva(driver,wait,list_polizas,ba_codigo,ba_codigo,tipo_mes,ruta_archivos_x_inclu,
+        return realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,ba_codigo,tipo_mes,ruta_archivos_x_inclu,
                                               ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
 
     def ejecutar_pacifico():
@@ -272,7 +272,7 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
 
     def ejecutar_lapositiva():
         logging.info("✅ Compañía: La Positiva")
-        return login_la_positiva(driver,wait,list_polizas,ba_codigo,bb_codigo,tipo_mes,ruta_archivos_x_inclu,
+        return realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bb_codigo,tipo_mes,ruta_archivos_x_inclu,
                                                                       ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
 
     def ejecutar_pacifico():
