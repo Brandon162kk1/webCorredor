@@ -587,7 +587,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         os.rename(archivo_nuevo[0], ruta_final)
         logging.info(f"🔄 Constancia renombrada")
     else:
-        raise Exception("No se descargó constancia")
+        raise Exception(f"No se descargó constancia, buscar en la compania con el código '{numero_doc}'")
 
     if tipo_mes == 'MA':
 
@@ -616,15 +616,15 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         ruta_salud = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[0]}.pdf")
         ruta_pension = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[1]}.pdf")
 
-        if os.path.exists(ruta_salud):
-            shutil.copy2(ruta_salud, ruta_pension)
+        if os.path.exists(ruta_pension):
+            shutil.copy2(ruta_pension, ruta_salud)
 
         if tipo_mes == 'MA':
             ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf")
             ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[1]}.pdf")
 
-            if os.path.exists(ruta_endoso_salud):
-                shutil.copy2(ruta_endoso_salud, ruta_endoso_pension)
+            if os.path.exists(ruta_endoso_pension):
+                shutil.copy2(ruta_endoso_pension, ruta_endoso_salud)
 
     wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM"))).click()
 
@@ -1297,7 +1297,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
             mensaje_final = "\n".join(mensajes)
 
-            raise Exception(f"Encontramos algunos errores en la planilla:\n{mensaje_final}")
+            raise Exception(f"Encontramos algunos errores en la planilla \n{mensaje_final}")
         else:   
             raise Exception("No se puedo descargar el archivo con las observaciones")
 
