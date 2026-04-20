@@ -32,7 +32,7 @@ def obtener_imagenes_error(ruta_carpeta, const):
 
     return imagenes_payload
 
-def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compania_BB,entorno, poliza1, poliza2, poliza3):
+def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compania_BB,ctx, poliza1, poliza2, poliza3):
 
     log_buffer = StringIO()
     logging.basicConfig(
@@ -42,7 +42,9 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
         force=True
     )
 
-    prefijo = "PRUEBAS_" if entorno == "LOCAL" else ""
+    id_poliza = obtener_id_poliza(ctx)
+
+    prefijo = "PRUEBAS_" if ctx.entorno == "LOCAL" else ""
 
     mapa_procesos = {
         "IN": "Inclusiones",
@@ -54,7 +56,7 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
 
     carpeta_dia = os.path.join(download_path, nombre_carpeta_dia)
 
-    nom_subcarpeta= f"{tipo_proceso}_{ba_codigo}_{compania_BA}_{bb_codigo}_{compania_BB}_{poliza1}_{poliza2}_{poliza3}_{get_timestamp()}"
+    nom_subcarpeta= f"{id_poliza}_{tipo_proceso}_{ba_codigo}_{compania_BA}_{bb_codigo}_{compania_BB}_{poliza1}_{poliza2}_{poliza3}_{get_timestamp()}"
     subcarpeta_inclusion = os.path.join(carpeta_dia, nom_subcarpeta)
 
     ruta_archivos_x_inclu = f"/app/Downloads/{nombre_carpeta_dia}/{nom_subcarpeta}"
@@ -76,3 +78,13 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
         logging.info(line.strip())
 
     return ruta_archivos_x_inclu
+
+def obtener_id_poliza(ctx):
+    for attr in ["salud", "pension", "vida"]:
+        obj = getattr(ctx, attr, None)
+        if obj:
+            id_poliza = getattr(obj, "id_poliza", None)
+            if id_poliza:  # válido (no None, no vacío)
+                return id_poliza
+
+    raise ValueError("No se encontró identificador de la solicitud")

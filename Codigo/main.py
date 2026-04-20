@@ -111,7 +111,7 @@ class Salud(RamoBase):
             f"Salud ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
-            f"Facturación Multiple: {self.facturacion}, "
+            f"Facturación Múltiple: {self.facturacion}, "
             f"Sede: {self.sede}, "
             f"Vigencia: {self.f_inicio} al {self.f_fin}"
             f")"
@@ -142,7 +142,7 @@ class Pension(RamoBase):
             f"Pensión ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
-            f"Facturación Multiple: {self.facturacion}, "
+            f"Facturación Múltiple: {self.facturacion}, "
             f"Sede: {self.sede}, "
             f"Vigencia: {self.f_inicio} al {self.f_fin}"
             f")"
@@ -173,7 +173,7 @@ class VidaLey(RamoBase):
             f"Vida Ley ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
-            f"Facturación Multiple: {self.facturacion}, "
+            f"Facturación Múltiple: {self.facturacion}, "
             f"Sede: {self.sede}, "
             f"Vigencia: {self.f_inicio} al {self.f_fin}"
             f")"
@@ -395,7 +395,7 @@ def main():
                 palabra_clave = 'descarga de Constancia'
                 tiempo = 90
 
-        ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx.entorno,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
+        ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
 
         driver = abrirDriver(ruta_archivos_x_inclu)
         wait = WebDriverWait(driver,tiempo)
