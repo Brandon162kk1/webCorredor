@@ -5,7 +5,6 @@ from LinuxDebian.Carpetas.rutas import obtener_imagenes_error
 
 # --- Variables de Entorno ---
 url_n8n_error = os.getenv("url_n8n_error")
-url_n8n_anular_pdf = os.getenv("url_n8n_anular_pdf")
 
 def enviar_error_interno(cliente,proceso,ctx_ramo,palabra_clave,error,detalle_error,ruta_carpeta,const):
     

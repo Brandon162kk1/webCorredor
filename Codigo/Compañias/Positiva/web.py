@@ -323,9 +323,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         pass
 
     #---------------------- ESTO FUNCIONA EN LOCAL NO PRODUCCION --------------------------------
-    # error_validacion = (By.ID, "divAlertaErrorValidacion")
-    # btn_errores = (By.ID, "btnErroresPlanilla")
-    # progress_bar = (By.ID, "progressbar")
+    error_validacion = (By.ID, "divAlertaErrorValidacion")
+    btn_errores = (By.ID, "btnErroresPlanilla")
+    progress_bar = (By.ID, "progressbar")
+
+    #----------------------------------------------------------------
 
     # resultado6 = wait.until(
     #     EC.any_of(
@@ -382,9 +384,9 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     #---------------------- ESTO FUNCIONA --------------------------------
 
-    error_validacion = (By.ID, "divAlertaErrorValidacion")
-    btn_errores = (By.ID, "btnErroresPlanilla")
-    progress_bar = (By.ID, "progressbar")
+    # error_validacion = (By.ID, "divAlertaErrorValidacion")
+    # btn_errores = (By.ID, "btnErroresPlanilla")
+    # progress_bar = (By.ID, "progressbar")
         
     resultado = wait.until(
         EC.any_of(
@@ -412,11 +414,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         wait.until(EC.visibility_of_element_located((By.ID, "divErrorPlanilla")))
 
-        filas = wait.until(
-            EC.presence_of_all_elements_located(
-                (By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")
-            )
-        )
+        filas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//table[@id='gridErrorPlanilla']//tr[contains(@class,'jqgrow')]")))
 
         errores = []
 
@@ -437,6 +435,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
         logging.info("✅ Proceso completado al 100%")
 
+    #----------------------------------------------------------------
 
     btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
     btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
@@ -882,7 +881,8 @@ def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info("✅ N° Certificados : 1 ")
 
-    observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: {'Mes Vencido' if tipo_mes == 'MV' else 'Mes Adelantado'}"
+    #observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: {'Mes Vencido' if tipo_mes == 'MV' else 'Mes Adelantado'}"
+    observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: {'Facturación Multiple' if ramo.facturacion else 'Facturación Simple'}"
 
     textarea = wait.until(EC.presence_of_element_located((By.ID, "textarea1")))
     textarea.clear()
@@ -1389,9 +1389,6 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
     global ventana_menu_positiva
     global login_exitoso
 
-    # tipoError = ""
-    # detalleError = ""
-
     if not login_exitoso:
 
         try:
@@ -1457,32 +1454,63 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
 def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave,
                                 tipo_proceso,actividad, ramo, tipo_mes):
 
-    tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu,ramo)
+    # tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu,ramo)
 
-    if not tipo_vl:
-        return False, False, "LAPO-VIDALEY", "No se pudo determinar el tipo (OV/VL)"
+    # if not tipo_vl:
+    #     return False, False, "LAPO-VIDALEY", "No se pudo determinar el tipo (OV/VL)"
 
-    logging.info(f"📂 Tipo detectado: {tipo_vl}")
+    # logging.info(f"📂 Tipo detectado: {tipo_vl}")
 
-    funciones = {
-        "OV": lambda: solicitud_vidaley_ov(
-            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-            ejecutivo_responsable, palabra_clave,tipo_mes,
-            tipo_proceso, actividad, ramo
-        ),
-        "VL": lambda: solicitud_vidaley_vl(
-            driver, wait, ruta_archivos_x_inclu,
-            ejecutivo_responsable, palabra_clave,tipo_mes,
-            tipo_proceso, ramo
-        )
-    }
+    # funciones = {
+    #     "OV": lambda: solicitud_vidaley_ov(
+    #         driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+    #         ejecutivo_responsable, palabra_clave,tipo_mes,
+    #         tipo_proceso, actividad, ramo
+    #     ),
+    #     "VL": lambda: solicitud_vidaley_vl(
+    #         driver, wait, ruta_archivos_x_inclu,
+    #         ejecutivo_responsable, palabra_clave,tipo_mes,
+    #         tipo_proceso, ramo
+    #     )
+    # }
 
-    funcion = funciones.get(tipo_vl)
+    # funcion = funciones.get(tipo_vl)
 
-    if not funcion:
-        return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de mes inválido"
+    # if not funcion:
+    #     return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de mes inválido"
 
-    return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
+    # return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
+
+    def flujo_principal():
+
+        tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu, ramo)
+
+        if not tipo_vl:
+            raise Exception("No se pudo determinar el tipo (OV/VL)")
+
+        logging.info(f"📂 Tipo detectado: {tipo_vl}")
+
+        funciones = {
+            "OV": lambda: solicitud_vidaley_ov(
+                driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+                ejecutivo_responsable, palabra_clave,tipo_mes,
+                tipo_proceso, actividad, ramo
+            ),
+            "VL": lambda: solicitud_vidaley_vl(
+                driver, wait, ruta_archivos_x_inclu,
+                ejecutivo_responsable, palabra_clave,tipo_mes,
+                tipo_proceso, ramo
+            )
+        }
+
+        funcion = funciones.get(tipo_vl)
+
+        if not funcion:
+            raise Exception("Tipo de Vida Ley inválido")
+
+        funcion()
+
+    return ejecutar_con_manejo(driver, wait, ruta_archivos_x_inclu,"VIDALEY", tipo_mes,flujo_principal)
 
 def ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 

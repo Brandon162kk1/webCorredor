@@ -351,7 +351,7 @@ def main():
     }
 
     if not ctx.salud.debe_procesarse() and not ctx.pension.debe_procesarse():
-            ba_codigo = '0'
+        ba_codigo = '0'
     elif ctx.salud.debe_procesarse() and ctx.pension.debe_procesarse():
         ba_codigo = '3'
     elif ctx.salud.debe_procesarse() and not ctx.pension.debe_procesarse():
