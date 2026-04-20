@@ -429,7 +429,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         detalle_errores = "\n".join(errores)
 
-        raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla:\n{detalle_errores}")
+        raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla\n{detalle_errores}")
 
     if driver.find_elements(*progress_bar):
         wait.until(lambda d: "100%" in d.find_element(By.ID, "progressbar").text)
@@ -1454,63 +1454,36 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
 def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave,
                                 tipo_proceso,actividad, ramo, tipo_mes):
 
-    # tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu,ramo)
+    tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu,ramo)
 
-    # if not tipo_vl:
-    #     return False, False, "LAPO-VIDALEY", "No se pudo determinar el tipo (OV/VL)"
+    if not tipo_vl:
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
+        logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: No se pudo determinar el tipo (OV/VL)")
+        return False, False, f"LAPO-VIDALEY-{tipo_mes}", "No se pudo determinar el tipo (OV/VL)"
 
-    # logging.info(f"📂 Tipo detectado: {tipo_vl}")
+    logging.info(f"📂 Tipo detectado: {tipo_vl}")
 
-    # funciones = {
-    #     "OV": lambda: solicitud_vidaley_ov(
-    #         driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-    #         ejecutivo_responsable, palabra_clave,tipo_mes,
-    #         tipo_proceso, actividad, ramo
-    #     ),
-    #     "VL": lambda: solicitud_vidaley_vl(
-    #         driver, wait, ruta_archivos_x_inclu,
-    #         ejecutivo_responsable, palabra_clave,tipo_mes,
-    #         tipo_proceso, ramo
-    #     )
-    # }
+    funciones = {
+        "OV": lambda: solicitud_vidaley_ov(
+            driver, wait, ruta_archivos_x_inclu, ruc_empresa,
+            ejecutivo_responsable, palabra_clave,tipo_mes,
+            tipo_proceso, actividad, ramo
+        ),
+        "VL": lambda: solicitud_vidaley_vl(
+            driver, wait, ruta_archivos_x_inclu,
+            ejecutivo_responsable, palabra_clave,tipo_mes,
+            tipo_proceso, ramo
+        )
+    }
 
-    # funcion = funciones.get(tipo_vl)
+    funcion = funciones.get(tipo_vl)
 
-    # if not funcion:
-    #     return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de mes inválido"
+    if not funcion:
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
+        logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: Tipo de Vida Ley inválido")
+        return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de Vida Ley inválido"
 
-    # return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
-
-    def flujo_principal():
-
-        tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu, ramo)
-
-        if not tipo_vl:
-            raise Exception("No se pudo determinar el tipo (OV/VL)")
-
-        logging.info(f"📂 Tipo detectado: {tipo_vl}")
-
-        funciones = {
-            "OV": lambda: solicitud_vidaley_ov(
-                driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-                ejecutivo_responsable, palabra_clave,tipo_mes,
-                tipo_proceso, actividad, ramo
-            ),
-            "VL": lambda: solicitud_vidaley_vl(
-                driver, wait, ruta_archivos_x_inclu,
-                ejecutivo_responsable, palabra_clave,tipo_mes,
-                tipo_proceso, ramo
-            )
-        }
-
-        funcion = funciones.get(tipo_vl)
-
-        if not funcion:
-            raise Exception("Tipo de Vida Ley inválido")
-
-        funcion()
-
-    return ejecutar_con_manejo(driver, wait, ruta_archivos_x_inclu,"VIDALEY", tipo_mes,flujo_principal)
+    return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
 
 def ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
