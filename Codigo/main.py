@@ -9,7 +9,7 @@ from Compañias.Sanitas.VidaLey.Protecta.web import procesar_solicitud_san_prote
 from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
 from Plantillas.Crecer.generarplantilla import generarConstanciaInCrecer,generarConstanciaReCrecer
 # -- Froms Apis ---
-from Apis.Post.webhook import enviar_error_interno
+from Apis.Post.webhook import enviar_error_general
 from Apis.Put.web_corredor import enviar_documentos,enviar_error_movimiento,enviar_puerto,enviar_estaca
 # -- Froms Configuración ---
 from LinuxDebian.Carpetas.rutas import armar_ruta_archivos
@@ -568,10 +568,10 @@ def main():
                 if ramo in ("SALUD","PENSION"):
 
                     if not error_sctr_enviado:
-                        enviar_error_interno(ctx.cliente, ctx.proceso, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
+                        enviar_error_general(ctx.cliente, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
                         error_sctr_enviado = True
                 else:
-                    enviar_error_interno(ctx.cliente, ctx.proceso, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
+                    enviar_error_general(ctx.cliente, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
 
                 time.sleep(1)
 
