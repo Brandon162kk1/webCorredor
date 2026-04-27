@@ -1093,6 +1093,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
                 # - conversion a date time para comparar fechas sin importar el formato o posibles espacios
                 fecha_ramo_fin = datetime.strptime(ramo.f_fin, "%d/%m/%Y")
+                fecha_ramo_inicio = datetime.strptime(ramo.f_inicio, "%d/%m/%Y")
                 fecha_fin_vigencia = datetime.strptime(fin_vigencia, "%d/%m/%Y")
 
                 if tipo_proceso == 'IN':
@@ -1103,7 +1104,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
                 elif tipo_proceso == 'RE':
                     #if ramo.f_inicio == fin_vigencia:
-                    if fecha_ramo_fin == fecha_fin_vigencia:
+                    if fecha_ramo_inicio == fecha_fin_vigencia:
                         fila_valida = fila
                         break
 
