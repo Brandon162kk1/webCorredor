@@ -5,6 +5,8 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException,StaleElementReferenceException
+from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 # -- Imports --
 import os
 import logging
@@ -12,6 +14,60 @@ import time
 import random
 import pdfplumber
 import re
+
+def descargar_documento_por_codigo(driver,wait,codigo_documento,prefijo,ramo,ruta_archivos_x_inclu):
+
+    span = wait.until(EC.visibility_of_element_located((
+        By.XPATH, f"//span[contains(text(),'{codigo_documento}')]"
+    )))
+
+    bloque = span.find_element(By.XPATH, "./ancestor::div[1]")
+
+    lupa = bloque.find_element(
+        By.XPATH,
+        f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]"
+    )
+
+    #lupa = span_numero.find_element(By.XPATH,f".//ancestor::tr//img[contains(@data-nropolizasalud,'{list_polizas[0]}') or contains(@data-nropolizapension,'{list_polizas[0]}')]")
+    #lupa = (By.XPATH, selector_xpath)
+    error_btn = (By.ID, "btnAceptarError")
+
+    resultadol = wait.until(
+        EC.any_of(
+            EC.element_to_be_clickable(lupa),
+            EC.element_to_be_clickable(error_btn)
+        )
+    )
+
+    if resultadol.get_attribute("id") == "btnAceptarError":
+        raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
+
+    for _ in range(3):
+        try:
+            resultadol.click()
+            logging.info(f"🖱️ Clic en la lupa {codigo_documento}")
+            break
+        except StaleElementReferenceException:
+            resultado = wait.until(EC.element_to_be_clickable(lupa))
+
+    wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
+    logging.info("📄 Panel PDF visible")
+
+    boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
+
+    archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
+    driver.execute_script("arguments[0].click();", boton_guardar)
+    logging.info(f"🖱️ Clic en Descargar Constancia")
+
+    archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes, ".pdf", cantidad=1)
+
+    if archivo_nuevo:
+        ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+        os.rename(archivo_nuevo[0], ruta_final)
+        logging.info(f"🔄 Constancia renombrada")
+    else:
+        raise Exception(f"No se descargó constancia, buscar en la compania con el código '{codigo_documento}'")
 
 def escribir_lento(elemento, texto, min_delay, max_delay):
     """Envía texto carácter por carácter con retrasos aleatorios."""

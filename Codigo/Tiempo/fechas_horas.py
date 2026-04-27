@@ -1,4 +1,4 @@
-﻿import pytz
+import pytz
 import calendar
 
 from datetime import datetime,timedelta
@@ -6,6 +6,8 @@ from dateutil.relativedelta import relativedelta
 
 # Definir la zona horaria de Lima
 tz_peru = pytz.timezone("America/Lima")
+
+#datetime.strptime(fecha, "%d/%m/%Y")
 
 def get_fecha_hoy():
     return datetime.now(tz_peru)

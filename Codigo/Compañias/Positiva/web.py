@@ -38,6 +38,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     transacciones.click()
     logging.info("🖱️ Clic en Transacciones y Consultas")
 
+    #descargar_documento_por_codigo(driver,wait,"RENV-140755","140755",ramo,ruta_archivos_x_inclu)
+
     error_locator = (By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")
     poliza_locator = (By.ID, "ContentPlaceHolder1_txtNroPoliza")
 
@@ -75,22 +77,24 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     if ramo.facturacion and tipo_facturacion != "Facturación Multiple":
             raise Exception(f"El tipo de facturación de la póliza {ramo.poliza} es {tipo_facturacion} y no coincide con el de la compañia")
 
-    fecha_emision_element = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaEmision_0")))
-    fecha_emision_str = fecha_emision_element.text.strip()
-    fecha_emision = datetime.strptime(fecha_emision_str, "%d/%m/%Y")
+    #fecha_emision_element = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaEmision_0")))
+    #fecha_emision_str = fecha_emision_element.text.strip()
+    #fecha_emision = datetime.strptime(fecha_emision_str, "%d/%m/%Y")
 
-    if fecha_emision.month == 12:
-        primer_dia_mes_siguiente = datetime(fecha_emision.year + 1, 1, 1)
-    else:
-        primer_dia_mes_siguiente = datetime(fecha_emision.year, fecha_emision.month + 1, 1)
+    # if fecha_emision.month == 12:
+    #     primer_dia_mes_siguiente = datetime(fecha_emision.year + 1, 1, 1)
+    # else:
+    #     primer_dia_mes_siguiente = datetime(fecha_emision.year, fecha_emision.month + 1, 1)
 
-    primer_dia_mes_siguiente_str = primer_dia_mes_siguiente.strftime("%d/%m/%Y")
+    #primer_dia_mes_siguiente_str = primer_dia_mes_siguiente.strftime("%d/%m/%Y")
 
+    # En formato dateTime para hacer validaciones
+    fecha_ramo_fin = datetime.strptime(ramo.f_fin, "%d/%m/%Y")
 
     fecha_vigencia_element = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_gvResultado_lblFechaVigencia_0")))
     fecha_vigencia_str = fecha_vigencia_element.text.strip() 
     fecha_vigencia_dmy = datetime.strptime(fecha_vigencia_str, "%d/%m/%Y")
-    fecha_vigencia_str_for = fecha_vigencia_dmy.strftime("%d/%m/%Y")
+    #fecha_vigencia_str_for = fecha_vigencia_dmy.strftime("%d/%m/%Y")
 
     logging.info(f"📅 Fecha Fin de la vigencia en la póliza : {fecha_vigencia_str}")
 
@@ -105,11 +109,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         #raise Exception(f"Error al parsear la fecha de vigencia,Motivo - {e}")
     
     if tipo_proceso == 'IN':
-        if ramo.f_fin != fecha_vigencia_str:
+        #Como es texto no hay problemas (valido para  ==  y !=)
+        #if ramo.f_fin != fecha_vigencia_str:
+        if fecha_ramo_fin != fecha_vigencia_dmy:
             raise Exception(f"Las fechas Fin de la vigencia en la Póliza {ramo.poliza} no coinciden")
     else: 
-
-        fecha_ramo_fin = datetime.strptime(ramo.f_fin, "%d/%m/%Y")
 
         if fecha_ramo_fin == fecha_vigencia_dmy:
             raise Exception(f"La Póliza {ramo.poliza} ya fue renovada hasta el {fecha_vigencia_str}.")
@@ -264,16 +268,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
         logging.info("⌛ Página de carga lista (Trama)")
 
-        fecha_fin_web = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza"))).get_attribute("value")
-        fecha_fin = datetime.strptime(fecha_fin_web, "%d/%m/%Y")
-
-        if ramo.f_fin != fecha_fin :
-            raise Exception(
-                f"Intentas renovar la póliza {ramo.poliza} del {ramo.f_inicio} al {ramo.f_fin}.\n"
-                f"Comunicate con el ejecutivo."
-            )
-
-        if ramo.poliza == '9231375':
+        # Caso Especial para estas pólizas
+        if ramo.poliza in ['9231375', '30358377']:
 
             fecha_str = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))).get_attribute("value")
 
@@ -291,6 +287,19 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             driver.find_element(By.TAG_NAME, "body").click()
 
             logging.info(f"📅 Vigencia Hasta: {fecha_final}")
+
+        else:
+
+            fecha_inicio_web = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniVigPoliza"))).get_attribute("value")
+
+            fecha_fin_web = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtFinVigPoliza"))).get_attribute("value")
+            fecha_fin_web_dt = datetime.strptime(fecha_fin_web, "%d/%m/%Y")
+
+            if fecha_ramo_fin != fecha_fin_web_dt :
+                raise Exception(
+                    f"Intentas renovar la póliza {ramo.poliza} del {fecha_inicio_web} al {fecha_fin_web}.\n"
+                    f"Comunícate con el ejecutivo."
+                )
 
     time.sleep(2)
 
@@ -377,6 +386,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     elif estado == "ok":
         logging.info("✅ Proceso completado al 100%")
+        wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
 
     #----------------------------------------------------------------
 
@@ -414,7 +424,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     click_boton_seguro(btn_procesar_locator)
     logging.info("🖱️ Clic en Procesar")
-
+    
     texto_mensaje = ""
 
     if tipo_proceso == 'IN':
@@ -481,17 +491,25 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
 
-    span_numero = wait.until(EC.visibility_of_element_located((By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
+    span_numero = wait.until(EC.visibility_of_element_located((By.XPATH,f"//span[contains(text(),'{codigo_documento}')]")))
     logging.info(f"✅ Span encontrado: {span_numero.text}")
 
-    if len(list_polizas) == 1 and ba_codigo == '1':
-        selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
-    elif len(list_polizas) == 1 and ba_codigo == '2':
-        selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
-    else:
-        selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
+    # if len(list_polizas) == 1 and ba_codigo == '1':
+    #     selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
+    # elif len(list_polizas) == 1 and ba_codigo == '2':
+    #     selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
+    # else:
+    #     #selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
+    #     selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
 
-    lupa = (By.XPATH, selector_xpath)
+    #span = wait.until(EC.visibility_of_element_located(( By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
+
+    bloque = span_numero.find_element(By.XPATH, "./ancestor::div[1]")
+
+    lupa = bloque.find_element(By.XPATH,f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]")
+
+    #lupa = span_numero.find_element(By.XPATH,f".//ancestor::tr//img[contains(@data-nropolizasalud,'{list_polizas[0]}') or contains(@data-nropolizapension,'{list_polizas[0]}')]")
+    #lupa = (By.XPATH, selector_xpath)
     error_btn = (By.ID, "btnAceptarError")
 
     resultadol = wait.until(
@@ -1073,13 +1091,19 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
                 inicio_vigencia = fila.find_element(By.XPATH, ".//td[@data-header='Inicio de Vigencia']//span").text.strip()
                 fin_vigencia = fila.find_element(By.XPATH, ".//td[@data-header='Fin de Vigencia']//span").text.strip()
 
+                # - conversion a date time para comparar fechas sin importar el formato o posibles espacios
+                fecha_ramo_fin = datetime.strptime(ramo.f_fin, "%d/%m/%Y")
+                fecha_fin_vigencia = datetime.strptime(fin_vigencia, "%d/%m/%Y")
+
                 if tipo_proceso == 'IN':
-                    if ramo.f_fin == fin_vigencia:
+                    #if ramo.f_fin == fin_vigencia:
+                    if fecha_ramo_fin == fecha_fin_vigencia:
                         fila_valida = fila
                         break
 
                 elif tipo_proceso == 'RE':
-                    if ramo.f_inicio == fin_vigencia:
+                    #if ramo.f_inicio == fin_vigencia:
+                    if fecha_ramo_fin == fecha_fin_vigencia:
                         fila_valida = fila
                         break
 
@@ -1142,13 +1166,28 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
     else:
 
-        fecha_fin_web = wait.until(EC.visibility_of_element_located((By.ID, "EndOfValidityTyping"))).get_attribute("value")
-        fecha_fin = datetime.strptime(fecha_fin_web, "%d/%m/%Y")
+        for _ in range(3):
+            try:
 
-        if ramo.f_fin != fecha_fin :
+                input_fecha_incio = wait.until(EC.visibility_of_element_located((By.ID, "b13-EffectiveDateTyping")))
+                input_fecha_fin = wait.until(EC.visibility_of_element_located((By.ID, "b13-EndOfValidityTyping")))
+
+                driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'})", input_fecha_fin)
+
+                fecha_inicio= input_fecha_incio.get_attribute("value")
+                fecha_fin = input_fecha_fin.get_attribute("value")
+
+                break
+            except StaleElementReferenceException:
+                continue
+
+        fecha_fin_ob = datetime.strptime(fecha_fin, "%d/%m/%Y")
+        fecha_ramo_fin = datetime.strptime(ramo.f_fin, "%d/%m/%Y")
+
+        if fecha_ramo_fin != fecha_fin_ob :
             raise Exception(
-                f"Intentas renovar la póliza {ramo.poliza} del {ramo.f_inicio} al {ramo.f_fin}.\n"
-                f"Comunicate con el ejecutivo."
+                f"Intentas renovar la póliza {ramo.poliza} del {fecha_inicio} al {fecha_fin}.\n"
+                f"Comunícate con el ejecutivo."
             )
 
     time.sleep(5)
@@ -1162,6 +1201,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     else:
         input_file = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@id='b13-b1-b1-b2-b1-DropArea']//input[@type='file']")))
 
+    driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'})", input_file)
     input_file.send_keys(ruta_archivo)
     logging.info(f"📂 Trama {ramo.poliza}.xlsx subida")
 
