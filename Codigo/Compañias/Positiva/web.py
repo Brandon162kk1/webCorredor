@@ -494,22 +494,22 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     span_numero = wait.until(EC.visibility_of_element_located((By.XPATH,f"//span[contains(text(),'{codigo_documento}')]")))
     logging.info(f"✅ Span encontrado: {span_numero.text}")
 
-    # if len(list_polizas) == 1 and ba_codigo == '1':
-    #     selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
-    # elif len(list_polizas) == 1 and ba_codigo == '2':
-    #     selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
-    # else:
-    #     #selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
-    #     selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
+    if len(list_polizas) == 1 and ba_codigo == '1':
+        selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
+    elif len(list_polizas) == 1 and ba_codigo == '2':
+        selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
+    else:
+        selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
+        #selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
 
     #span = wait.until(EC.visibility_of_element_located(( By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
 
-    bloque = span_numero.find_element(By.XPATH, "./ancestor::div[1]")
+    #bloque = span_numero.find_element(By.XPATH, "./ancestor::div[1]")
 
-    lupa = bloque.find_element(By.XPATH,f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]")
+    #lupa = bloque.find_element(By.XPATH,f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]")
 
     #lupa = span_numero.find_element(By.XPATH,f".//ancestor::tr//img[contains(@data-nropolizasalud,'{list_polizas[0]}') or contains(@data-nropolizapension,'{list_polizas[0]}')]")
-    #lupa = (By.XPATH, selector_xpath)
+    lupa = (By.XPATH, selector_xpath)
     error_btn = (By.ID, "btnAceptarError")
 
     resultadol = wait.until(
@@ -1231,7 +1231,6 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
         )
     )
 
-    texto = resultado4.text.lower()
     texto = resultado4.text.lower()
 
     if resultado4.tag_name == "button":
