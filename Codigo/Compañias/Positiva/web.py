@@ -1239,12 +1239,32 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
         resultado5 = wait.until(
             EC.any_of(
+                EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Aceptar']")),
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Lo sentimos')]")),
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")),
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]"))
             )
         )
         texto = resultado5.text.lower()
+
+        if resultado5.tag_name == "button":
+
+            tit_f = driver.find_element(By.ID, "b13-b1-b15-TextTitlevalue").text
+            con_f = driver.find_element(By.ID, "b13-b1-b15-TextContentValue").text
+
+            resultado5.click()
+
+            logging.info(f"✅ Se aceptó segunda advertencia : {tit_f} \n{con_f}")
+
+            resultado6 = wait.until(
+                EC.any_of(
+                    EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Lo sentimos')]")),
+                    EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'Encontramos algunos errores en la planilla')]")),
+                    EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]"))
+                )
+            )
+
+            texto = resultado6.text.lower()
 
     if "lo sentimos" in texto:
         tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
