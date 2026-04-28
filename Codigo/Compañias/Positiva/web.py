@@ -1245,7 +1245,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]"))
             )
         )
-        texto = resultado5.text.lower()
+        #texto = resultado5.text.lower()
 
         if resultado5.tag_name == "button":
 
@@ -1265,10 +1265,15 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
             )
 
             texto = resultado6.text.lower()
+        else:
+            texto = resultado5.text.lower()
 
     if "lo sentimos" in texto:
-        tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
-        con = driver.find_element(By.ID, "b13-b1-b5-TextContentValue").text
+        # tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
+        # con = driver.find_element(By.ID, "b13-b1-b5-TextContentValue").text
+
+        tit = driver.find_element(By.ID, "b13-b1-b15-TextTitlevalue").text
+        con = driver.find_element(By.ID, "b13-b1-b15-TextContentValue").text
         raise Exception(f"{tit} \n{con}")
 
     elif "encontramos algunos errores" in texto:
