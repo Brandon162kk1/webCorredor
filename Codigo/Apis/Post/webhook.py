@@ -24,15 +24,13 @@ def enviar_error_general(cliente,ctx_ramo,palabra_clave,error,detalle_error,ruta
     if ctx_ramo.trama_97:
         tramas.append(ctx_ramo.trama_97)
 
-    #mensaje = dedent(f"""Hubo problemas en la {palabra_clave} con la póliza {ctx_ramo.poliza} del cliente {cliente.capitalize()}.\n\nDatos:\nVigencia: {ctx_ramo.f_inicio} al {ctx_ramo.f_fin}\nTramas: {' y '.join(tramas) if tramas else 'No disponibles'}\nSede: {ctx_ramo.sede.capitalize()}\nCompañía: {ctx_ramo.compania.capitalize()}\n\nError Técnico y evidencia visual:\n\nTipo de Error: {error}\n\nDetalle del Error:\n{str(detalle_error)}""")
-
-    mensaje = dedent(f"""Hubo problemas en la {palabra_clave} con la póliza {ctx_ramo.poliza} del cliente {cliente.capitalize()}.
+    mensaje = dedent(f"""Hubo problemas en la {palabra_clave} con la póliza {ctx_ramo.poliza} del cliente {cliente}.
 
         Datos:
 
         Vigencia: {ctx_ramo.f_inicio} al {ctx_ramo.f_fin}
         Tramas: {' y '.join(tramas) if tramas else 'No disponibles'}
-        Sede: {ctx_ramo.sede.capitalize()}
+        Sede: {ctx_ramo.sede}
         Compañía: {ctx_ramo.compania.capitalize()}
 
         Error Técnico y evidencia visual:

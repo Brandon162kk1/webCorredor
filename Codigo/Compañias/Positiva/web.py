@@ -1173,7 +1173,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
                 input_fecha_incio = wait.until(EC.visibility_of_element_located((By.ID, "b13-EffectiveDateTyping")))
                 input_fecha_fin = wait.until(EC.visibility_of_element_located((By.ID, "b13-EndOfValidityTyping")))
 
-                driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'})", input_fecha_fin)
+                #driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'})", input_fecha_fin)
 
                 fecha_inicio= input_fecha_incio.get_attribute("value")
                 fecha_fin = input_fecha_fin.get_attribute("value")
@@ -1216,8 +1216,6 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     if "formato válido" in resultado3.text:
         raise Exception("La planilla no está en un formato válido de excel")
 
-    logging.info("✅ Archivo válido")
-
     boton_validar = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-btnValidate")))
     boton_validar.click()
     logging.info("🖱️ Clic en Validar")
@@ -1234,6 +1232,8 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     texto = resultado4.text.lower()
 
     if resultado4.tag_name == "button":
+
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"vigencia")
         resultado4.click()
         logging.info("✅ Se aceptó advertencia de vigencia")
 
@@ -1245,7 +1245,6 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
                 EC.presence_of_element_located((By.XPATH, "//span[contains(text(),'La planilla superó exitosamente')]"))
             )
         )
-        #texto = resultado5.text.lower()
 
         if resultado5.tag_name == "button":
 
@@ -1269,16 +1268,18 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
             texto = resultado5.text.lower()
 
     if "lo sentimos" in texto:
+
         # tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
         # con = driver.find_element(By.ID, "b13-b1-b5-TextContentValue").text
-
         tit = driver.find_element(By.ID, "b13-b1-b15-TextTitlevalue").text
         con = driver.find_element(By.ID, "b13-b1-b15-TextContentValue").text
         raise Exception(f"{tit} \n{con}")
 
     elif "encontramos algunos errores" in texto:
 
-        btn_des_obs = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-b11-b3-btnObserv")))
+        #btn_des_obs = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-b11-b3-btnObserv")))
+        #btn_des_obs = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-b1-b3-btnObserv")))
+        btn_des_obs = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Descargar observaciones']")))
 
         archivos_antes_des_obs = set(os.listdir(ruta_archivos_x_inclu))
 
