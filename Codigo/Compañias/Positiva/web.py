@@ -586,7 +586,12 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             if os.path.exists(ruta_endoso_pension):
                 shutil.copy2(ruta_endoso_pension, ruta_endoso_salud)
 
-    wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM"))).click()
+    btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
+    btn_cancelar_boton.click()
+    logging.info("✅ Cerrando panel de documentos")
+
+    wait.until(EC.invisibility_of_element_located((By.ID, "divPanelPDFMaster")))
+    logging.info("📴 Panel PDF cerrado correctamente")
 
     logging.info(f"✅ {palabra_clave} realizada exitosamente")
 
