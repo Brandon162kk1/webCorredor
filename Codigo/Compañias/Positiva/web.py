@@ -1059,16 +1059,22 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
     resultado1 = wait.until(
         EC.any_of(
-            EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue")),   # error
-            EC.presence_of_element_located((By.ID, "b12-limpiargrilla")),          # modal sin resultados
+            EC.presence_of_element_located((By.ID, "b12-b4-Title")),                     # Sin resultados
+            EC.visibility_of_element_located((By.ID, "b12-b11-TextTitlevalue")),         # error
+            EC.presence_of_element_located((By.ID, "b12-limpiargrilla")),                # modal sin resultados
             EC.presence_of_element_located((By.ID, "b12-Widget_TransactionRecordList"))  # tabla
         )
     )
 
+    if resultado1.get_attribute("id") == "b12-b4-Title":
+        titulo = resultado1.text
+        mensaje = driver.find_element(By.ID, "b12-b4-Content").text
+        raise Exception(f"{titulo} \n{mensaje}")
+
     if resultado1.get_attribute("id") == "b12-b11-TextTitlevalue":
-        tit = driver.find_element(By.ID, "b12-b11-TextTitlevalue").text
+        tit = resultado1.text
         con = driver.find_element(By.ID, "b12-b11-TextContentValue").text
-        raise Exception(f"{tit} {con}")
+        raise Exception(f"{tit} \n{con}")
 
     if resultado1.get_attribute("id") == "b12-limpiargrilla":
         logging.error("❌ Se detectó un modal que no carga los resultados")
@@ -1079,14 +1085,11 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
         filas_vigentes = wait.until(
             EC.presence_of_all_elements_located((
                 By.XPATH,
-                "//table[@id='b12-Widget_TransactionRecordList']//tbody/tr[.//td[@data-header='Estado']//span[normalize-space()='Vigente']]"
+                "//table[@id='b12-Widget_TransactionRecordList']//tbody/tr"
             ))
         )
 
         logging.info("✅ Tabla cargada correctamente")
-
-        if not filas_vigentes:
-            raise Exception(f"No se encontró fila Vigente para la póliza {ramo.poliza}")
 
         fila_valida = None
 
@@ -1102,13 +1105,11 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
                 fecha_fin_vigencia = datetime.strptime(fin_vigencia, "%d/%m/%Y")
 
                 if tipo_proceso == 'IN':
-                    #if ramo.f_fin == fin_vigencia:
                     if fecha_ramo_fin == fecha_fin_vigencia:
                         fila_valida = fila
                         break
 
                 elif tipo_proceso == 'RE':
-                    #if ramo.f_inicio == fin_vigencia:
                     if fecha_ramo_inicio == fecha_fin_vigencia:
                         fila_valida = fila
                         break
@@ -1145,13 +1146,13 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
     resultado2 = wait.until(
         EC.any_of(
-            EC.visibility_of_element_located((By.ID, "b12-b2-b8-TextTitlevalue")),  # error
+            EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Entendido']")),
             EC.presence_of_element_located((By.XPATH, "//input[@type='file']"))     # ventana lista
         )
     )
 
-    if resultado2.get_attribute("id") == "b12-b2-b8-TextTitlevalue":
-        titulo = resultado2.text
+    if resultado2.tag_name == "button":
+        titulo = driver.find_element(By.ID, "b12-b2-b8-TextTitlevalue").text
         contenido = driver.find_element(By.ID, "b12-b2-b8-TextContentValue").text
         raise Exception(f"{titulo} \n{contenido}")
 
@@ -1273,7 +1274,6 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
             texto = resultado5.text.lower()
 
     if "lo sentimos" in texto:
-
         # tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
         # con = driver.find_element(By.ID, "b13-b1-b5-TextContentValue").text
         tit = driver.find_element(By.ID, "b13-b1-b15-TextTitlevalue").text
@@ -1346,7 +1346,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
 
         elif boton_id in ["b13-InclusionValidate", "b13-RenewalRequest2"]:
             resultado6.click()
-            logging.info(f"🖱️ Clic en 'Finalizar' ({boton_id})")
+            logging.info(f"🖱️ Clic en 'Finalizar'")
             break
 
     time.sleep(5)
