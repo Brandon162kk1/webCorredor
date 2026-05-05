@@ -245,10 +245,12 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
         if tipo_mes == 'MV':
 
             logging.info("Tipo: Mes Vencido")
-            if tipo_proceso == 'IN':
-                generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo)
-            else:
-                generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
+            # Por el momento se utilizara la misma plantilla para Inclusiones y Renovaciones
+            generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
+            # if tipo_proceso == 'IN':
+            #     generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo)
+            # else:
+            #     generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
                 
             time.sleep(2)
             return True,False,"",""

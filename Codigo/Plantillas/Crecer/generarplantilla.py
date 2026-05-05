@@ -1,4 +1,4 @@
-﻿import os
+import os
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 import pdfkit
@@ -209,7 +209,7 @@ def generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente
 
     # 🔹 Cargar plantilla
     env = Environment(loader=FileSystemLoader(ruta_plantilla))
-    template = env.get_template("crecerReNew2.html")
+    template = env.get_template("crecerReNew.html")
 
     html_renderizado = template.render(contexto)
 
