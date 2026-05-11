@@ -41,11 +41,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     #descargar_documento_por_codigo(driver,wait,"RENV-140755","140755",ramo,ruta_archivos_x_inclu)
 
     error_locator = (By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")
+    error_locator2 = (By.XPATH, "//h3[contains(text(),'Actualmente estamos presentando problemas, por favor')]")
     poliza_locator = (By.ID, "ContentPlaceHolder1_txtNroPoliza")
 
     resultado = wait.until(
         EC.any_of(
             EC.presence_of_element_located(error_locator),
+            EC.presence_of_element_located(error_locator2),
             EC.presence_of_element_located(poliza_locator)
         )
     )
