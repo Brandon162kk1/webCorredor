@@ -279,16 +279,34 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             accept_button.click()
             logging.info("🖱️ Clic en Aceptar")
 
-            try:
-                modal_poliza = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))                  
-                span_txt_modal = modal_poliza.find_element(By.ID, "message").text
-                logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_modal}.")
-                raise Exception(f"{span_txt_modal}")
-            except TimeoutException:
-                pass
+            modal_advertencia = (By.ID, "MessageBox")
+            client = (By.ID, "ClientBranchOfficeId")
 
-            client_branch_office_select = wait.until(EC.presence_of_element_located((By.ID, 'ClientBranchOfficeId')))
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_branch_office_select)
+            resultado_poliza = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(modal_advertencia),
+                    EC.presence_of_element_located(client)
+                )
+            )
+
+            if resultado_poliza.get_attribute("id") == "MessageBox":
+                span_txt_modal = resultado_poliza.find_element(By.ID, "message").text
+                logging.warning(f"⚠️ Apareció el modal con advertencia")
+                raise Exception(f"{span_txt_modal}")
+            else:
+                client_branch_office_select = wait.until(EC.presence_of_element_located((client)))
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_branch_office_select)
+
+            # try:
+            #     modal_poliza = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))                  
+            #     span_txt_modal = modal_poliza.find_element(By.ID, "message").text
+            #     logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_modal}.")
+            #     raise Exception(f"{span_txt_modal}")
+            # except TimeoutException:
+            #     pass
+
+            # client_branch_office_select = wait.until(EC.presence_of_element_located((By.ID, 'ClientBranchOfficeId')))
+            # driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_branch_office_select)
 
             time.sleep(2)
     
@@ -330,10 +348,33 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                     else:
                         logging.info(f"📅 Vigencia de Inicio ingresada: {ramo.f_inicio}")
 
-                    try:
-                        # Modal con Advertencias de la fecha
-                        modal_fecha = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID,"MessageBox")))
-                        span_txt_fecha = modal_fecha.find_element(By.ID, "message").text
+                    # try:
+                    #     # Modal con Advertencias de la fecha
+                    #     modal_fecha = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID,"MessageBox")))
+                    #     span_txt_fecha = modal_fecha.find_element(By.ID, "message").text
+                    #     logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_fecha}")
+
+                    #     if span_txt_fecha == "No es posible realizar movimientos retroactivos superiores a 2 días.":
+                    #         raise Exception(f"{span_txt_fecha}")
+
+                    #     btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "CloseModal")))
+                    #     btn_aceptar.click()
+                    #     logging.info("🖱️ Clic en 'Aceptar'")
+
+                    # except TimeoutException:
+                    #     pass
+
+                    id_planilla = (By.ID, "btnCargarPlanilla")
+
+                    resultado_vigencia = wait.until(
+                        EC.any_of(
+                            EC.visibility_of_element_located(modal_advertencia),
+                            EC.invisibility_of_element_located(id_planilla)
+                        )
+                    )
+
+                    if resultado_vigencia.get_attribute("id") == "MessageBox":
+                        span_txt_fecha = resultado_vigencia.find_element(By.ID, "message").text
                         logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_fecha}")
 
                         if span_txt_fecha == "No es posible realizar movimientos retroactivos superiores a 2 días.":
@@ -342,8 +383,8 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                         btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "CloseModal")))
                         btn_aceptar.click()
                         logging.info("🖱️ Clic en 'Aceptar'")
-
-                    except TimeoutException:
+ 
+                    else:
                         pass
 
                 else:
@@ -372,50 +413,85 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             buscar_span.send_keys(ruta_trama_xls_sanitas)
             logging.info(f"✅ Trama {ramo.poliza}_97.xls adjuntada")
 
-
             btn_subir = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Subir Archivo')]")))
             btn_subir.click()
-            logging.info("🖱️ Clic en 'Subir Archivo' para validar la trama en la compañía")
+            logging.info("🖱️ Clic en 'Subir Archivo'")
 
-            time.sleep(3)
+            modal_error_trama = (By.ID, "MessageBoxWithScroll")
+            #modal_advertencia = (By.ID, "MessageBox")
 
-            try:
-                # Modal con Errores en la Trama
-                modal_error_trama = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBoxWithScroll")))             
-                span_txtArea_modal = modal_error_trama.find_element(By.ID, "message").text
+            resultado_validar_trama = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(modal_error_trama),
+                    EC.visibility_of_element_located(modal_advertencia)
+                )
+            )
+
+            if resultado_validar_trama.get_attribute("id") == "MessageBox":
+                span_txt_modal = resultado_validar_trama.find_element(By.ID, "message").text
+                logging.warning(f"⚠️ Apareció el modal con advertencia")
+                raise Exception(f"{span_txt_modal}")
+
+            elif resultado_validar_trama.get_attribute("id") == "MessageBoxWithScroll":
+                span_txtArea_modal = resultado_validar_trama.find_element(By.ID, "message").text
                 logging.warning(f"⚠️ Apareció el modal con errores de la Trama")
                 raise Exception(f"{span_txtArea_modal}")
-            except TimeoutException:
-                pass
 
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            logging.info("🖱️ Scroll hasta abajo de la página")
+            else:
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                logging.info("🖱️ Scroll hasta abajo de la página")
 
             confirmar_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnConfirm')))
-            
             confirmar_button.click()
             logging.info("🖱️ Clic en Confirmar")
 
-            try:
-                modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))
-                spana_dv_txt_modal = modal_advertencia.find_element(By.ID, "message").text
-                logging.warning(f"⚠️ Apareció el modal con advertencia")
-                raise Exception(f"{spana_dv_txt_modal}")
-            except TimeoutException:
-                pass
+            modal_retroactividad = (By.ID, "ConfirmationMessageBox")
+            modal_documentos = (By.ID, 'createdDocumentsPopUp')
 
-            try:
-                # Modal de Retroactividad para autorizar no siniestros
-                modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "ConfirmationMessageBox")))
+            resultado_confirmar = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(modal_advertencia),
+                    EC.visibility_of_element_located(modal_retroactividad),
+                    EC.visibility_of_element_located(modal_documentos)
+                )
+            )
+
+            if resultado_confirmar.get_attribute("id") == "MessageBox":
+                span_txt_modal = resultado_confirmar.find_element(By.ID, "message").text
+                logging.warning(f"⚠️ Apareció el modal con advertencia")
+                raise Exception(f"{span_txt_modal}")
+
+            elif resultado_confirmar.get_attribute("id") == "MessageBoxWithScroll":
                 logging.warning(f"⚠️ Apareció el modal con advertencia de retroactividad")
                 btn_si = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@onclick, \"data-dialog-response', 'YES'\")]")))
                 btn_si.click()
-                logging.info("🖱️ Se hizo clic en el botón 'Sí'.")
-            except TimeoutException:
-                pass
+                logging.info("🖱️ Clic en el botón 'Sí'")
+                wait.until(EC.visibility_of_element_located(modal_documentos))
+                logging.info("✅ Modal de documentos cargados")
+
+            else:
+                logging.info("✅ Modal de los documentos cargados")
+
+            # try:
+            #     modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))
+            #     spana_dv_txt_modal = modal_advertencia.find_element(By.ID, "message").text
+            #     logging.warning(f"⚠️ Apareció el modal con advertencia")
+            #     raise Exception(f"{spana_dv_txt_modal}")
+            # except TimeoutException:
+            #     pass
+
+            # try:
+            #     # Modal de Retroactividad para autorizar no siniestros
+            #     modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "ConfirmationMessageBox")))
+            #     logging.warning(f"⚠️ Apareció el modal con advertencia de retroactividad")
+            #     btn_si = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@onclick, \"data-dialog-response', 'YES'\")]")))
+            #     btn_si.click()
+            #     logging.info("🖱️ Clic en el botón 'Sí'")
+            # except TimeoutException:
+            #     pass
     
-            wait.until(EC.visibility_of_element_located((By.ID, 'createdDocumentsPopUp')))
-            logging.info("⌛ Cargando Modal de los documentos")
+            # wait.until(EC.visibility_of_element_located((By.ID, 'createdDocumentsPopUp')))
+            # logging.info("⌛ Cargando Modal de los documentos")
 
             modal_body = driver.find_element(By.CLASS_NAME, 'dataTables_scrollBody')
             driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", modal_body)
@@ -542,7 +618,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                     driver.execute_script("arguments[0].scrollIntoView(true);", descargar_link)
 
-                    # Guardar archivos antes del clic
                     archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
 
                     driver.execute_script("arguments[0].click();", descargar_link)
