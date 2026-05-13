@@ -232,8 +232,11 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             submit_button = wait.until(EC.presence_of_element_located((By.XPATH, "//button[@type='submit']")))
             submit_button.click()
             logging.info("🖱️ Clic en Iniciar Sesión")
-    
-            wait.until(EC.url_changes(url))
+
+            try:
+                wait.until(EC.url_changes(url))
+            except :
+                raise Exception(f"Credenciales inválidas")
 
             afiliaciones_link = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'Afiliaciones')]")))
             afiliaciones_link.click()
@@ -252,8 +255,9 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             search_contract_button.click()
             logging.info("🖱️ Clic en Buscar")
 
-            wait.until(EC.visibility_of_element_located((By.ID, 'searchContractPopup')))
             logging.info("⌛ Esperando el Modal")
+            wait.until(EC.visibility_of_element_located((By.ID, 'searchContractPopup')))
+            logging.info("✅ Modal cargado")
 
             contract_number_input = wait.until(EC.presence_of_element_located((By.ID, 'ContractNumber')))
             contract_number_input.send_keys(ramo.poliza)
@@ -297,17 +301,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 client_branch_office_select = wait.until(EC.presence_of_element_located((client)))
                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_branch_office_select)
 
-            # try:
-            #     modal_poliza = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))                  
-            #     span_txt_modal = modal_poliza.find_element(By.ID, "message").text
-            #     logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_modal}.")
-            #     raise Exception(f"{span_txt_modal}")
-            # except TimeoutException:
-            #     pass
-
-            # client_branch_office_select = wait.until(EC.presence_of_element_located((By.ID, 'ClientBranchOfficeId')))
-            # driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_branch_office_select)
-
             time.sleep(2)
     
             select = Select(client_branch_office_select)
@@ -348,22 +341,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                     else:
                         logging.info(f"📅 Vigencia de Inicio ingresada: {ramo.f_inicio}")
 
-                    # try:
-                    #     # Modal con Advertencias de la fecha
-                    #     modal_fecha = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID,"MessageBox")))
-                    #     span_txt_fecha = modal_fecha.find_element(By.ID, "message").text
-                    #     logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_fecha}")
-
-                    #     if span_txt_fecha == "No es posible realizar movimientos retroactivos superiores a 2 días.":
-                    #         raise Exception(f"{span_txt_fecha}")
-
-                    #     btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "CloseModal")))
-                    #     btn_aceptar.click()
-                    #     logging.info("🖱️ Clic en 'Aceptar'")
-
-                    # except TimeoutException:
-                    #     pass
-
                     id_planilla = (By.ID, "btnCargarPlanilla")
 
                     resultado_vigencia = wait.until(
@@ -400,8 +377,9 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             cargar_planilla_button.click()
             logging.info("🖱️ Clic en Cargar Planilla")
 
-            wait.until(EC.visibility_of_element_located((By.ID, "uploadAffiliationsFileUpload")))
             logging.info("⌛ Esperando que aparezca Modal")
+            wait.until(EC.visibility_of_element_located((By.ID, "uploadAffiliationsFileUpload")))
+            logging.info("✅ Modal cargado")
 
             buscar_span = wait.until(EC.presence_of_element_located((By.NAME, "file")))
 
@@ -418,28 +396,35 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("🖱️ Clic en 'Subir Archivo'")
 
             modal_error_trama = (By.ID, "MessageBoxWithScroll")
-            #modal_advertencia = (By.ID, "MessageBox")
 
             resultado_validar_trama = wait.until(
                 EC.any_of(
                     EC.visibility_of_element_located(modal_error_trama),
-                    EC.visibility_of_element_located(modal_advertencia)
+                    EC.visibility_of_element_located(modal_advertencia),
+                    lambda d: (
+                        len(d.find_elements(By.CSS_SELECTOR, "#inclusionsTable tbody tr")) > 0
+                        and
+                        not d.find_elements(By.CSS_SELECTOR, "#inclusionsTable td.dataTables_empty")
+                    )
                 )
             )
 
-            if resultado_validar_trama.get_attribute("id") == "MessageBox":
-                span_txt_modal = resultado_validar_trama.find_element(By.ID, "message").text
-                logging.warning(f"⚠️ Apareció el modal con advertencia")
-                raise Exception(f"{span_txt_modal}")
-
-            elif resultado_validar_trama.get_attribute("id") == "MessageBoxWithScroll":
-                span_txtArea_modal = resultado_validar_trama.find_element(By.ID, "message").text
-                logging.warning(f"⚠️ Apareció el modal con errores de la Trama")
-                raise Exception(f"{span_txtArea_modal}")
-
-            else:
+            if resultado_validar_trama is True:
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 logging.info("🖱️ Scroll hasta abajo de la página")
+            else:
+
+                modal_id = resultado_validar_trama.get_attribute("id")
+
+                if modal_id == "MessageBox":
+                    span_txt_modal = resultado_validar_trama.find_element(By.ID, "message").text
+                    logging.warning("⚠️ Apareció el modal con advertencia")
+                    raise Exception(span_txt_modal)
+
+                elif modal_id == "MessageBoxWithScroll":
+                    span_txtArea_modal = resultado_validar_trama.find_element(By.ID, "message").text
+                    logging.warning("⚠️ Apareció el modal con errores de la Trama")
+                    raise Exception(span_txtArea_modal)
 
             confirmar_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnConfirm')))
             confirmar_button.click()
@@ -651,7 +636,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             if encontrado:
 
-                # Si hay constancia conjunta, se guardo con nombre de salud y hay que renombrarla para pension
+                # Si hay constancia conjunta, se guardo con nombre de salud/pensión y hay que renombrarla para pension/salud
                 if constancia_conjunta:
 
                     ruta_salud = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.pdf")
@@ -665,7 +650,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                     else:
                         logging.error(f"❌ No existe el archivo base: {ruta_salud}")
                 else:
-                    logging.info("No hay constancia conjunta, o salud o pension, pero verificar cual falta para volver a descargar")
+                    logging.warning("⚠️ No hay constancia conjunta, o salud o pension, pero verificar cual falta para volver a descargar")
 
                 break
 
@@ -674,12 +659,11 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             raise Exception(f"No se encontró la póliza '{ramo.poliza}' en ninguna de las compañías")
         else:
             logging.info("-----------")
-            logging.info(f"✅ {palabra_clave} en SANITAS realizada exitosamente.")
+            logging.info(f"✅ {palabra_clave} en SANITAS realizada exitosamente")
 
         time.sleep(3) 
 
     except Exception as e:
-
         logging.error(f"❌ Error en Sanitas (SCTR) - {tipo_mes}: {e}")
         tipoError = f"SANI-SCTR-{tipo_mes}"
         detalleError = str(e)
