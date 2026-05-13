@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # -- Froms ---
 from reportlab.platypus import SimpleDocTemplate, Image # type: ignore
 from reportlab.lib.pagesizes import A4 # type: ignore

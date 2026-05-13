@@ -16,11 +16,11 @@ copias_lista = copia_venv.split(",") if copia_venv else []
 ruta_plantilla = "/app/Codigo/Plantillas/Correo"
 env = Environment(loader=FileSystemLoader(ruta_plantilla))
 
-def enviar_error_general(cliente,ctx_ramo,palabra_clave,error,detalle_error,ruta_carpeta,const):
+def enviar_error_general(cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_carpeta,const):
 
     template = env.get_template("error.html")
 
-    imagenes = obtener_imagenes_error(ruta_carpeta, const)
+    imagenes = obtener_imagenes_error(ruta_carpeta,const)
 
     lista_tramas = []
 
@@ -36,44 +36,16 @@ def enviar_error_general(cliente,ctx_ramo,palabra_clave,error,detalle_error,ruta
             "url": ctx_ramo.trama_97
         })
 
-    #tramas = []
-
-    # if ctx_ramo.trama:
-    #     tramas.append(ctx_ramo.trama)
-
-    # if ctx_ramo.trama_97:
-    #     tramas.append(ctx_ramo.trama_97)
-
-    # mensaje = dedent(f"""Hubo problemas en la {palabra_clave} con la póliza {ctx_ramo.poliza} del cliente {cliente}.
-
-    #     Datos:
-
-    #     Vigencia: {ctx_ramo.f_inicio} al {ctx_ramo.f_fin}
-    #     Tramas: {' y '.join(tramas) if tramas else 'No disponibles'}
-    #     Sede: {ctx_ramo.sede}
-    #     Compañía: {ctx_ramo.compania.capitalize()}
-
-    #     Error Técnico y evidencia visual:
-
-    #     Tipo de Error: {error}
-    #     Detalle del Error:
-    #     {str(detalle_error)}
-    # """)
-
-    # # 💥 LIMPIEZA FINAL (clave)
-    # mensaje = "\n".join(line.strip() for line in mensaje.splitlines())
-
     html = template.render(
         titulo=f"⚠️ Problemas en la {palabra_clave}",
         cliente=cliente,
         poliza=ctx_ramo.poliza,
-        rhumano=const.capitalize(),
-        error=error,
+        rhumano=ramo.capitalize(),
         detalle_error=str(detalle_error),
         compania=ctx_ramo.compania.capitalize(),
         sede=ctx_ramo.sede,
         vigencia=f"{ctx_ramo.f_inicio} al {ctx_ramo.f_fin}",
-        tramas=lista_tramas, #" y ".join(tramas) if tramas else "No disponibles",
+        tramas=lista_tramas,
         screenshot = (
             f"data:image/png;base64,{imagenes[0]}"
             if imagenes else None

@@ -229,29 +229,46 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             password_input.send_keys(ramo.clave)
             logging.info("⌨️ Digitando la Contraseña")
     
-            submit_button = wait.until(EC.presence_of_element_located((By.XPATH, "//button[@type='submit']")))
+            submit_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@type='submit']")))
             submit_button.click()
             logging.info("🖱️ Clic en Iniciar Sesión")
 
-            try:
-                wait.until(EC.url_changes(url))
-            except :
-                raise Exception(f"Credenciales inválidas")
+            mensaje_error = (By.XPATH,"//div[contains(@class,'alert-error')]//li")
+            afiliaciones = (By.XPATH, "//a[contains(text(),'Afiliaciones')]")
 
-            afiliaciones_link = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'Afiliaciones')]")))
-            afiliaciones_link.click()
-            logging.info("🖱️ Clic en Afiliaciones")
+            resultado_login = wait.until(
+                EC.any_of(
+                    EC.visibility_of_element_located(mensaje_error),
+                    EC.element_to_be_clickable(afiliaciones)
+                )
+            )
+
+            if resultado_login.tag_name == "li":
+                mensaje = resultado_login.text.strip()
+                raise Exception(mensaje)
+            else:
+                resultado_login.click()
+                logging.info("🖱️ Clic en Afiliaciones")
+
+            # try:
+            #     wait.until(EC.url_changes(url))
+            # except :
+            #     raise Exception(f"Credenciales inválidas")
+
+            # afiliaciones_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'Afiliaciones')]")))
+            # afiliaciones_link.click()
+            # logging.info("🖱️ Clic en Afiliaciones")
 
             #pruebas_impresion(driver,wait,ramo)
 
             texto_link = "Inclusión" if tipo_proceso == "IN" else "Renovación"
 
-            link = wait.until(EC.presence_of_element_located((By.XPATH, f"//a[contains(text(),'{texto_link}')]")))
+            link = wait.until(EC.element_to_be_clickable((By.XPATH, f"//a[contains(text(),'{texto_link}')]")))
             link.click()
 
             logging.info(f"🖱️ Clic en {palabra_clave}")
 
-            search_contract_button = wait.until(EC.presence_of_element_located((By.ID, 'btnSearchContract')))
+            search_contract_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnSearchContract')))
             search_contract_button.click()
             logging.info("🖱️ Clic en Buscar")
 
@@ -263,12 +280,12 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             contract_number_input.send_keys(ramo.poliza)
             logging.info("⌨️ Digitando Póliza")
 
-            search_button = wait.until(EC.presence_of_element_located((By.ID, 'btnSearchContracts')))
+            search_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnSearchContracts')))
             search_button.click()
             logging.info("🖱️ Clic en Buscar")
 
             try:               
-                filas = WebDriverWait(driver,10).until(EC.presence_of_all_elements_located((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
+                filas = WebDriverWait(driver,10).until(EC.element_to_be_clickable((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
                 fila_correcta = filas[0]
                 fila_correcta.click()
                 logging.info(f"✅ Se seleccionó la fila para la póliza {ramo.poliza}")
@@ -279,7 +296,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             time.sleep(2)
             
-            accept_button = wait.until(EC.presence_of_element_located((By.ID, 'btnSelectContract')))
+            accept_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnSelectContract')))
             accept_button.click()
             logging.info("🖱️ Clic en Aceptar")
 

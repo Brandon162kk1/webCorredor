@@ -570,10 +570,10 @@ def main():
                 if ramo in ("SALUD","PENSION"):
 
                     if not error_sctr_enviado:
-                        enviar_error_general(ctx.cliente, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
+                        enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_archivos_x_inclu,const)
                         error_sctr_enviado = True
                 else:
-                    enviar_error_general(ctx.cliente, ctx_ramo,palabra_clave, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
+                    enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_archivos_x_inclu,const)
 
                 time.sleep(1)
 
