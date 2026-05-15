@@ -1,4 +1,4 @@
-﻿#--- Froms ---
+#--- Froms ---
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -6,12 +6,22 @@ from selenium.common.exceptions import TimeoutException
 from Tiempo.fechas_horas import tipo_vigencia
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
+from Apis.Get.metodos import codigo_compania
 #---- Import ---
 import os
 import logging
 import time
 import shutil
 import pandas as pd
+
+# --- Variables globales ---
+ventana_solicitud_mapfre = None
+login_exitoso = False
+
+# --- Variables de Entorno ---
+url_mapfre = os.getenv("url_mapfre")
+url_api_cod_map = os.getenv("url_api_cod_map")
+API_KEY_MAPFRE = os.getenv("API_KEY_MAPFRE")
 
 def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,
                                      ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
@@ -438,144 +448,142 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
 
     logging.info(f"✅ {palabra_clave} en Mapfre realizada exitosamente")
 
-def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-                              ejecutivo_responsable,ba_codigo,bab_codigo,nombre_cliente,ramo):
+def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,ejecutivo_responsable,ba_codigo,bab_codigo,nombre_cliente,ramo):
 
     global ventana_solicitud_mapfre
+    global login_exitoso
+
     ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
     tipoError = ""
     detalleError = ""
     constancia = False
     proforma = False
 
-    if ba_codigo == '3' and bab_codigo == '4':
+    if not login_exitoso:
 
         try:
-            solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,
-                              list_polizas,ejecutivo_responsable,nombre_cliente,tipo_mes,ramo)
-            return True,True,tipoError,detalleError
-        except Exception as e:
-            logging.error(f"❌ Error en Mapfre (VL) - {tipo_mes}: {e}")
-            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
-            return constancia,proforma,f"MAPF-VL-{tipo_mes}",str(e)
 
-    try:
+            driver.get(url_mapfre)
+            logging.info("⌛ Cargando la Web de Mapfre")
 
-        driver.get("https://oim.mapfre.com.pe/")
-        logging.info("⌛ Cargando la Web de Mapfre")
-
-        user_input = wait.until(EC.presence_of_element_located((By.ID, "mat-input-1")))
-        user_input.clear()
-        user_input.send_keys(ramo.usuario)
-        logging.info("⌨️ Digitando el Username")
+            user_input = wait.until(EC.presence_of_element_located((By.ID, "mat-input-1")))
+            user_input.clear()
+            user_input.send_keys(ramo.usuario)
+            logging.info("⌨️ Digitando el Username")
         
-        pass_input = wait.until(EC.presence_of_element_located((By.ID, "mat-input-0")))
-        pass_input.clear()
-        pass_input.send_keys(ramo.clave)
-        logging.info("⌨️ Digitando el Password")
+            pass_input = wait.until(EC.presence_of_element_located((By.ID, "mat-input-0")))
+            pass_input.clear()
+            pass_input.send_keys(ramo.clave)
+            logging.info("⌨️ Digitando el Password")
 
-        ingresar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Ingresar')]")))
-        ingresar_btn.click()
-        logging.info("🖱️ Clic en 'Ingresar' en Mapfre")
+            ingresar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Ingresar')]")))
+            ingresar_btn.click()
+            logging.info("🖱️ Clic en 'Ingresar' en Mapfre")
 
-        elemento = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".card-modality__item--left")))
-        elemento.click()
-        logging.info("🖱️ Clic en enviar por Correo Electronico")
+            elemento = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".card-modality__item--left")))
+            elemento.click()
+            logging.info("🖱️ Clic en enviar por Correo Electronico")
 
-        codigo_mapfre_path = "/codigo_mapfre/codigo.txt"
+            codigo = codigo_compania(url_api_cod_map,API_KEY_MAPFRE)
 
-        while not os.path.exists(codigo_mapfre_path):
-            time.sleep(2)
+            inputs = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "input.g-input-codes__code")))
 
-        with open(codigo_mapfre_path, "r") as f:
-            codigo = f.read().strip()
+            if len(inputs) == len(codigo):
+                for i, inp in enumerate(inputs):
+                    inp.clear()
+                    inp.send_keys(codigo[i])
+            else:
+                raise Exception("Los inputs no coinciden con la longitud del código")
 
-        logging.info(f"✅ Código recibido desde volumen: {codigo}")
+            time.sleep(1)
 
-        inputs = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "input.g-input-codes__code")))
-
-        if len(inputs) == len(codigo):
-            for i, inp in enumerate(inputs):
-                inp.clear()
-                inp.send_keys(codigo[i])
-        else:
-            raise Exception("Los inputs no coinciden con la longitud del código")
-
-        time.sleep(1)
-
-        try:
             comprobar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Comprobar')]")))
             comprobar_btn.click()
             logging.info("🖱️ Clic en 'Comprobar'")
-        except Exception as e:
-            raise Exception(f"No se pudo hacer clic en Comprobar -> {e}")
 
-        # --- Eliminar el archivo después de usarlo ---
-        try:
-            os.remove(codigo_mapfre_path)
-            logging.info("🧹 Archivo codigo.txt eliminado desde volumen")
-        except FileNotFoundError:
-            logging.warning("⚠️ No se encontró codigo.txt al intentar eliminarlo (ya fue borrado)")
-        except Exception as e:
-            logging.error(f"❌ Error al eliminar codigo.txt: {e}")
-
-        try:
-        
-            # Esperar a que aparezca el texto del modal
-            mensaje_elemento = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.c-modal p.txt")))
-            mensaje = mensaje_elemento.text.strip()
-            print(f"⚠️ Modal detectado: {mensaje}")
-
-            boton = wait.until(EC.presence_of_element_located((By.XPATH, "//button[.//span[contains(text(),'Cerrar')]]")))
-
-            driver.execute_script("arguments[0].click();", boton)
-            print("✅ Modal cerrado correctamente")
-
-        except TimeoutException:
-            pass
-
-        try:
-            boton_ok = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(), 'Ok')]]")))
-            boton_ok.click()
-            logging.info("🖱️ Clic en 'Ok'")
-        except TimeoutException:
-            pass
-        
-        consulta_gestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='CONSTANCIAS SCTR Y VL']")))
-        consulta_gestion.click()
-        logging.info("🖱️ Clic en 'CONSTANCIAS SCTR Y VL'")
-
-        ventana_solicitud_mapfre = driver.current_window_handle
-    
-    except Exception as e:
-        return constancia,proforma,"Página Web", "Hubo problemas al iniciar sessión en la compañía"
-    
-    try:
-        solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,
-                          ejecutivo_responsable,nombre_cliente,tipo_mes,ramo)
-        return True,True,tipoError,detalleError
-    except Exception as e:
-        tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
-        logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
-
-        try:
-            ok_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
-            tomar_capturar(driver, ruta_archivos_x_inclu, "btnConfirmar")
-            ok_btn.click()
-            logging.info("🖱️ Clic en 'Confirmar'")
-        except TimeoutException:
             try:
-                btn_cancelar = wait.until(EC.element_to_be_clickable((By.XPATH,"//a[contains(@class,'g-button') and contains(normalize-space(.), 'Cancelar')]")))
-                tomar_capturar(driver, ruta_archivos_x_inclu, "btnCancelar")
-                btn_cancelar.click()
-                logging.info("🖱️ Clic en 'Cancelar'")
+
+                modal_mensaje = (By.CSS_SELECTOR, "div.c-modal p.txt")
+                boton_ok_locator = (By.XPATH, "//button[.//span[contains(text(), 'Ok')]]")
+
+                resultado = wait.until(
+                    EC.any_of(
+                        EC.visibility_of_element_located(modal_mensaje),
+                        EC.element_to_be_clickable(boton_ok_locator)
+                    )
+                )
+
+                if resultado.tag_name.lower() == "p":
+
+                    mensaje = resultado.text.strip()
+                    logging.info(f"⚠️ Modal detectado: {mensaje}")
+                    boton_cerrar = wait.until( EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(),'Cerrar')]]")))
+                    driver.execute_script("arguments[0].click();", boton_cerrar)
+                    logging.info("✅ Modal cerrado correctamente")
+
+                else:
+                    resultado.click()
+                    logging.info("🖱️ Clic en 'Ok'")
+
             except TimeoutException:
                 pass
+        
+            consulta_gestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='CONSTANCIAS SCTR Y VL']")))
+            consulta_gestion.click()
+            logging.info("🖱️ Clic en 'CONSTANCIAS SCTR Y VL'")
 
-        return constancia,proforma,f"MAPF-{ramo_s}-{tipo_mes}",str(e)
+            ventana_solicitud_mapfre = driver.current_window_handle
+            login_exitoso = True
+    
+        except Exception as e:
+            logging.error(f"❌ Error al iniciar sesión en Mapfre: {e}")
+            tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
+            return constancia,proforma,"Página Web", "Hubo problemas al iniciar sessión en la compañía"
+
+    try:
+
+        solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,ejecutivo_responsable,nombre_cliente,tipo_mes,ramo)
+
+    except Exception as e:
+
+        logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
+        tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
+
+        try:
+
+            locator_confirmar = (By.CSS_SELECTOR,"button.swal2-confirm")
+
+            locator_cancelar = (
+                By.XPATH,
+                "//a[contains(@class,'g-button') "
+                "and contains(normalize-space(.), 'Cancelar')]"
+            )
+
+            resultado = wait.until(
+                EC.any_of(
+                    EC.element_to_be_clickable(locator_confirmar),
+                    EC.element_to_be_clickable(locator_cancelar)
+                )
+            )
+
+            if "swal2-confirm" in resultado.get_attribute("class"):
+                tomar_capturar(driver,ruta_archivos_x_inclu,"btnConfirmar")
+                resultado.click()
+                logging.info("🖱️ Clic en 'Confirmar'")
+            else:
+                tomar_capturar(driver,ruta_archivos_x_inclu,"btnCancelar")
+                resultado.click()
+                logging.info("🖱️ Clic en 'Cancelar'")
+
+        except TimeoutException:
+            pass
+
+        tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
+        detalleError = str(e)
     finally:
         time.sleep(3)
         link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[span[text()='Constancias SCTR y VL']]")))  
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", link)
         driver.execute_script("arguments[0].click();", link)
         logging.info("🔙 Regresando al menú de Constancias")
+        return constancia,proforma,tipoError,detalleError

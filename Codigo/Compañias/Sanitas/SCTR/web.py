@@ -284,14 +284,20 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             search_button.click()
             logging.info("🖱️ Clic en Buscar")
 
-            try:               
-                filas = WebDriverWait(driver,10).until(EC.element_to_be_clickable((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
-                fila_correcta = filas[0]
+            try:
+                
+                # filas = wait.until(EC.element_to_be_clickable((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
+                # fila_correcta = filas[0]
+                # fila_correcta.click()
+
+                fila_correcta = WebDriverWait(driver,10).until(EC.element_to_be_clickable((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
                 fila_correcta.click()
+
                 logging.info(f"✅ Se seleccionó la fila para la póliza {ramo.poliza}")
                 encontrado = True
             except:
-                logging.error(f"❌ No se encontraron resultados para el número de contrato {ramo.poliza}")
+                logging.error(f"⚠️ No se encontraron la póliza '{ramo.poliza}'")
+                tomar_capturar(driver,ruta_archivos_x_inclu,f"n_poliza")
                 continue
 
             time.sleep(2)
@@ -474,27 +480,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             else:
                 logging.info("✅ Modal de los documentos cargados")
 
-            # try:
-            #     modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "MessageBox")))
-            #     spana_dv_txt_modal = modal_advertencia.find_element(By.ID, "message").text
-            #     logging.warning(f"⚠️ Apareció el modal con advertencia")
-            #     raise Exception(f"{spana_dv_txt_modal}")
-            # except TimeoutException:
-            #     pass
-
-            # try:
-            #     # Modal de Retroactividad para autorizar no siniestros
-            #     modal_advertencia = WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.ID, "ConfirmationMessageBox")))
-            #     logging.warning(f"⚠️ Apareció el modal con advertencia de retroactividad")
-            #     btn_si = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@onclick, \"data-dialog-response', 'YES'\")]")))
-            #     btn_si.click()
-            #     logging.info("🖱️ Clic en el botón 'Sí'")
-            # except TimeoutException:
-            #     pass
-    
-            # wait.until(EC.visibility_of_element_located((By.ID, 'createdDocumentsPopUp')))
-            # logging.info("⌛ Cargando Modal de los documentos")
-
             modal_body = driver.find_element(By.CLASS_NAME, 'dataTables_scrollBody')
             driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", modal_body)
 
@@ -626,15 +611,15 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                     logging.info("🖱 Clic con JS en el botón de descarga")
 
                     archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
-                    logging.info(f"✅ Documento '{nombre_documento}' descargado exitosamente")
 
                     if archivo_nuevo:
+                        logging.info(f"✅ Documento '{nombre_documento}' descargado exitosamente")
                         ruta_original = archivo_nuevo[0]
                         ruta_final = os.path.join(ruta_archivos_x_inclu, f"{alias_archivo}.pdf")
                         os.rename(ruta_original, ruta_final)
                         logging.info(f"🔄 {nombre_documento} renombrado a '{alias_archivo}.pdf'")
                     else:
-                        logging.error("❌ No se encontró archivo nuevo después de descargar")
+                        raise Exception(f"No se descargo ningun archivo")
 
                     if impresion:
                         try:
@@ -646,7 +631,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                             pass
 
                 except Exception as e:
-                    logging.error(f"❌ Error al intentar descargar: {nombre_documento} ,Detalle: {e}")
+                    logging.error(f"❌ Error al intentar descargar: {nombre_documento} | Detalle: {e}")
                     continue
                 
             time.sleep(3)
@@ -657,17 +642,15 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 if constancia_conjunta:
 
                     ruta_salud = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.pdf")
-
-                    # Nuevo nombre para Pensión
                     ruta_pension = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[1]}.pdf")
 
-                    if os.path.exists(ruta_salud):
-                        shutil.copy2(ruta_salud,ruta_pension)
-                        logging.info(f"📄 Copia creada como '{list_polizas[1]}.pdf'")
-                    else:
-                        logging.error(f"❌ No existe el archivo base: {ruta_salud}")
+                    if os.path.exists(ruta_pension):
+                        shutil.copy2(ruta_pension,ruta_salud)
+                        logging.info(f"📄 Copia creada como '{list_polizas[0]}.pdf'")
+
                 else:
-                    logging.warning("⚠️ No hay constancia conjunta, o salud o pension, pero verificar cual falta para volver a descargar")
+                    #Evaluar este caso
+                    logging.warning("⚠️ No hay constancia conjunta, solo salud o pension, pero verificar cual falta para volver a descargar")
 
                 break
 
@@ -675,7 +658,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
         if not encontrado:
             raise Exception(f"No se encontró la póliza '{ramo.poliza}' en ninguna de las compañías")
         else:
-            logging.info("-----------")
+            logging.info("-----------------")
             logging.info(f"✅ {palabra_clave} en SANITAS realizada exitosamente")
 
         time.sleep(3) 

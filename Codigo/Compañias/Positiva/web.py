@@ -545,6 +545,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes, ".pdf", cantidad=1)
 
     if archivo_nuevo:
+        logging.info(f"✅ Constancia descargada exitosamente")
         ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
         os.rename(archivo_nuevo[0], ruta_final)
         logging.info(f"🔄 Constancia renombrada")
@@ -565,6 +566,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes_2, ".pdf", cantidad=1)
 
         if endoso:
+            logging.info(f"✅ Endoso descargado exitosamente")
             ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
             os.rename(endoso[0], ruta_final)
             logging.info("🔄 Endoso renombrado")
@@ -580,6 +582,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
         if os.path.exists(ruta_pension):
             shutil.copy2(ruta_pension, ruta_salud)
+            logging.info(f"📄 Copia creada como '{list_polizas[0]}.pdf'")
 
         if tipo_mes == 'MA':
             ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf")
@@ -587,6 +590,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
             if os.path.exists(ruta_endoso_pension):
                 shutil.copy2(ruta_endoso_pension, ruta_endoso_salud)
+                logging.info(f"📄 Copia creada como 'endoso_{list_polizas[0]}.pdf'")
 
     btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
     btn_cancelar_boton.click()
@@ -1458,7 +1462,7 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                 raise Exception("Problemas en el Inicio de Sesión, comunícate con el ejecutivo responsable para reprocesarlo")
 
         except Exception as e:
-            logging.error(f"❌ Error entrando a la Positiva: {e}")
+            logging.error(f"❌ Error al iniciar sesión en Positiva: {e}")
             tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
             driver.refresh()
             wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
