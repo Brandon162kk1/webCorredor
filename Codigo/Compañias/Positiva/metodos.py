@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException,StaleElementReferenceException
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
+from Tiempo.fechas_horas import time_espera_alea
 # -- Imports --
 import os
 import logging
@@ -84,7 +85,7 @@ def mover_y_hacer_click_simple(driver, elemento, steps=6, pause_between=0.06):
     action = ActionChains(driver)
     # asegurarnos que el elemento esté visible en pantalla
     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", elemento)
-    time.sleep(random.uniform(0.15, 0.45))
+    time_espera_alea(0.15,0.45)
 
     # posiciona el mouse sobre el elemento (move_to_element genera mouseover)
     action.move_to_element(elemento).pause(random.uniform(0.05, 0.18)).perform()

@@ -7,12 +7,14 @@ from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
 from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer_vl
 from Compañias.Sanitas.VidaLey.Protecta.web import procesar_solicitud_san_protecta_vl
 from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
-from Plantillas.Crecer.generarplantilla import generarConstanciaInCrecer,generarConstanciaReCrecer
+from Plantillas.Crecer.generarplantilla import generarConstanciaInReCrecer
 # -- Froms Apis ---
 from Apis.Post.webhook import enviar_error_general
-from Apis.Put.web_corredor import enviar_documentos,enviar_error_movimiento,enviar_puerto,enviar_estaca
+from Apis.Post.web_corredor import enviar_nota_movimiento
+from Apis.Put.web_corredor import enviar_documentos,enviar_error_movimiento,enviar_estaca
+from LinuxDebian.Ventana.ventana import enviar_puerto_por_ramos
 # -- Froms Configuración ---
-from LinuxDebian.Carpetas.rutas import armar_ruta_archivos
+from LinuxDebian.Carpetas.rutas import armar_ruta_archivos,contar_archivos
 from Chrome.google import abrirDriver
 # -- Froms selenium ---
 from selenium.webdriver.support.ui import WebDriverWait
@@ -180,7 +182,7 @@ class VidaLey(RamoBase):
         )
 
 ctx = ContextoRPA(data)
-         
+      
 def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_mes,ruta_archivos_x_inclu,
                           ruc_empresa,ejecutivo_responsable,tipo_proceso,palabra_clave,actividad,nombre_cliente,
                           ramo):
@@ -246,7 +248,7 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
 
             logging.info("Tipo: Mes Vencido")
             # Por el momento se utilizara la misma plantilla para Inclusiones y Renovaciones
-            generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
+            generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
             # if tipo_proceso == 'IN':
             #     generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo)
             # else:
@@ -299,29 +301,6 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
     constancia,proforma,tipoError,detalleError = resultado
    
     return constancia,proforma,tipoError,detalleError
-
-def enviar_puerto_por_ramos(RAMOS, puerto):
-    for r in RAMOS:
-
-        ctx_ramo = r["ctx"]
-
-        if not ctx_ramo.id_poliza:
-            continue
-
-        if ctx_ramo.activo:
-            continue
-
-        logging.info(f"⌛ Enviando puerto {puerto} al Id -> {ctx_ramo.id_poliza} de '{r['ramo']}'")
-
-        if not enviar_puerto(ctx_ramo.id_poliza, puerto):
-            raise Exception(f"No se pudo enviar puerto {puerto}")
-
-        time.sleep(1)
-
-        return True
-
-    logging.info("ℹ️ No hubo ramos disponibles para enviar puerto")
-    return False
 
 def main():
  
@@ -428,12 +407,6 @@ def main():
                 logging.info(f"⌛ Descargando trama 97 {r['ramo']}")
                 driver.get(ctx_ramo.trama_97)
                 time.sleep(1)
-
-        def contar_archivos(ruta):
-            return len([
-                f for f in os.listdir(ruta)
-                if os.path.isfile(os.path.join(ruta, f))
-            ])
 
         archivos_descargados = contar_archivos(ruta_archivos_x_inclu)
 
@@ -543,6 +516,10 @@ def main():
                 logging.info(f"⌛ Enviando Endoso '{ramo}' → {id_mov}")
                 enviar_documentos(id_mov, archivo, ramo, "Endoso")
 
+        # Lista para almacenar todos los errores
+        errores_detallados = []
+        id_mov_general = (ctx.salud.id_poliza or ctx.pension.id_poliza or ctx.vida.id_poliza)
+
         for r in RAMOS:
 
             ctx_ramo = r["ctx"]
@@ -552,7 +529,7 @@ def main():
             id_mov = ctx_ramo.id_poliza
 
             if not id_mov:
-                continue
+                continue    
 
             logging.info("-----------------------------")
 
@@ -561,24 +538,46 @@ def main():
 
             tipo_error, detalle_error = obtener_error(ramo)
 
-            if tipo_error and detalle_error:
+            if not (tipo_error and detalle_error):
 
-                const = "SCTR" if ramo in ("SALUD","PENSION") else "VIDALEY"
-                logging.info(f"⌛ Enviando error '{ramo}' → {id_mov}")
-                enviar_error_movimiento(id_mov, ramo, tipo_error, detalle_error,ruta_archivos_x_inclu, const)
-
-                if ramo in ("SALUD","PENSION"):
-
-                    if not error_sctr_enviado:
-                        enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_archivos_x_inclu,const)
-                        error_sctr_enviado = True
-                else:
-                    enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_archivos_x_inclu,const)
-
+                enviar_docs(id_mov,ramo,ctx_ramo,constancia,proforma)
                 time.sleep(1)
+                continue
 
-            enviar_docs(id_mov, ramo, ctx_ramo, constancia, proforma)
+            const = ("SCTR" if ramo in ("SALUD", "PENSION") else "VIDALEY")
+
+            logging.info(f"⌛ Enviando error '{ramo}' → {id_mov}")
+
+            enviar_error_movimiento(id_mov,ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
+
+            enviar_general = True
+            guardar_error = True
+
+            if ramo in ("SALUD", "PENSION"):
+
+                if error_sctr_enviado:
+                    enviar_general = False
+                    guardar_error = False
+                else:
+                    error_sctr_enviado = True
+
+            if guardar_error:
+                errores_detallados.append(f"{ramo} : {detalle_error}")
+
+            if enviar_general:
+                enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_archivos_x_inclu,const)
+
             time.sleep(1)
+
+            enviar_docs(id_mov,ramo,ctx_ramo,constancia,proforma)
+
+            time.sleep(1)
+
+        if errores_detallados:
+
+            texto_errores = "\n".join(errores_detallados)
+            logging.info("-----------------------------")
+            enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo)
 
 if __name__ == "__main__":
     main()

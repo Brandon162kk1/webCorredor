@@ -88,3 +88,9 @@ def obtener_id_poliza(ctx):
                 return id_poliza
 
     raise ValueError("No se encontró identificador de la solicitud")
+
+def contar_archivos(ruta):
+    return len([
+        f for f in os.listdir(ruta)
+        if os.path.isfile(os.path.join(ruta, f))
+    ])

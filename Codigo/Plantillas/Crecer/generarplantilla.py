@@ -56,63 +56,6 @@ def leer_asegurados_excel(ruta_excel, incluir_nombres=True):
     df.insert(0, "N°", range(1, len(df) + 1))
     return df.to_dict(orient="records")
 
-# def renderizar_pdf1(ruta_plantilla,template_html,contexto,salida_pdf,header_logo,encabezado,footer_vars=None):
-
-#     env = Environment(loader=FileSystemLoader(ruta_plantilla))
-
-#     # HTML principal
-#     template = env.get_template(template_html)
-#     ruta_html = os.path.join(ruta_plantilla, "temp_constancia.html")
-#     with open(ruta_html, "w", encoding="utf-8") as f:
-#         f.write(template.render(**contexto))
-    
-#     # Header
-#     header = env.get_template("header.html").render(
-#         logo="file://" + header_logo,
-#         encabezado_logo=encabezado
-#     )
-#     ruta_header = os.path.join(ruta_plantilla, "temp_header.html")
-#     with open(ruta_header, "w", encoding="utf-8") as f:
-#         f.write(header)
-
-#     # Footer
-#     footer = env.get_template("footer.html").render(**(footer_vars or {}))
-#     ruta_footer = os.path.join(ruta_plantilla, "temp_footer.html")
-#     with open(ruta_footer, "w", encoding="utf-8") as f:
-#         f.write(footer)
-
-#     options = {
-#         "enable-local-file-access": None,
-#         "header-html": os.path.abspath(ruta_header),
-#         "footer-html": os.path.abspath(ruta_footer),
-#         "margin-top": "60mm",
-#         "margin-bottom": "25mm",
-#         "margin-left": "15mm",
-#         "margin-right": "15mm",
-#         "header-spacing": "5",
-#         "footer-spacing": "5",
-#         "encoding": "UTF-8",
-#     }
-
-#     pdfkit.from_file(ruta_html, salida_pdf, options=options)
-#     logging.info(f"✅ Documento PDF generado")
-
-# def renderizar_pdf(ruta_plantilla, template_html, contexto, salida_pdf):
-
-#     env = Environment(loader=FileSystemLoader(ruta_plantilla))
-
-#     # Renderizar HTML principal
-#     template = env.get_template(template_html)
-#     html_renderizado = template.render(**contexto)
-
-#     # Generar PDF
-#     HTML(
-#         string=html_renderizado,
-#         base_url=ruta_plantilla  # 🔥 MUY IMPORTANTE
-#     ).write_pdf(salida_pdf)
-
-#     print("✅ PDF generado correctamente")
-
 def generarConstanciaInCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_cliente, ramo):
 
     rango = obtener_rango_vigencia(ramo)
@@ -165,7 +108,7 @@ def generarConstanciaInCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_clien
     HTML(string=html_renderizado, base_url=ruta_plantilla).write_pdf(salida_pdf)
     logging.info("✅ PDF generado correctamente")
 
-def generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc,ramo):
+def generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc,ramo):
 
     rango = obtener_rango_vigencia(ramo)
 

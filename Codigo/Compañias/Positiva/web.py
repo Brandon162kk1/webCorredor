@@ -6,7 +6,7 @@ from selenium.common.exceptions import TimeoutException,NoAlertPresentException,
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from Tiempo.fechas_horas import get_fecha_hoy
+from Tiempo.fechas_horas import get_fecha_hoy,time_espera_alea
 from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,leer_pdf
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
@@ -15,7 +15,6 @@ import os
 import re
 import logging
 import time
-import random
 import shutil
 import pandas as pd
 
@@ -601,7 +600,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     logging.info(f"✅ {palabra_clave} realizada exitosamente")
 
-def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_mes,tipo_proceso,actividad,ramo):
+def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
  
     ov = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='OV']")))
     ov.click()
@@ -853,7 +852,6 @@ def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
     logging.info("✅ N° Certificados : 1 ")
 
-    #observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: {'Mes Vencido' if tipo_mes == 'MV' else 'Mes Adelantado'}"
     observacion = f"{palabra_clave} Vida Ley \n Vigencia: {ramo.f_inicio} al {ramo.f_fin} \n  N° de Póliza: {ramo.poliza} \n Modalidad: {'Facturación Multiple' if ramo.facturacion else 'Facturación Simple'}"
 
     textarea = wait.until(EC.presence_of_element_located((By.ID, "textarea1")))
@@ -1423,23 +1421,23 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             user_field.clear()
 
             mover_y_hacer_click_simple(driver, user_field)
-            time.sleep(random.uniform(0.97, 0.99))
+            
+            time_espera_alea(3,3.5)
 
-            escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)
             logging.info(f"⌨️ Digitando el Username")
-
-            time.sleep(1 + random.random() * 1.5)
+            escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)     
+            time_espera_alea(3,3.5)
 
             password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
             password_field.clear()
 
             mover_y_hacer_click_simple(driver, password_field)
-            time.sleep(random.uniform(0.97, 0.99))
+            
+            time_espera_alea(3,3.5)
 
-            escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)
-            logging.info(f"⌨️ Digitando el Password")
-
-            time.sleep(1 + random.random() * 1.5)
+            logging.info(f"⌨️ Digitando el Password") 
+            escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)         
+            time_espera_alea(3,3.5)
 
             login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
             mover_y_hacer_click_simple(driver, login_button)
@@ -1469,7 +1467,7 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             return False,False,"Login Fallido", str(e)
 
     if bab_codigo in ['1', '2', '3']:
-        return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
+        return ejecutar_con_manejo(driver,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
     else:
         return solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empresa,ejecutivo_responsable, palabra_clave, tipo_proceso,actividad, ramo, tipo_mes)
 
@@ -1488,7 +1486,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
     funciones = {
         "OV": lambda: solicitud_vidaley_ov(
             driver, wait, ruta_archivos_x_inclu, ruc_empresa,
-            ejecutivo_responsable, palabra_clave,tipo_mes,
+            ejecutivo_responsable, palabra_clave,
             tipo_proceso, actividad, ramo
         ),
         "VL": lambda: solicitud_vidaley_vl(
@@ -1505,9 +1503,9 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
         logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: Tipo de Vida Ley inválido")
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de Vida Ley inválido"
 
-    return ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
+    return ejecutar_con_manejo(driver,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
 
-def ejecutar_con_manejo(driver,wait,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
+def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
     try:
         funcion()

@@ -1,5 +1,7 @@
 import pytz
 import calendar
+import random
+import time
 
 from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
@@ -8,6 +10,9 @@ from dateutil.relativedelta import relativedelta
 tz_peru = pytz.timezone("America/Lima")
 
 #datetime.strptime(fecha, "%d/%m/%Y")
+
+def time_espera_alea(min_seg,max_seg):
+     return time.sleep(random.uniform(min_seg,max_seg))
 
 def get_fecha_hoy():
     return datetime.now(tz_peru)

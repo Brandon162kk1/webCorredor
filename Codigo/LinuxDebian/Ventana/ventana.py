@@ -1,9 +1,10 @@
-﻿# -- Imports --
+# -- Imports --
 import time
 import subprocess
 import logging
 import os
 #-- Froms --
+from Apis.Put.web_corredor import enviar_puerto
 
 #-------- Interacción Humana --------
 def bloquear_interaccion():
@@ -48,3 +49,26 @@ def esperar_archivos_nuevos(directorio, archivos_antes, extension, cantidad, tim
         time.sleep(1)
 
     return None
+
+def enviar_puerto_por_ramos(RAMOS, puerto):
+    for r in RAMOS:
+
+        ctx_ramo = r["ctx"]
+
+        if not ctx_ramo.id_poliza:
+            continue
+
+        if ctx_ramo.activo:
+            continue
+
+        logging.info(f"⌛ Enviando puerto {puerto} al Id -> {ctx_ramo.id_poliza} de '{r['ramo']}'")
+
+        if not enviar_puerto(ctx_ramo.id_poliza, puerto):
+            raise Exception(f"No se pudo enviar puerto {puerto}")
+
+        time.sleep(1)
+
+        return True
+
+    logging.info("ℹ️ No hubo ramos disponibles para enviar puerto")
+    return False

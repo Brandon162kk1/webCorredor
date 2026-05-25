@@ -1,4 +1,4 @@
-﻿from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
 from Tiempo.fechas_horas import get_timestamp
 import logging , os

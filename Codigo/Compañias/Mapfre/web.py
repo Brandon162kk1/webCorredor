@@ -23,8 +23,7 @@ url_mapfre = os.getenv("url_mapfre")
 url_api_cod_map = os.getenv("url_api_cod_map")
 API_KEY_MAPFRE = os.getenv("API_KEY_MAPFRE")
 
-def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,
-                                     ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
+def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
 
     ramo_opcion = "Vida Ley" if bab_codigo == '4' else "SCTR General"
     opcion = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li[a/div[normalize-space()='{ramo_opcion}']]/a")))
@@ -257,39 +256,65 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
     """, boton)
  
     logging.info(f"🖱️ Clic en 'Siguiente'")
-  
-    mensaje_error = None
- 
+
     try:
-        # Espera que aparezac el modal dentro de 10 segundos
-        WebDriverWait(driver,7).until( EC.visibility_of_element_located((By.CSS_SELECTOR, ".swal2-popup.swal2-modal")))
- 
-        # Si lo encuentra, obtener mensaje
-        mensaje_error = driver.find_element(By.CSS_SELECTOR, "#swal2-html-container").text
-        logging.info(f"❌ ERROR DETECTADO: {mensaje_error}")
- 
-        # Guardar error en archivo
-        with open("errores_trama.txt", "a", encoding="utf-8") as f:
-            f.write(mensaje_error + "\n")
- 
-        raise Exception(mensaje_error)
- 
-    except TimeoutException:
+        resultado = wait.until(
+            EC.any_of(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, ".swal2-popup.swal2-modal")),
+                EC.visibility_of_element_located((By.CSS_SELECTOR, "mat-dialog-container"))
+            )
+        )
 
-        try:
-
-            modal = WebDriverWait(driver,7).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "mat-dialog-container")))
-            logging.info("⚠️ Modal de observaciones detectado.")
-            nota_element = modal.find_element(By.XPATH, ".//*[contains(text(), 'NOTA:')]")
+        if "swal2-popup" in resultado.get_attribute("class"):
+            mensaje_error = driver.find_element(By.CSS_SELECTOR,"#swal2-html-container").text.strip()
+            logging.info(f"⚠️ Error Detectado")
+        else:
+            logging.info("⚠️ Modal de observaciones detectado")
+            nota_element = resultado.find_element(By.XPATH,".//*[contains(text(), 'NOTA:')]")
             mensaje_error = nota_element.text.strip()
 
-            with open("errores_trama.txt", "a", encoding="utf-8") as f:
-                f.write(mensaje_error + "\n\n")
-       
-            raise Exception(mensaje_error)
+        with open("errores_trama.txt", "a", encoding="utf-8") as f:
+            f.write(mensaje_error + "\n\n")
 
-        except TimeoutException:
-            logging.info("✅ No apareció modal de observaciones. Continuando...")
+        raise Exception(mensaje_error)
+
+    except TimeoutException:
+        pass
+
+    # #-----------------------
+    # mensaje_error = None
+ 
+    # try:
+    #     # Espera que aparezac el modal dentro de 10 segundos
+    #     WebDriverWait(driver,7).until( EC.visibility_of_element_located((By.CSS_SELECTOR, ".swal2-popup.swal2-modal")))
+ 
+    #     # Si lo encuentra, obtener mensaje
+    #     mensaje_error = driver.find_element(By.CSS_SELECTOR, "#swal2-html-container").text
+    #     logging.info(f"❌ ERROR DETECTADO: {mensaje_error}")
+ 
+    #     # Guardar error en archivo
+    #     with open("errores_trama.txt", "a", encoding="utf-8") as f:
+    #         f.write(mensaje_error + "\n")
+ 
+    #     raise Exception(mensaje_error)
+ 
+    # except TimeoutException:
+
+    #     try:
+
+    #         modal = WebDriverWait(driver,7).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "mat-dialog-container")))
+    #         logging.info("⚠️ Modal de observaciones detectado.")
+    #         nota_element = modal.find_element(By.XPATH, ".//*[contains(text(), 'NOTA:')]")
+    #         mensaje_error = nota_element.text.strip()
+
+    #         with open("errores_trama.txt", "a", encoding="utf-8") as f:
+    #             f.write(mensaje_error + "\n\n")
+       
+    #         raise Exception(mensaje_error)
+
+    #     except TimeoutException:
+    #         logging.info("✅ No apareció modal de observaciones. Continuando...")
+    # #-----------------------
            
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     logging.info("✅ Scroll hasta abajo")
@@ -397,14 +422,11 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
         ruta_salud = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.pdf")
         ruta_pension = os.path.join(ruta_archivos_x_inclu,f"{list_polizas[1]}.pdf")
 
-        if os.path.exists(ruta_salud):
-            shutil.copy2(ruta_salud,ruta_pension)
-            logging.info(f"📄 Copia creada para constancia de Pensión")
-        else:
-            logging.error(f"❌ No existe el archivo base Constancia Salud")
+        if os.path.exists(ruta_pension):
+            shutil.copy2(ruta_pension,ruta_salud)
+            logging.info(f"📄 Copia creada como '{list_polizas[0]}.pdf'")
 
         logging.info("----------------------------")
-
 
     boton_enviar = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'Enviar documentos')]")))
     driver.execute_script("arguments[0].click();", boton_enviar)
@@ -429,10 +451,10 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
 
         boton_enviar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@type='submit' and contains(text(),'Enviar')]")))
         boton_enviar.click()
-        logging.info("🖱️ Clic en el botón 'Enviar'.")
+        logging.info("🖱️ Clic en el botón 'Enviar'")
  
     except Exception as e:
-        raise Exception(f" No se pudo enviar documento -> {e}")
+        raise Exception(f" No se pudo enviar documento | Motivo: {e}")
 
     # if ba_codigo == '3' and tipo_mes == 'MA':
         
@@ -456,8 +478,8 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
     ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
     tipoError = ""
     detalleError = ""
-    constancia = False
-    proforma = False
+    constancia = True
+    proforma = True
 
     if not login_exitoso:
 
@@ -538,7 +560,7 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
         except Exception as e:
             logging.error(f"❌ Error al iniciar sesión en Mapfre: {e}")
             tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
-            return constancia,proforma,"Página Web", "Hubo problemas al iniciar sessión en la compañía"
+            return False,False,"Página Web", "Hubo problemas al iniciar sessión en la compañía"
 
     try:
 
@@ -580,6 +602,8 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
 
         tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
         detalleError = str(e)
+        constancia = False
+        proforma = False
     finally:
         time.sleep(3)
         link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[span[text()='Constancias SCTR y VL']]")))  
