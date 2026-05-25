@@ -97,6 +97,7 @@ class Salud(RamoBase):
             poliza=data.get("poliza_salud")
         )
 
+        self.ramo = data["ramoSalud"]
         self.compania = data["companiaSalud"]
         self.usuario = data["usuarioSalud"]
         self.clave = data["contraseniaSalud"]
@@ -110,7 +111,7 @@ class Salud(RamoBase):
 
     def __str__(self):
         return (
-            f"Salud ("
+            f"{self.ramo.capitalize()} ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
             f"Facturación Múltiple: {self.facturacion}, "
@@ -128,6 +129,7 @@ class Pension(RamoBase):
             poliza=data.get("poliza_pension")
         )
 
+        self.ramo = data["ramoPension"]
         self.compania = data["companiaPension"]
         self.usuario = data["usuarioPension"]
         self.clave = data["contraseniaPension"]
@@ -141,7 +143,7 @@ class Pension(RamoBase):
 
     def __str__(self):
         return (
-            f"Pensión ("
+            f"{self.ramo.capitalize()} ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
             f"Facturación Múltiple: {self.facturacion}, "
@@ -159,6 +161,7 @@ class VidaLey(RamoBase):
             poliza=data.get("poliza_vida")
         )
 
+        self.ramo = data["ramoVidaLey"]
         self.compania = data["companiaVida"]
         self.usuario = data["usuarioVida"]
         self.clave = data["contraseniaVida"]
@@ -172,7 +175,7 @@ class VidaLey(RamoBase):
 
     def __str__(self):
         return (
-            f"Vida Ley ("
+            f"{self.ramo.capitalize()} ("
             f"Póliza: {self.poliza}, "
             f"Proforma: {self.proforma}, "
             f"Facturación Múltiple: {self.facturacion}, "
@@ -357,6 +360,12 @@ def main():
         bb_codigo = '4'
         compania_BB = get_compania_abrev(ctx.vida.compania)
 
+    RAMOS = [
+        {"ctx": ctx.salud},
+        {"ctx": ctx.pension},
+        {"ctx": ctx.vida}
+    ]
+
     try:
 
         if ba_codigo == '0' and bb_codigo == '5':
@@ -381,15 +390,10 @@ def main():
         driver = abrirDriver(ruta_archivos_x_inclu)
         wait = WebDriverWait(driver,tiempo)
 
-        PRE_RAMOS = [
-            {"ramo": "SALUD","ctx": ctx.salud},
-            {"ramo": "PENSION","ctx": ctx.pension},
-            {"ramo": "VIDALEY","ctx": ctx.vida}
-        ]
-
         descargas_esperadas = 0
         logging.info("-----------------------------")
-        for r in PRE_RAMOS:
+
+        for r in RAMOS:
 
             ctx_ramo = r["ctx"]
 
@@ -398,13 +402,13 @@ def main():
 
             if ctx_ramo.trama:
                 descargas_esperadas += 1
-                logging.info(f"⌛ Descargando trama {r['ramo']}")
+                logging.info(f"⌛ Descargando trama {ctx_ramo.ramo}")
                 driver.get(ctx_ramo.trama)
                 time.sleep(1)
 
             if ctx_ramo.trama_97:
                 descargas_esperadas += 1
-                logging.info(f"⌛ Descargando trama 97 {r['ramo']}")
+                logging.info(f"⌛ Descargando trama 97 {ctx_ramo.ramo}")
                 driver.get(ctx_ramo.trama_97)
                 time.sleep(1)
 
@@ -423,8 +427,8 @@ def main():
         logging.info(f"✅ Validación OK : {archivos_descargados - 1} archivos descargados correctamente")
         logging.info("-----------------------------")
 
-        if any(r["ctx"].id_poliza and not r["ctx"].activo for r in PRE_RAMOS):
-            enviar_puerto_por_ramos(PRE_RAMOS, puerto)
+        if any(r["ctx"].id_poliza and not r["ctx"].activo for r in RAMOS):
+            enviar_puerto_por_ramos(RAMOS, puerto)
 
         if tipo_proc and ba_codigo and bb_codigo and compania_BA and compania_BB and ctx.salud.poliza and ctx.pension.poliza and ctx.vida.poliza and tipo_mes:
             
@@ -480,98 +484,97 @@ def main():
 
         error_sctr_enviado = False
 
-        RAMOS = [
-            {"ramo": "SALUD", "ctx": ctx.salud, "constancia": conSCTR, "proforma": endSCTR},
-            {"ramo": "PENSION", "ctx": ctx.pension, "constancia": conSCTR, "proforma": endSCTR},
-            {"ramo": "VIDALEY", "ctx": ctx.vida, "constancia": conVL, "proforma": endVL},
-        ]
-
-        def obtener_error(ramo):
-            if ramo == "VIDALEY":
+        def obtener_error(ctx_ramo):
+            if ctx_ramo.ramo == "VIDALEY":
                 return tipoErrorVL, detalleErrorVL
             return tipoErrorSCTR, detalleErrorSCTR
 
-        def enviar_estaca_si_aplica(id_mov, ramo, constancia, proforma):
+        def enviar_estaca_si_aplica(id_mov,ctx_ramo,constancia,proforma):
             if tipo_mes == 'MV' and constancia and not proforma:
-                logging.info(f"⌛ Actualizando Constancia → {id_mov} ({ramo})")
-                enviar_estaca(id_mov, ramo, constancia, proforma)
-
+                logging.info(f"⌛ Actualizando Constancia → {id_mov} ({ctx_ramo.ramo})")
+                enviar_estaca(id_mov, ctx_ramo.ramo, constancia, proforma)
             elif tipo_mes == 'MA' and constancia and proforma:
-                logging.info(f"⌛ Actualizando Constancia + Proforma → {id_mov} ({ramo})")
-                enviar_estaca(id_mov, ramo, constancia, proforma)
-
+                logging.info(f"⌛ Actualizando Constancia + Proforma → {id_mov} ({ctx_ramo.ramo})")
+                enviar_estaca(id_mov, ctx_ramo.ramo, constancia, proforma)
             elif tipo_mes == 'MA' and not constancia and proforma:
-                logging.info(f"⌛ Actualizando Proforma → {id_mov} ({ramo})")
-                enviar_estaca(id_mov, ramo, constancia, proforma)
+                logging.info(f"⌛ Actualizando Proforma → {id_mov} ({ctx_ramo.ramo})")
+                enviar_estaca(id_mov, ctx_ramo.ramo, constancia, proforma)
 
-        def enviar_docs(id_mov, ramo, ctx_ramo, constancia, proforma):
+        def enviar_docs(id_mov,ctx_ramo,constancia,proforma):
 
             if constancia:
                 archivo = os.path.join(ruta_archivos_x_inclu, f"{ctx_ramo.poliza}.pdf")
-                logging.info(f"⌛ Enviando Constancia '{ramo}' → {id_mov}")
-                enviar_documentos(id_mov, archivo, ramo, "Constancia")
+                logging.info(f"⌛ Enviando Constancia '{ctx_ramo.ramo}' → {id_mov}")
+                enviar_documentos(id_mov, archivo, ctx_ramo.ramo, "Constancia")
 
             if proforma:
                 archivo = os.path.join(ruta_archivos_x_inclu, f"endoso_{ctx_ramo.poliza}.pdf")
-                logging.info(f"⌛ Enviando Endoso '{ramo}' → {id_mov}")
-                enviar_documentos(id_mov, archivo, ramo, "Endoso")
+                logging.info(f"⌛ Enviando Endoso '{ctx_ramo.ramo}' → {id_mov}")
+                enviar_documentos(id_mov, archivo, ctx_ramo.ramo, "Endoso")
 
-        # Lista para almacenar todos los errores
         errores_detallados = []
         id_mov_general = (ctx.salud.id_poliza or ctx.pension.id_poliza or ctx.vida.id_poliza)
 
+        RAMOS = [
+            {"ctx": ctx.salud, "constancia": conSCTR, "proforma": endSCTR},
+            {"ctx": ctx.pension, "constancia": conSCTR, "proforma": endSCTR},
+            {"ctx": ctx.vida, "constancia": conVL, "proforma": endVL}
+        ]
+
         for r in RAMOS:
 
-            ctx_ramo = r["ctx"]
-            ramo = r["ramo"]
-            constancia = r["constancia"]
-            proforma = r["proforma"]
-            id_mov = ctx_ramo.id_poliza
+            try:
 
-            if not id_mov:
-                continue    
+                ctx_ramo = r["ctx"]
+                constancia = r["constancia"]
+                proforma = r["proforma"]
+                id_mov = ctx_ramo.id_poliza
 
-            logging.info("-----------------------------")
+                if not id_mov:
+                    continue    
 
-            enviar_estaca_si_aplica(id_mov, ramo, constancia, proforma)
-            time.sleep(1)
+                logging.info("-----------------------------")
 
-            tipo_error, detalle_error = obtener_error(ramo)
-
-            if not (tipo_error and detalle_error):
-
-                enviar_docs(id_mov,ramo,ctx_ramo,constancia,proforma)
+                enviar_estaca_si_aplica(id_mov,ctx_ramo,constancia,proforma)
                 time.sleep(1)
-                continue
+                tipo_error, detalle_error = obtener_error(ctx_ramo)
 
-            const = ("SCTR" if ramo in ("SALUD", "PENSION") else "VIDALEY")
+                if not (tipo_error and detalle_error):
+                    enviar_docs(id_mov,ctx_ramo,constancia,proforma)
+                    time.sleep(1)
+                    continue
 
-            logging.info(f"⌛ Enviando error '{ramo}' → {id_mov}")
+                const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
 
-            enviar_error_movimiento(id_mov,ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
+                logging.info(f"⌛ Enviando error '{ctx_ramo.ramo}' → {id_mov}")
 
-            enviar_general = True
-            guardar_error = True
+                enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
-            if ramo in ("SALUD", "PENSION"):
+                enviar_general = True
+                guardar_error = True
 
-                if error_sctr_enviado:
-                    enviar_general = False
-                    guardar_error = False
-                else:
-                    error_sctr_enviado = True
+                if ctx_ramo.ramo in ("SALUD", "PENSION"):
 
-            if guardar_error:
-                errores_detallados.append(f"{ramo} : {detalle_error}")
+                    if error_sctr_enviado:
+                        enviar_general = False
+                        guardar_error = False
+                    else:
+                        error_sctr_enviado = True
 
-            if enviar_general:
-                enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_archivos_x_inclu,const)
+                if guardar_error:
+                    errores_detallados.append(f"{ctx_ramo.ramo} : {detalle_error}")
 
-            time.sleep(1)
+                if enviar_general:
+                    enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,detalle_error,ruta_archivos_x_inclu,const)
 
-            enviar_docs(id_mov,ramo,ctx_ramo,constancia,proforma)
+                time.sleep(1)
 
-            time.sleep(1)
+                enviar_docs(id_mov,ctx_ramo,constancia,proforma)
+
+                time.sleep(1)
+
+            except Exception as e:
+                logging.warning(f"⚠️ Error al procesar los envios para {ctx_ramo.ramo} → {e}")
 
         if errores_detallados:
 

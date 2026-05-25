@@ -16,7 +16,7 @@ copias_lista = copia_venv.split(",") if copia_venv else []
 ruta_plantilla = "/app/Codigo/Plantillas/Correo"
 env = Environment(loader=FileSystemLoader(ruta_plantilla))
 
-def enviar_error_general(cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_carpeta,const):
+def enviar_error_general(cliente,ctx_ramo,palabra_clave,detalle_error,ruta_carpeta,const):
 
     template = env.get_template("error.html")
 
@@ -40,7 +40,7 @@ def enviar_error_general(cliente,ctx_ramo,palabra_clave,ramo,detalle_error,ruta_
         titulo=f"⚠️ Problemas en la {palabra_clave}",
         cliente=cliente,
         poliza=ctx_ramo.poliza,
-        rhumano=ramo.capitalize(),
+        rhumano=ctx_ramo.ramo.capitalize(),
         detalle_error=str(detalle_error),
         compania=ctx_ramo.compania.capitalize(),
         sede=ctx_ramo.sede,

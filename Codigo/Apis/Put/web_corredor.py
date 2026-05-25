@@ -78,14 +78,14 @@ def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma
     except Exception as e:
         logging.error(f"❌ Error conectando al API para actualizar | Movimiento {id_movimiento} | Ramo {ramo} | {e}")
 
-def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error,ruta_carpeta,const):
+def enviar_error_movimiento(id_movimiento, ctx_ramo, error, detalle_error,ruta_carpeta,const):
 
     url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/error"
 
     imagenes = obtener_imagenes_error(ruta_carpeta, const)
 
     payload = {
-        "ramo": ramo,
+        "ramo": ctx_ramo.ramo,
         "error": error,
         "detalleError": str(detalle_error)
     }
@@ -97,12 +97,12 @@ def enviar_error_movimiento(id_movimiento, ramo, error, detalle_error,ruta_carpe
         response = requests.put(url,json=payload,headers=headers,timeout=30)
 
         if response.status_code in (200, 201, 204):
-            logging.info(f"✅ Error registrado correctamente | Movimiento {id_movimiento} | Ramo {ramo}")
+            logging.info(f"✅ Error registrado correctamente | Movimiento {id_movimiento} | Ramo {ctx_ramo.ramo}")
         else:
             logging.error(f"❌ Problemas en el registro de error | Movimiento {id_movimiento} " f"| Status {response.status_code} | Resp {response.text}")
 
     except Exception as e:
-        logging.error(f"❌ Error conectando al API para registrar 'errores' | Movimiento {id_movimiento} | Ramo {ramo} | {e}")
+        logging.error(f"❌ Error conectando al API para registrar 'errores' | Movimiento {id_movimiento} | Ramo {ctx_ramo.ramo} | {e}")
 
 def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
    
