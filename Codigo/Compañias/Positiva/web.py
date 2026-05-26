@@ -426,43 +426,39 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     click_boton_seguro(btn_procesar_locator)
     logging.info("🖱️ Clic en Procesar")
     
-    texto_mensaje = ""
-
     if tipo_proceso == 'IN':
-
         btn_si = (By.ID, "ContentPlaceHolder1_btnIncluirSi")
         mensaje = (By.ID, "spanAlertaInclusion")
-
-        resultado7 = wait.until(
-            EC.any_of(
-                EC.element_to_be_clickable(btn_si),
-                EC.visibility_of_element_located(mensaje)
-            )
-        )
-
-        elemento_id = resultado7.get_attribute("id")
-
-        if elemento_id == "ContentPlaceHolder1_btnIncluirSi":
-            resultado7.click()
-            logging.info("🖱️ Clic en Aceptar la Inclusión")
-
-        texto_mensaje = wait.until(EC.visibility_of_element_located(mensaje)).text
-
     else:
-
-        mensaje = (By.ID, "spanAlertaRenovacion")
         btn_si = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
+        mensaje = (By.ID, "spanAlertaRenovacion")
 
-        wait.until(
-            EC.any_of(
-                EC.visibility_of_element_located(mensaje),
-                EC.element_to_be_clickable(btn_si)
-            )
-        )
+    resultado7 = wait.until(EC.element_to_be_clickable(btn_si))
+    resultado7.click()
 
-        texto_mensaje = wait.until(EC.visibility_of_element_located(mensaje)).text
-        driver.find_element(*btn_si).click()
+    if tipo_proceso == 'IN':
+        logging.info("🖱️ Clic en Aceptar la Inclusión")
+    else:
         logging.info("🖱️ Clic en Aceptar la Renovación")
+
+    resultado8 = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located(mensaje),
+            EC.visibility_of_element_located(error_modal)
+        )
+    )
+
+    elemento_id = resultado8.get_attribute("id")
+
+    # ---- Detectar modal de error ----
+    if elemento_id == "divAlertaErrorGeneral":
+
+        logging.warning("⚠️ Apareció el modal con advertencia")
+        mensaje_error = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
+        raise Exception(mensaje_error)
+
+    # ---- Flujo correcto ----
+    texto_mensaje = resultado8.text.strip()
 
     logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
 
@@ -521,7 +517,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     )
 
     if resultadol.get_attribute("id") == "btnAceptarError":
-        raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
+        raise Exception(f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}")
 
     for _ in range(3):
         try:
