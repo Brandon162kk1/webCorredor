@@ -170,34 +170,44 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
                 EC.visibility_of_element_located(modal_incluir),
                 EC.presence_of_element_located(file_input),
                 EC.visibility_of_element_located(deuda_modal),
+                EC.presence_of_element_located(error_locator),
             )
         )
 
-        if resultado2.get_attribute("id") == "divAlertas":
+        element_id = resultado2.get_attribute("id")
+
+        if element_id == "divAlertas":
             logging.warning("⚠️ Apareció el modal con advertencia")
             mensaje = driver.find_element(By.ID, "spMensaje").text.strip()
             raise Exception(mensaje)
 
-        if resultado2.get_attribute("id") == "divTipoIncluir":
-            logging.warning("⚠️ Apareció el modal con advertencia")
+        elif element_id == "divTipoIncluir":
+            logging.warning("⚠️ Apareció modal de inclusión")
 
             btn_aceptar = wait.until(
                 EC.element_to_be_clickable(
                     (
                         By.ID,
                         "ContentPlaceHolder1_btnIncluirProformaSi"
-                        if not ramo.facturacion #tipo_mes == 'MA'
+                        if not ramo.facturacion
                         else "ContentPlaceHolder1_btnIncluirProformaNo"
                     )
                 )
             )
 
-            nom_btn = 'Si' if tipo_mes == 'MA' else 'No'
+            nom_btn = 'Si' if not ramo.facturacion else 'No'
             btn_aceptar.click()
             logging.info(f"🖱️ Clic en {nom_btn}")
 
-        input_file = wait.until(EC.presence_of_element_located(file_input))
-        logging.info("⌛ Página de carga lista (Trama)")
+            input_file = wait.until(EC.presence_of_element_located(file_input))
+
+        elif element_id == "fuPlanillaAjax":
+            logging.info("⌛ Página de carga lista (Trama)")
+            input_file = resultado2
+
+        else:
+            logging.error(f"⚠️ Elemento inesperado: {element_id}")
+            raise Exception("Lo sentimos, ha ocurrido un error inesperado")
 
         input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniFecVigInc")))
         input_fecha.clear()

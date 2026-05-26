@@ -580,7 +580,10 @@ def main():
 
             texto_errores = "\n".join(errores_detallados)
             logging.info("-----------------------------")
-            enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo)
+            try:
+                enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
+            except Exception as e:
+                logging.error(f"Fallo aca :{e}")
 
 if __name__ == "__main__":
     main()

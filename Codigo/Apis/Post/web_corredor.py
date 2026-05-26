@@ -2,6 +2,8 @@ import requests
 import logging
 import os
 
+from LinuxDebian.Carpetas.rutas import obtener_imagenes_error
+
 # --- Variables de Entorno ---
 API_KEY = os.getenv("API_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL") 
@@ -12,15 +14,20 @@ headers = {
     "X-Api-Key": API_KEY
 }
 
-def enviar_nota_movimiento(id_movimiento,detalle_error,correo):
+def enviar_nota_movimiento(id_movimiento,detalle_error,correo,ruta_carpeta,const):
 
     url = f"{API_BASE_URL}/api/movimiento/registrar-nota"
 
+    imagenes = obtener_imagenes_error(ruta_carpeta, const)
+
     payload = {
-        "movimientoId": id_movimiento,
-        "contenido": str(detalle_error),
-        "usuarioNombre": correo
+        "MovimientoId": id_movimiento,
+        "Contenido": str(detalle_error),
+        "UsuarioNombre": correo
     }
+
+    if imagenes:
+        payload["ImagenBase64"] = imagenes
 
     try:
         response = requests.post(url,json=payload,headers=headers,timeout=30)
