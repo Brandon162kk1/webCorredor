@@ -435,42 +435,98 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     click_boton_seguro(btn_procesar_locator)
     logging.info("🖱️ Clic en Procesar")
-    
+
     if tipo_proceso == 'IN':
+
         btn_si = (By.ID, "ContentPlaceHolder1_btnIncluirSi")
         mensaje = (By.ID, "spanAlertaInclusion")
+
+        resultado7 = wait.until(EC.element_to_be_clickable(btn_si))
+        resultado7.click()
+
+        logging.info("🖱️ Clic en Aceptar la Inclusión")
+
+        resultado8 = wait.until(
+            EC.any_of(
+                EC.visibility_of_element_located(mensaje),
+                EC.visibility_of_element_located(error_modal)
+            )
+        )
+
+        elemento_id = resultado8.get_attribute("id")
+
+        if elemento_id == "divAlertaErrorGeneral":
+
+            logging.warning("⚠️ Apareció el modal con advertencia")
+            mensaje_error = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
+            raise Exception(mensaje_error)
+
+        texto_mensaje = resultado8.text.strip()
+        logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
+
     else:
+
         btn_si = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
         mensaje = (By.ID, "spanAlertaRenovacion")
 
-    resultado7 = wait.until(EC.element_to_be_clickable(btn_si))
-    resultado7.click()
+        resultado7 = wait.until(EC.visibility_of_element_located(mensaje))
 
-    if tipo_proceso == 'IN':
-        logging.info("🖱️ Clic en Aceptar la Inclusión")
-    else:
+        texto_mensaje = resultado7.text.strip()
+
+        logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
+
+        btn_aceptar = wait.until(EC.element_to_be_clickable(btn_si))
+        btn_aceptar.click()
         logging.info("🖱️ Clic en Aceptar la Renovación")
 
-    resultado8 = wait.until(
-        EC.any_of(
-            EC.visibility_of_element_located(mensaje),
-            EC.visibility_of_element_located(error_modal)
+        resultado8 = wait.until(
+            EC.any_of(
+                EC.visibility_of_element_located(error_modal),
+                EC.invisibility_of_element_located(btn_si)
+            )
         )
-    )
 
-    elemento_id = resultado8.get_attribute("id")
+        if not isinstance(resultado8, bool):
+            logging.warning("⚠️ Apareció el modal con advertencia")
+            mensaje_error = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
+            raise Exception(mensaje_error)
+    #------------------
 
-    # ---- Detectar modal de error ----
-    if elemento_id == "divAlertaErrorGeneral":
+    # if tipo_proceso == 'IN':
+    #     btn_si = (By.ID, "ContentPlaceHolder1_btnIncluirSi")
+    #     mensaje = (By.ID, "spanAlertaInclusion")
+    # else:
+    #     btn_si = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
+    #     mensaje = (By.ID, "spanAlertaRenovacion")
 
-        logging.warning("⚠️ Apareció el modal con advertencia")
-        mensaje_error = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
-        raise Exception(mensaje_error)
+    # resultado7 = wait.until(EC.element_to_be_clickable(btn_si))
+    # resultado7.click()
 
-    # ---- Flujo correcto ----
-    texto_mensaje = resultado8.text.strip()
+    # if tipo_proceso == 'IN':
+    #     logging.info("🖱️ Clic en Aceptar la Inclusión")
+    # else:
+    #     logging.info("🖱️ Clic en Aceptar la Renovación")
 
-    logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
+    # resultado8 = wait.until(
+    #     EC.any_of(
+    #         EC.visibility_of_element_located(mensaje),
+    #         EC.visibility_of_element_located(error_modal)
+    #     )
+    # )
+
+    # elemento_id = resultado8.get_attribute("id")
+
+    # # ---- Detectar modal de error ----
+    # if elemento_id == "divAlertaErrorGeneral":
+
+    #     logging.warning("⚠️ Apareció el modal con advertencia")
+    #     mensaje_error = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
+    #     raise Exception(mensaje_error)
+
+    # # ---- Flujo correcto ----
+    # texto_mensaje = resultado8.text.strip()
+
+    # logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
 
     numero_doc = None
 
