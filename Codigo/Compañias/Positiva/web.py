@@ -1028,6 +1028,11 @@ def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
 
             ruta_pdf_errores = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
             error_pdf = leer_pdf(ruta_pdf_errores)
+
+            rutaFinal_pdf_errores = os.path.join(ruta_archivos_x_inclu, f"errores_{ramo.poliza}.pdf")
+            os.rename(ruta_pdf_errores, rutaFinal_pdf_errores)
+            logging.info(f"🔄 Constancia renombrado a 'errores_{ramo.poliza}.pdf'")
+
             raise Exception(f"{error_pdf}")
 
         elif mensaje.startswith("Se ha registrado la solicitud correctamente."):
@@ -1510,12 +1515,26 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             # change_password = (By.ID, "b5-b22-ChangePassword")
             # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
             autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
+            error_screen_locator = (By.ID,"error-screen-message-text")
 
             try:
-                autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
+
+                resultado0 = wait.until(
+                    EC.any_of(
+                        EC.element_to_be_clickable(autogestion_locator),
+                        EC.visibility_of_element_located(error_screen_locator)
+                    )
+                )
+
+                if resultado0.get_attribute("id") == "error-screen-message-text":
+
+                    texto_error = resultado0.text.strip()
+                    raise Exception(texto_error)
+
+                #autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
                 login_exitoso = True
                 logging.info("✅ Login exitoso")
-                driver.execute_script("arguments[0].click();", autogestion)
+                driver.execute_script("arguments[0].click();", resultado0) #autogestion
                 logging.info("🖱️ Clic en Autogestión")
                 ventana_menu_positiva = driver.current_window_handle
             except TimeoutException:
