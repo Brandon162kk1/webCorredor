@@ -10,6 +10,7 @@ from Tiempo.fechas_horas import get_fecha_hoy,time_espera_alea
 from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,leer_pdf
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
+from Apis.Get.metodos import codigo_compania
 #---- Import ---
 import os
 import re
@@ -21,6 +22,9 @@ import pandas as pd
 # --- Variables globales ---
 ventana_menu_positiva = None
 login_exitoso = False
+
+url_api_cod_pos = os.getenv("url_api_cod_pos")
+API_KEY_POSITIVA = os.getenv("API_KEY_POSITIVA")
 
 def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
     
@@ -562,8 +566,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     elif len(list_polizas) == 1 and ba_codigo == '2':
         selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
     else:
-        selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
-        #selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
+        #selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
+        selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
 
     #span = wait.until(EC.visibility_of_element_located(( By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
 
@@ -1516,27 +1520,42 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
             autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
             error_screen_locator = (By.ID,"error-screen-message-text")
+            cod_verificacion = (By.ID, "b5-b17-Input_CodeVerification")
+            btn_validar_codigo = (By.ID, "b5-b17-b4-Button")
 
             try:
 
                 resultado0 = wait.until(
                     EC.any_of(
                         EC.element_to_be_clickable(autogestion_locator),
-                        EC.visibility_of_element_located(error_screen_locator)
+                        EC.visibility_of_element_located(error_screen_locator),
+                        EC.visibility_of_element_located(cod_verificacion)
                     )
                 )
 
-                if resultado0.get_attribute("id") == "error-screen-message-text":
+                elemento_id = resultado0.get_attribute("id")
 
+                if elemento_id == "b5-b17-Input_CodeVerification":
+
+                    logging.info("✅ Apareció input de código")
+                    resultado0.clear()
+                    codigo = codigo_compania(url_api_cod_pos,API_KEY_POSITIVA)
+                    resultado0.send_keys(codigo)
+
+                    wait.until(EC.element_to_be_clickable(btn_validar_codigo)).click()
+                    logging.info("🖱️ Clic en Validar Código")
+
+                if elemento_id == "error-screen-message-text":
                     texto_error = resultado0.text.strip()
                     raise Exception(texto_error)
 
-                #autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
-                login_exitoso = True
+                autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
                 logging.info("✅ Login exitoso")
-                driver.execute_script("arguments[0].click();", resultado0) #autogestion
+                driver.execute_script("arguments[0].click();", autogestion)
+                login_exitoso = True
                 logging.info("🖱️ Clic en Autogestión")
                 ventana_menu_positiva = driver.current_window_handle
+
             except TimeoutException:
                 raise Exception("Problemas en el Inicio de Sesión, comunícate con el ejecutivo responsable para reprocesarlo")
 

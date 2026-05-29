@@ -1,4 +1,4 @@
-﻿# Dockerfile.base - entorno gráfico + VNC + Chrome
+# Dockerfile.base - entorno gráfico + VNC + Chrome
 FROM python:3.11-bullseye
 
 # ----------------------------
@@ -27,20 +27,41 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ----------------------------
 # Instalar Google Chrome
 # ----------------------------
-RUN wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && apt-get update \
-    && apt-get install -y /tmp/chrome.deb \
-    && rm /tmp/chrome.deb \
-    && rm -rf /var/lib/apt/lists/*
+#RUN wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+#    && apt-get update \
+#    && apt-get install -y /tmp/chrome.deb \
+#    && rm /tmp/chrome.deb \
+#    && rm -rf /var/lib/apt/lists/*
+
+# ----------------------------
+# Instalar Google Chrome (FIJO 145)
+# ----------------------------
+ENV CHROME_VERSION=145.0.7632.109
+
+RUN wget -O /tmp/chrome.zip \
+    https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip \
+    && unzip /tmp/chrome.zip -d /opt/ \
+    && ln -s /opt/chrome-linux64/chrome /usr/bin/google-chrome \
+    && rm /tmp/chrome.zip
 
 # ----------------------------
 # Instalar ChromeDriver
 # ----------------------------
-RUN wget https://storage.googleapis.com/chrome-for-testing-public/145.0.7632.67/linux64/chromedriver-linux64.zip \
-    && unzip chromedriver-linux64.zip \
-    && mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+#RUN wget https://storage.googleapis.com/chrome-for-testing-public/145.0.7632.67/linux64/chromedriver-linux64.zip \
+#    && unzip chromedriver-linux64.zip \
+#    && mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+#    && chmod +x /usr/local/bin/chromedriver \
+#    && rm -rf chromedriver-linux64*
+
+# ----------------------------
+# Instalar ChromeDriver (FIJO 145)
+# ----------------------------
+RUN wget -O /tmp/chromedriver.zip \
+    https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip \
+    && unzip /tmp/chromedriver.zip -d /opt/ \
+    && mv /opt/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
     && chmod +x /usr/local/bin/chromedriver \
-    && rm -rf chromedriver-linux64*
+    && rm /tmp/chromedriver.zip
 
 # ----------------------------
 # Instalar noVNC y websockify
