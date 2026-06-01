@@ -60,9 +60,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         poliza_input.clear()
         poliza_input.send_keys(ramo.poliza)
         logging.info(f"✅ Se ingresó la póliza '{ramo.poliza}'")
-
     else:
-        logging.error("❌ Error en la web detectado")
         raise Exception("Lo sentimos, ha ocurrido un error inesperado")
 
     buscar_btn = wait.until(EC.element_to_be_clickable((By.ID, "ContentPlaceHolder1_btnBuscar")))
@@ -208,9 +206,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         elif element_id == "fuPlanillaAjax":
             logging.info("⌛ Página de carga lista (Trama)")
             input_file = resultado2
-
         else:
-            logging.error(f"⚠️ Elemento inesperado: {element_id}")
             raise Exception("Lo sentimos, ha ocurrido un error inesperado")
 
         input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "ContentPlaceHolder1_txtIniFecVigInc")))
@@ -403,8 +399,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         logging.info("✅ Proceso completado al 100%")
         wait.until(EC.invisibility_of_element_located((By.ID, "ID_MODAL_PROCESS")))
 
-    #----------------------------------------------------------------
-
     btn_calcular_locator = (By.ID, "ContentPlaceHolder1_btnCalcular")
     btn_procesar_locator = (By.ID, "ContentPlaceHolder1_btnProcesar")
 
@@ -494,43 +488,6 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             logging.warning("⚠️ Apareció el modal con advertencia")
             mensaje_error = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
             raise Exception(mensaje_error)
-    #------------------
-
-    # if tipo_proceso == 'IN':
-    #     btn_si = (By.ID, "ContentPlaceHolder1_btnIncluirSi")
-    #     mensaje = (By.ID, "spanAlertaInclusion")
-    # else:
-    #     btn_si = (By.ID, "ContentPlaceHolder1_btnAceptarRenovacion")
-    #     mensaje = (By.ID, "spanAlertaRenovacion")
-
-    # resultado7 = wait.until(EC.element_to_be_clickable(btn_si))
-    # resultado7.click()
-
-    # if tipo_proceso == 'IN':
-    #     logging.info("🖱️ Clic en Aceptar la Inclusión")
-    # else:
-    #     logging.info("🖱️ Clic en Aceptar la Renovación")
-
-    # resultado8 = wait.until(
-    #     EC.any_of(
-    #         EC.visibility_of_element_located(mensaje),
-    #         EC.visibility_of_element_located(error_modal)
-    #     )
-    # )
-
-    # elemento_id = resultado8.get_attribute("id")
-
-    # # ---- Detectar modal de error ----
-    # if elemento_id == "divAlertaErrorGeneral":
-
-    #     logging.warning("⚠️ Apareció el modal con advertencia")
-    #     mensaje_error = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
-    #     raise Exception(mensaje_error)
-
-    # # ---- Flujo correcto ----
-    # texto_mensaje = resultado8.text.strip()
-
-    # logging.info(f"📩 Texto del mensaje: {texto_mensaje}")
 
     numero_doc = None
 
@@ -561,6 +518,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     span_numero = wait.until(EC.visibility_of_element_located((By.XPATH,f"//span[contains(text(),'{codigo_documento}')]")))
     logging.info(f"✅ Span encontrado: {span_numero.text}")
 
+    #Mejorar esto si se cae el sistema
+
     if len(list_polizas) == 1 and ba_codigo == '1':
         selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
     elif len(list_polizas) == 1 and ba_codigo == '2':
@@ -570,21 +529,22 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
 
     #span = wait.until(EC.visibility_of_element_located(( By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
-
     #bloque = span_numero.find_element(By.XPATH, "./ancestor::div[1]")
-
     #lupa = bloque.find_element(By.XPATH,f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]")
-
     #lupa = span_numero.find_element(By.XPATH,f".//ancestor::tr//img[contains(@data-nropolizasalud,'{list_polizas[0]}') or contains(@data-nropolizapension,'{list_polizas[0]}')]")
+
     lupa = (By.XPATH, selector_xpath)
     error_btn = (By.ID, "btnAceptarError")
 
-    resultadol = wait.until(
-        EC.any_of(
-            EC.element_to_be_clickable(lupa),
-            EC.element_to_be_clickable(error_btn)
+    try:
+        resultadol = wait.until(
+            EC.any_of(
+                EC.element_to_be_clickable(lupa),
+                EC.element_to_be_clickable(error_btn)
+            )
         )
-    )
+    except TimeoutException:
+        raise Exception(f"Problemas en la compañía, buscar y descargar los documentos : {codigo_documento}")
 
     if resultadol.get_attribute("id") == "btnAceptarError":
         raise Exception(f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}")
@@ -661,8 +621,25 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     btn_cancelar_boton.click()
     logging.info("✅ Cerrando panel de documentos")
 
-    wait.until(EC.invisibility_of_element_located((By.ID, "divPanelPDFMaster")))
-    logging.info("📴 Panel PDF cerrado correctamente")
+    try:
+        # wait.until(EC.invisibility_of_element_located((By.ID, "divPanelPDFMaster")))
+        # logging.info("📴 Panel PDF cerrado correctamente")
+
+        modal_pdf = (By.ID, "divPanelPDFMaster")
+        resultadof = wait.until(
+            EC.any_of(
+                EC.invisibility_of_element_located(modal_pdf),
+                EC.presence_of_element_located(error_locator2)
+            )
+        )
+
+        if resultadof.get_attribute("id") == "divPanelPDFMaster":
+            logging.info("📴 Panel PDF cerrado correctamente")
+        else:
+            pass
+
+    except TimeoutException:
+        pass
 
     logging.info(f"✅ {palabra_clave} realizada exitosamente")
 
@@ -1078,7 +1055,6 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     time.sleep(5)
 
     icon = wait.until( EC.element_to_be_clickable((By.CLASS_NAME, "icon-menuside-right-arrow")))
-
     actions = ActionChains(driver)
     actions.move_to_element(icon).click().perform()
     logging.info("🖱️ Clic en el Menú despegable de la izquierda")
@@ -1089,9 +1065,8 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
         transacciones_span = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Transacciones']")))
         transacciones_span.click()
         logging.info("🖱️ Clic en Transacciones")
-        time.sleep(3)
     except Exception as e:
-        raise str(e)
+        raise Exception(f"Problemas en la compañía, reprocesarlo")
     finally:
         time.sleep(3)
 
@@ -1101,7 +1076,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
         input_element.send_keys(ramo.poliza)
         logging.info(f"✅ Numero de Póliza ingresado: {ramo.poliza}")
     except Exception as e:
-        raise str(e)
+        raise Exception(f"Problemas en la compañía, reprocesarlo")
     finally:
         time.sleep(3)
 
