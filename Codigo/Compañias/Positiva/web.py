@@ -1324,16 +1324,20 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
             texto = resultado5.text.lower()
 
     if "lo sentimos" in texto:
+
+        tit = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[contains(., 'Lo sentimos')]")))
+
+        con = wait.until(EC.visibility_of_element_located((By.XPATH,"//span[contains(., 'Estamos presentando intermitencia en nuestros servicios')]")))
+
         # tit = driver.find_element(By.ID, "b13-b1-b5-TextTitlevalue").text
         # con = driver.find_element(By.ID, "b13-b1-b5-TextContentValue").text
-        tit = driver.find_element(By.ID, "b13-b1-b15-TextTitlevalue").text
-        con = driver.find_element(By.ID, "b13-b1-b15-TextContentValue").text
-        raise Exception(f"{tit} \n{con}")
+
+        # tit = driver.find_element(By.ID, "b13-b1-b15-TextTitlevalue").text
+        # con = driver.find_element(By.ID, "b13-b1-b15-TextContentValue").text
+        raise Exception(f"{tit.text} \n{con.text}")
 
     elif "encontramos algunos errores" in texto:
 
-        #btn_des_obs = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-b11-b3-btnObserv")))
-        #btn_des_obs = wait.until(EC.element_to_be_clickable((By.ID, "b13-b1-b1-b3-btnObserv")))
         btn_des_obs = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Descargar observaciones']")))
 
         archivos_antes_des_obs = set(os.listdir(ruta_archivos_x_inclu))
