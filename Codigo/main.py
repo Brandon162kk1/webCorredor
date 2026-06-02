@@ -562,7 +562,7 @@ def main():
                         error_sctr_enviado = True
 
                 if guardar_error:
-                    errores_detallados.append(f"{ctx_ramo.ramo} : {detalle_error}")
+                    errores_detallados.append(f"{ctx_ramo.ramo.capitalize()} : {detalle_error}")
 
                 if enviar_general:
                     enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,detalle_error,ruta_archivos_x_inclu,const)

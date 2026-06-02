@@ -518,14 +518,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     span_numero = wait.until(EC.visibility_of_element_located((By.XPATH,f"//span[contains(text(),'{codigo_documento}')]")))
     logging.info(f"✅ Span encontrado: {span_numero.text}")
 
-    #Mejorar esto si se cae el sistema
-
     if len(list_polizas) == 1 and ba_codigo == '1':
         selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
     elif len(list_polizas) == 1 and ba_codigo == '2':
         selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
     else:
-        #selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' or @data-nropolizapension='{list_polizas[1]}']"
         selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
 
     #span = wait.until(EC.visibility_of_element_located(( By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
@@ -662,13 +659,14 @@ def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         logging.info("✅ Alerta aceptada")
     except:
         pass
+           
+    logging.info ("--- Se ingresó a Oficina Virtual La Positiva 🌐---")
 
     resultado,asunto = validar_pagina(driver)
 
     if not resultado:
         raise Exception (f"{asunto}")
-                
-    logging.info ("--- Se ingresó a Oficina Virtual La Positiva 🌐---")
+
     action = ActionChains(driver)
 
     emision = wait.until(EC.visibility_of_element_located((By.ID, "stUIUserOV3_img")))

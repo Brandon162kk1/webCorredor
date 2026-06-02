@@ -1,4 +1,4 @@
-﻿# Imagen base con Chrome y noVNC
+# Imagen base con Chrome y noVNC
 FROM chromedriver:stable
 
 # Crear carpetas necesarias
@@ -16,9 +16,8 @@ COPY Codigo/ /app/Codigo
 # Copiar supervisord.conf
 COPY supervisord.conf /app/
 
-# Workdir y usuario
+# Workdir
 WORKDIR /app
-USER user1
 
 # CMD para levantar supervisord
 CMD ["supervisord", "-c", "/app/supervisord.conf"]

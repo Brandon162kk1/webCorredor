@@ -104,6 +104,22 @@ def validar_pagina(driver):
 
     page = driver.page_source
 
+    # Error de Chrome: conexión reseteada
+    if "ERR_CONNECTION_RESET" in page:
+        return False, "Chrome: ERR_CONNECTION_RESET"
+
+    # Otros errores de Chrome
+    errores_chrome = [
+        "ERR_CONNECTION_TIMED_OUT",
+        "ERR_NAME_NOT_RESOLVED",
+        "ERR_CONNECTION_REFUSED",
+        "ERR_INTERNET_DISCONNECTED"
+    ]
+
+    for error in errores_chrome:
+        if error in page:
+            return False, f"Chrome: {error}"
+
     if "The requested URL was rejected. Please consult with your administrator." in page:
         return False, "Página web de La Positiva fuera de Servicio"
 

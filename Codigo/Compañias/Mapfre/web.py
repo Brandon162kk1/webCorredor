@@ -30,20 +30,15 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
     driver.execute_script("arguments[0].click();", opcion)
     logging.info(f"🖱️ Clic en '{ramo_opcion}'")
 
-    try:
+    label = wait.until(EC.element_to_be_clickable((By.XPATH, "//mat-label[normalize-space()='Nro. Póliza']")))
+    driver.execute_script("arguments[0].click();", label)
+    time.sleep(2)
+    logging.info("🖱️ Clic en el # de Póliza")
 
-        label = wait.until(EC.element_to_be_clickable((By.XPATH, "//mat-label[normalize-space()='Nro. Póliza']")))
-        driver.execute_script("arguments[0].click();", label)
-        time.sleep(2)
-        logging.info("🖱️ Clic en el # de Póliza")
-
-        input_poliza = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@name='nNumPolizaFilter']")))
-        input_poliza.clear()
-        input_poliza.send_keys(ramo.poliza)
-        logging.info(f"⌨️ Digitando {ramo.poliza}")
-
-    except Exception as e:
-        logging.info(f"❌ No se pudo escribir en el input: {e}")
+    input_poliza = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@name='nNumPolizaFilter']")))
+    input_poliza.clear()
+    input_poliza.send_keys(ramo.poliza)
+    logging.info(f"⌨️ Digitando {ramo.poliza}")
 
     boton_filtrar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Filtrar']")))
     driver.execute_script("arguments[0].click();", boton_filtrar)
@@ -382,7 +377,7 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
                 logging.info("---------------------------------------")
                 # Capturar tipo de documento y número de documento
                 tipo_doc = item.find_element(By.CSS_SELECTOR, "div.info > p").text.strip()
-                logging.info(f"Documento: {tipo_doc}")
+                logging.info(f"📄 Documento: {tipo_doc}")
                 # Verificar si tipo_doc está en multiplicadores y definir nombre
                 if tipo_doc in alias:
                     nombre_guardar = f"{alias[tipo_doc]}"
@@ -407,8 +402,6 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
                     ruta_final = os.path.join(ruta_archivos_x_inclu, f"{nombre_guardar}.pdf")
                     os.rename(ruta_original, ruta_final)
                     logging.info(f"🔄 Archivo renombrado a '{nombre_guardar}.pdf'")
-                else:
-                    raise Exception("No se encontró archivo después de la descarga")
 
             except Exception as e:
                 logging.error(f"❌ Error en fila {idx} ({tipo_doc if 'tipo_doc' in locals() else 'Desconocido'}): {e}")
@@ -454,7 +447,8 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
         logging.info("🖱️ Clic en el botón 'Enviar'")
  
     except Exception as e:
-        raise Exception(f" No se pudo enviar documento | Motivo: {e}")
+        logging.warning(f"⚠️ Problemas al enviar los documentos por correo: {e}")
+        #raise Exception(f" No se pudo enviar documentos por correo")
 
     # if ba_codigo == '3' and tipo_mes == 'MA':
         

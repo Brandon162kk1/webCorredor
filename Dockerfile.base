@@ -70,19 +70,25 @@ RUN git clone --depth 1 https://github.com/novnc/noVNC.git /opt/novnc \
     && git clone --depth 1 https://github.com/novnc/websockify /opt/websockify \
     && ln -s /opt/novnc/vnc.html /opt/novnc/index.html
 
-# ----------------------------
+# Crear directorios de aplicación
+RUN mkdir -p /app/Downloads
+
+WORKDIR /app
+
+# ------ Todo esto si se desea crear user1-----------
 # Crear usuario sin privilegios
 # ----------------------------
-RUN useradd -m -s /bin/bash user1
+#RUN useradd -m -s /bin/bash user1
 
 # ----------------------------
 # Crear directorios de aplicación
 # ----------------------------
-RUN mkdir -p /app/Downloads \
-    && chown -R user1:user1 /app /opt/novnc /opt/websockify
+#RUN mkdir -p /app/Downloads \
+    #&& chown -R user1:user1 /app /opt/novnc /opt/websockify
 
 # ----------------------------
 # Cambiar a usuario no-root
 # ----------------------------
-USER user1
-WORKDIR /app
+#USER user1
+#WORKDIR /app
+# ----------------------------
