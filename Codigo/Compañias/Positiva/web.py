@@ -23,6 +23,7 @@ import pandas as pd
 ventana_menu_positiva = None
 login_exitoso = False
 
+url_Positiva = os.getenv("url_Positiva")
 url_api_cod_pos = os.getenv("url_api_cod_pos")
 API_KEY_POSITIVA = os.getenv("API_KEY_POSITIVA")
 
@@ -925,7 +926,7 @@ def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
         texto_alerta = alert1.text.strip()
 
         if "Esta seguro de registrar la Solicitud, luego de ello no podrá ser modificada." not in texto_alerta:
-            logging.info(f"⚠️ Alerta : {texto_alerta}")
+            logging.warning(f"⚠️ Alerta : {texto_alerta}")
             alert1.accept()
             logging.info("✅ Alerta aceptada")
             raise Exception(texto_alerta)
@@ -1053,8 +1054,9 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     time.sleep(5)
 
     icon = wait.until( EC.element_to_be_clickable((By.CLASS_NAME, "icon-menuside-right-arrow")))
-    actions = ActionChains(driver)
-    actions.move_to_element(icon).click().perform()
+    driver.execute_script("arguments[0].click();", icon)
+    # actions = ActionChains(driver)
+    # actions.move_to_element(icon).click().perform()
     logging.info("🖱️ Clic en el Menú despegable de la izquierda")
 
     time.sleep(3)
@@ -1462,10 +1464,11 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
         try:
 
             logging.info("----------------------------")
-            driver.get('https://web.lapositiva.com.pe/sso_login_ui/')
+            driver.get(url_Positiva)
             logging.info("⌛ Cargando la Web de Positiva")
-     
-            user_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
+
+            id_usuario = (By.ID, "b5-Input_User")
+            user_field = wait.until(EC.presence_of_element_located(id_usuario))
             user_field.clear()
 
             mover_y_hacer_click_simple(driver, user_field)
@@ -1492,7 +1495,7 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             logging.info("🖱️ Clic en Iniciar Sesión")
 
             # blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]")
-            # error_login = (By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")
+            #error_login = (By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")
             # change_password = (By.ID, "b5-b22-ChangePassword")
             # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
             autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
@@ -1500,17 +1503,29 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             cod_verificacion = (By.ID, "b5-b17-Input_CodeVerification")
             btn_validar_codigo = (By.ID, "b5-b17-b4-Button")
 
+            def usuario_vacio(driver):
+                try:
+                    elem = driver.find_element(By.ID, "b5-Input_User")
+                    return elem if elem.get_attribute("value") == "" else False
+                except:
+                    return False
+
             try:
 
                 resultado0 = wait.until(
                     EC.any_of(
                         EC.element_to_be_clickable(autogestion_locator),
                         EC.visibility_of_element_located(error_screen_locator),
-                        EC.visibility_of_element_located(cod_verificacion)
+                        EC.visibility_of_element_located(cod_verificacion),
+                        usuario_vacio
                     )
                 )
 
                 elemento_id = resultado0.get_attribute("id")
+
+                if elemento_id == "b5-Input_User":
+                    logging.warning("⚠️ Se regresó a la pantalla de login")
+                    raise Exception("Usuario o contraseña incorrectos, reprocesar")
 
                 if elemento_id == "b5-b17-Input_CodeVerification":
 
