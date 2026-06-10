@@ -151,3 +151,23 @@ def enviar_documentos(id_movimiento,ruta_pdf,ramo,tipoDocumento):
 
     except Exception as e:
         logging.error(f"❌ Error enviando documento | Movimiento {id_movimiento} | {e}")
+
+def update_password_cia(password,ramo):
+
+    url = f"{API_BASE_URL}/api/movimiento/" #{id_movimiento}/error"
+
+    payload = {
+        "usuario": ramo.usuario,
+        "password": password
+    }
+
+    try:
+        response = requests.put(url,json=payload,headers=headers,timeout=30)
+
+        if response.status_code in (200, 201, 204):
+            logging.info(f"✅ Contraseña actualizada en WebCorredor")
+        else:
+            logging.error(f"❌ Problemas en actualizar la contraseña " f"| Status {response.status_code} | Resp {response.text}")
+
+    except Exception as e:
+        logging.error(f"❌ Error conectando al API para actualizar la contraseña | {e}")

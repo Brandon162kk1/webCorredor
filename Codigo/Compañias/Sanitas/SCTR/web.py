@@ -469,7 +469,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 logging.warning(f"⚠️ Apareció el modal con advertencia")
                 raise Exception(f"{span_txt_modal}")
 
-            elif resultado_confirmar.get_attribute("id") == "MessageBoxWithScroll":
+            elif resultado_confirmar.get_attribute("id") == "ConfirmationMessageBox":
                 logging.warning(f"⚠️ Apareció el modal con advertencia de retroactividad")
                 btn_si = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@onclick, \"data-dialog-response', 'YES'\")]")))
                 btn_si.click()

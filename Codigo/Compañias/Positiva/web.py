@@ -11,6 +11,7 @@ from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lent
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
 from Apis.Get.metodos import codigo_compania
+from Apis.Put.web_corredor import update_password_cia
 #---- Import ---
 import os
 import re
@@ -25,6 +26,7 @@ login_exitoso = False
 
 url_Positiva = os.getenv("url_Positiva")
 url_api_cod_pos = os.getenv("url_api_cod_pos")
+url_api_pas_pos = os.getenv("url_api_pas_pos")
 API_KEY_POSITIVA = os.getenv("API_KEY_POSITIVA")
 
 def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
@@ -1495,8 +1497,11 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             logging.info("🖱️ Clic en Iniciar Sesión")
 
             # blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]")
+
+            #--- Para cambiar contraseña ---
             #error_login = (By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")
-            # change_password = (By.ID, "b5-b22-ChangePassword")
+            change_password = (By.ID, "b5-b22-ChangePassword")
+
             # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
             autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
             error_screen_locator = (By.ID,"error-screen-message-text")
@@ -1517,6 +1522,7 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                         EC.element_to_be_clickable(autogestion_locator),
                         EC.visibility_of_element_located(error_screen_locator),
                         EC.visibility_of_element_located(cod_verificacion),
+                        EC.element_to_be_clickable(change_password),
                         usuario_vacio
                     )
                 )
@@ -1526,6 +1532,38 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                 if elemento_id == "b5-Input_User":
                     logging.warning("⚠️ Se regresó a la pantalla de login")
                     raise Exception("Usuario o contraseña incorrectos, reprocesar")
+
+                if elemento_id == "b5-b22-ChangePassword":
+
+                    raise Exception("Contraseña expirada, se requiere cambio de contraseña")
+
+                    # logging.warning("⚠️ Se detectó la necesidad de cambio de contraseña")
+                    # resultado0.click()
+                    # logging.info("🖱️ Clic en 'Cambiar Contraseña'")
+
+                    # continuar = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[.//div[contains(@class,'btn-label') and normalize-space()='Continuar']]")))
+                    # continuar.click()
+                    # logging.info("🖱️ Clic en 'Continuar'")
+
+                    # input_cd_vef = wait.until(EC.visibility_of_element_located((By.ID, "b5-Input_CodeVerification")))
+                    # logging.info("✅ Apareció input de código")
+                    # input_cd_vef.clear()
+                    # codigo = codigo_compania(url_api_cod_pos,API_KEY_POSITIVA)
+                    # input_cd_vef.send_keys(codigo)
+
+                    # wait.until(EC.element_to_be_clickable(btn_validar_codigo)).click()
+                    # logging.info("🖱️ Clic en Validar Código")
+
+                    # btn_entendido = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(.,'Entendido')]")))
+                    # btn_entendido.click()
+                    # logging.info("🖱️ Clic en 'Entendido' para finalizar el proceso de cambio de contraseña")
+
+                    # # API para actualizar la contraseña en la base de datos de WebCorredor
+                    # password = codigo_compania(url_api_pas_pos,API_KEY_POSITIVA)
+
+                    # update_password_cia(password,ramo)
+
+                    # raise Exception("Se restablecio el password, reprocesar en 3 minutos aproximadamente")
 
                 if elemento_id == "b5-b17-Input_CodeVerification":
 
