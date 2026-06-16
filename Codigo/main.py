@@ -14,7 +14,7 @@ from Apis.Post.web_corredor import enviar_nota_movimiento
 from Apis.Put.web_corredor import enviar_documentos,enviar_error_movimiento,enviar_estaca
 from LinuxDebian.Ventana.ventana import enviar_puerto_por_ramos
 # -- Froms Configuración ---
-from LinuxDebian.Carpetas.rutas import armar_ruta_archivos,contar_archivos
+from LinuxDebian.Carpetas.rutas import armar_ruta_archivos,contar_archivos,obtener_imagenes_para_correo_general
 from Chrome.google import abrirDriver
 # -- Froms selenium ---
 from selenium.webdriver.support.ui import WebDriverWait
@@ -482,8 +482,6 @@ def main():
         if driver:
             driver.quit()
 
-        error_sctr_enviado = False
-
         def obtener_error(ctx_ramo):
             if ctx_ramo.ramo == "VIDALEY":
                 return tipoErrorVL, detalleErrorVL
@@ -513,6 +511,8 @@ def main():
                 enviar_documentos(id_mov, archivo, ctx_ramo.ramo, "Endoso")
 
         errores_detallados = []
+        detalle_ramos = []
+
         id_mov_general = (ctx.salud.id_poliza or ctx.pension.id_poliza or ctx.vida.id_poliza)
 
         RAMOS = [
@@ -547,43 +547,66 @@ def main():
                 const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
 
                 logging.info(f"⌛ Enviando error '{ctx_ramo.ramo}' → {id_mov}")
-
                 enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
-                enviar_general = True
-                guardar_error = True
+                errores_detallados.append(f"{ctx_ramo.ramo.capitalize()} : {detalle_error}")
 
-                if ctx_ramo.ramo in ("SALUD", "PENSION"):
+                lista_tramas = []
 
-                    if error_sctr_enviado:
-                        enviar_general = False
-                        guardar_error = False
-                    else:
-                        error_sctr_enviado = True
+                if ctx_ramo.trama:
+                    lista_tramas.append({
+                        "nombre": f"{ctx_ramo.poliza}.xlsx",
+                        "url": ctx_ramo.trama
+                    })
 
-                if guardar_error:
-                    errores_detallados.append(f"{ctx_ramo.ramo.capitalize()} : {detalle_error}")
+                if ctx_ramo.trama_97:
+                    lista_tramas.append({
+                        "nombre": f"{ctx_ramo.poliza}_97.xlsx",
+                        "url": ctx_ramo.trama_97
+                    })
 
-                if enviar_general:
-                    enviar_error_general(ctx.cliente,ctx_ramo,palabra_clave,detalle_error,ruta_archivos_x_inclu,const)
+                imagen = obtener_imagenes_para_correo_general(
+                    ruta_archivos_x_inclu,
+                    const
+                )
 
-                time.sleep(1)
+                detalle_ramos.append({
+                    "ramo": ctx_ramo.ramo.capitalize(),
+                    "poliza": ctx_ramo.poliza,
+                    "vigencia": f"{ctx_ramo.f_inicio} al {ctx_ramo.f_fin}",
+                    "compania": ctx_ramo.compania,
+                    "sede": ctx_ramo.sede,
+                    "error": detalle_error,
+                    "tramas": lista_tramas,
+                    "imagen": imagen
+
+                })
 
                 enviar_docs(id_mov,ctx_ramo,constancia,proforma)
 
-                time.sleep(1)
-
             except Exception as e:
                 logging.warning(f"⚠️ Error al procesar los envios para {ctx_ramo.ramo} → {e}")
+            finally:
+                time.sleep(1)
 
         if errores_detallados:
 
-            texto_errores = "\n".join(errores_detallados)
-            logging.info("-----------------------------")
             try:
+                logging.info("-----------------------------")
+                texto_errores = "\n".join(errores_detallados)
                 enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
             except Exception as e:
-                logging.error(f"Fallo aca :{e}")
+                logging.warning(f"⚠️ Fallo aca :{e}")
+            finally:
+                time.sleep(1)
+
+            try:
+                logging.info("-----------------------------")
+                enviar_error_general(ctx,palabra_clave,detalle_ramos)
+            except Exception as e:
+                logging.warning(f"⚠️ Fallo aca :{e}")
+            finally:
+                time.sleep(1)
 
 if __name__ == "__main__":
     main()

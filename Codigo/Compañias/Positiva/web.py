@@ -1470,50 +1470,41 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             logging.info("⌛ Cargando la Web de Positiva")
 
             id_usuario = (By.ID, "b5-Input_User")
-            user_field = wait.until(EC.presence_of_element_located(id_usuario))
+            user_field = wait.until(EC.element_to_be_clickable(id_usuario))
             user_field.clear()
-
-            mover_y_hacer_click_simple(driver, user_field)
-            
-            time_espera_alea(3,3.5)
-
+            mover_y_hacer_click_simple(driver, user_field)    
+            time_espera_alea(4,5)
             logging.info(f"⌨️ Digitando el Username")
-            escribir_lento(user_field, ramo.usuario, min_delay=0.97, max_delay=0.99)     
-            time_espera_alea(3,3.5)
+            escribir_lento(user_field, ramo.usuario, min_delay=4, max_delay=5)
+            time_espera_alea(4,5)
 
-            password_field = wait.until(EC.presence_of_element_located((By.ID, "b5-Input_PassWord")))
+            password_field = wait.until(EC.element_to_be_clickable((By.ID, "b5-Input_PassWord")))
             password_field.clear()
-
-            mover_y_hacer_click_simple(driver, password_field)
-            
-            time_espera_alea(3,3.5)
-
+            mover_y_hacer_click_simple(driver, password_field)         
+            time_espera_alea(4,5)
             logging.info(f"⌨️ Digitando el Password") 
-            escribir_lento(password_field, ramo.clave, min_delay=0.97, max_delay=0.99)         
-            time_espera_alea(3,3.5)
+            escribir_lento(password_field, ramo.clave, min_delay=4, max_delay=5)  
+            time_espera_alea(4,5)
 
             login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
             mover_y_hacer_click_simple(driver, login_button)
             logging.info("🖱️ Clic en Iniciar Sesión")
 
-            # blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]")
-
-            #--- Para cambiar contraseña ---
-            #error_login = (By.XPATH, "//span[contains(text(),'Usuario o contraseña incorrectos')]")
-            change_password = (By.ID, "b5-b22-ChangePassword")
-
-            # temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
+             #--- Opciones---
+            blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]") # Cuenta Bloqueada
+            change_password = (By.ID, "b5-b22-ChangePassword") # Posible Cambio de contraseña
+            temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
             autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
             error_screen_locator = (By.ID,"error-screen-message-text")
             cod_verificacion = (By.ID, "b5-b17-Input_CodeVerification")
             btn_validar_codigo = (By.ID, "b5-b17-b4-Button")
 
-            def usuario_vacio(driver):
-                try:
-                    elem = driver.find_element(By.ID, "b5-Input_User")
-                    return elem if elem.get_attribute("value") == "" else False
-                except:
-                    return False
+            # def usuario_vacio(driver):
+            #     try:
+            #         elem = driver.find_element(By.ID, "b5-Input_User")
+            #         return elem if elem.get_attribute("value") == "" else False
+            #     except:
+            #         return False
 
             try:
 
@@ -1523,15 +1514,13 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                         EC.visibility_of_element_located(error_screen_locator),
                         EC.visibility_of_element_located(cod_verificacion),
                         EC.element_to_be_clickable(change_password),
-                        usuario_vacio
+                        EC.visibility_of_element_located(blocked_account),
+                        EC.visibility_of_element_located(temp_blocked)
+                        #usuario_vacio
                     )
                 )
 
                 elemento_id = resultado0.get_attribute("id")
-
-                if elemento_id == "b5-Input_User":
-                    logging.warning("⚠️ Se regresó a la pantalla de login")
-                    raise Exception("Usuario o contraseña incorrectos, reprocesar")
 
                 if elemento_id == "b5-b22-ChangePassword":
 
@@ -1578,6 +1567,16 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                 if elemento_id == "error-screen-message-text":
                     texto_error = resultado0.text.strip()
                     raise Exception(texto_error)
+
+                if "Cuenta bloqueada" in resultado0.text:
+                    raise Exception(resultado0.text.strip())
+
+                if "Cuenta inhabilitada temporalmente" in resultado0.text:
+                    raise Exception(resultado0.text.strip())
+
+                # if elemento_id == "b5-Input_User":
+                #     logging.warning("⚠️ Se regresó a la pantalla de login")
+                #     raise Exception("Usuario o contraseña incorrectos, reprocesar")
 
                 autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
                 logging.info("✅ Login exitoso")

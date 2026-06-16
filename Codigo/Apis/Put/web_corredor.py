@@ -3,7 +3,7 @@ import logging
 import os
 import json
 from dotenv import load_dotenv
-from LinuxDebian.Carpetas.rutas import obtener_imagenes_error
+from LinuxDebian.Carpetas.rutas import obtener_imagenes_error_para_nota
 
 load_dotenv("/app/variables.env")
 
@@ -82,7 +82,7 @@ def enviar_error_movimiento(id_movimiento, ctx_ramo, error, detalle_error,ruta_c
 
     url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/error"
 
-    imagenes = obtener_imagenes_error(ruta_carpeta, const)
+    imagenes = obtener_imagenes_error_para_nota(ruta_carpeta, const)
 
     payload = {
         "ramo": ctx_ramo.ramo,

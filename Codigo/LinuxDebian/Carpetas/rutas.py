@@ -11,7 +11,37 @@ from io import StringIO
 nombre_carpeta_descargas = "Downloads"
 download_path = f"/app/{nombre_carpeta_descargas}"
 
-def obtener_imagenes_error(ruta_carpeta, const):
+def obtener_imagenes_para_correo_general(ruta_carpeta, nombre_error):
+
+    try:
+
+        for archivo in os.listdir(ruta_carpeta):
+
+            if (
+                archivo.startswith(f"ERROR_{nombre_error}")
+                and archivo.lower().endswith(".png")
+            ):
+
+                ruta_completa = os.path.join(
+                    ruta_carpeta,
+                    archivo
+                )
+
+                with open(ruta_completa, "rb") as f:
+
+                    return base64.b64encode(
+                        f.read()
+                    ).decode("utf-8")
+
+    except Exception as e:
+
+        logging.error(
+            f"❌ Error leyendo imagen: {e}"
+        )
+
+    return None
+
+def obtener_imagenes_error_para_nota(ruta_carpeta, const):
 
     imagenes_payload = []
 

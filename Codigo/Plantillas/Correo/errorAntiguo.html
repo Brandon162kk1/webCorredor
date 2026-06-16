@@ -1,0 +1,126 @@
+<div style="font-family:Arial,sans-serif;max-width:700px;margin:auto;border:1px solid #ddd;border-radius:10px;overflow:hidden">
+
+  <div style="background:#dc2626;color:white;padding:20px;text-align:center">
+    <h1>{{ titulo }}</h1>
+  </div>
+
+  <div style="padding:20px;background:white">
+
+    <table style="width:100%;border-collapse:collapse">
+
+      <tr>
+        <td style="padding:8px;font-weight:bold;width:40%">
+          Cliente:
+        </td>
+
+        <td style="padding:8px">
+          {{ cliente }}
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:8px;font-weight:bold;width:40%">
+          Sede:
+        </td>
+
+        <td style="padding:8px">
+          {{ sede }}
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:8px;font-weight:bold">
+          Póliza:
+        </td>
+
+        <td style="padding:8px">
+          {{ poliza }} ({{rhumano}})
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:8px;font-weight:bold">
+          Compañía:
+        </td>
+
+        <td style="padding:8px">
+          {{ compania }}
+        </td>
+      </tr>
+
+      <tr>
+        <td style="padding:8px;font-weight:bold">
+          Vigencia:
+        </td>
+
+        <td style="padding:8px">
+          {{ vigencia }}
+        </td>
+      </tr>
+
+    </table>
+
+    <!-- 🔥 AQUÍ VAN LAS TRAMAS -->
+    {% if tramas %}
+
+    <h2 style="margin-top:25px;color:#217346">
+      📄 Tramas
+    </h2>
+
+    <div style="margin-top:15px">
+
+      {% for trama in tramas %}
+
+      <a href="{{ trama.url }}"
+         style="
+           display:block;
+           padding:12px;
+           margin-bottom:10px;
+           background:#f3fdf5;
+           border:1px solid #cce8d1;
+           border-radius:8px;
+           text-decoration:none;
+           color:#217346;
+           font-weight:bold;
+         ">
+
+        📗 {{ trama.nombre }}
+
+      </a>
+
+      {% endfor %}
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- 🔥 FIN TRAMAS -->
+
+    <h2 style="margin-top:25px;color:#dc2626">
+      Detalle del Error
+    </h2>
+
+    <div style="background:#f4f4f4;padding:15px;border-radius:8px;white-space:pre-wrap;font-family:monospace;font-size:12px">
+      {{ detalle_error }}
+    </div>
+
+    {% if screenshot %}
+    <div style="margin-top:25px">
+
+      <h2 style="color:#002D72">
+        Evidencia Visual
+      </h2>
+
+      <img src="{{ screenshot }}" style="width:100%;border-radius:8px;border:1px solid #ddd">
+
+    </div>
+    {% endif %}
+
+  </div>
+
+  <div style="background:#f4f4f4;padding:15px;text-align:center;font-size:12px;color:#777">
+    Sistema Automático WebCorredor
+  </div>
+
+</div>

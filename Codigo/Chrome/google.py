@@ -47,6 +47,18 @@ def abrirDriver(ruta_archivos_x_inclu):
     }
     chrome_options.add_experimental_option("prefs", prefs)
 
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+
+    # chrome_options.add_experimental_option(
+    #     "excludeSwitches",
+    #     ["enable-automation"]
+    # )
+
+    # chrome_options.add_experimental_option(
+    #     "useAutomationExtension",
+    #     False
+    # )
+
     # Indicar ruta correcta de Chrome
     chrome_options.binary_location = "/usr/bin/google-chrome"
 
@@ -55,6 +67,26 @@ def abrirDriver(ruta_archivos_x_inclu):
         logging.info("🟡 Iniciando ChromeDriver")
         service = Service("/usr/local/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=chrome_options)
+
+        # driver.execute_cdp_cmd(
+        #     "Page.addScriptToEvaluateOnNewDocument",
+        #     {
+        #         "source": """
+        #         Object.defineProperty(navigator, 'webdriver', {
+        #             get: () => undefined
+        #         });
+
+        #         Object.defineProperty(navigator, 'languages', {
+        #             get: () => ['es-PE', 'es', 'en']
+        #         });
+
+        #         Object.defineProperty(navigator, 'plugins', {
+        #             get: () => [1, 2, 3, 4, 5]
+        #         });
+        #         """
+        #     }
+        # )
+
         logging.info("🟢 ChromeDriver iniciado correctamente.")
     except Exception as e:
         logging.error(f"❌ Error al iniciar ChromeDriver: {e}")

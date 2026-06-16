@@ -2,7 +2,7 @@ import requests
 import logging
 import os
 
-from LinuxDebian.Carpetas.rutas import obtener_imagenes_error
+from LinuxDebian.Carpetas.rutas import obtener_imagenes_error_para_nota
 
 # --- Variables de Entorno ---
 API_KEY = os.getenv("API_KEY")
@@ -18,7 +18,7 @@ def enviar_nota_movimiento(id_movimiento,detalle_error,correo,ruta_carpeta,const
 
     url = f"{API_BASE_URL}/api/movimiento/registrar-nota"
 
-    imagenes = obtener_imagenes_error(ruta_carpeta, const)
+    imagenes = obtener_imagenes_error_para_nota(ruta_carpeta, const)
 
     payload = {
         "MovimientoId": id_movimiento,
@@ -39,3 +39,22 @@ def enviar_nota_movimiento(id_movimiento,detalle_error,correo,ruta_carpeta,const
 
     except Exception as e:
         logging.error(f"❌ Error conectando al API para registrar notas | Movimiento {id_movimiento} | Motivo: {e}")
+
+def enviar_datos_proforma_web_corredor(poliza, cuota, monto, fecha_vencimiento, correo):
+
+    url = f"{API_BASE_URL}/api/registrar-cuota-webcorredor"
+    payload = {
+        "Poliza": poliza,
+        "Cuota": cuota,
+        "Monto": monto,
+        "FechaVencimiento": fecha_vencimiento,
+        "UsuarioNombre": correo
+    }
+    try:
+        response = requests.post(url,json=payload,headers=headers,timeout=30)
+        if response.status_code in (200, 201, 204):
+            logging.info(f"✅ Cuota registrada correctamente para la póliza {poliza}")
+        else:
+            logging.error(f"❌ Problemas en el registro de cuota | Póliza {poliza} " f"| Status {response.status_code} | Resp {response.text}")
+    except Exception as e:
+        logging.error(f"❌ Error conectando al API para registrar cuota | Póliza {poliza} | Motivo: {e}")
