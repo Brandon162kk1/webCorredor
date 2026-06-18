@@ -1,4 +1,4 @@
-﻿#   --- Froms ----
+#   --- Froms ----
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -40,7 +40,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     tipoError = ""
     detalleError = ""
 
-    driver.get("https://app.crecerseguros.pe/Plataforma/manage/login")
+    driver.get(os.getenv("login_url_crecer_vida_ley"))
     logging.info("--- Ingresando a Crecer Seguros🌐 ---")
 
     user_input = wait.until(EC.presence_of_element_located((By.ID, "suser")))

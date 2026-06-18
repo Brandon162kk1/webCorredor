@@ -1579,7 +1579,7 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                         raise Exception(resultado0.text.strip())
 
                     if elemento_id == "b5-Input_User":
-                        raise Exception("Refresh a la pantalla de Inicio")
+                        raise Exception("Hubo un refresh a la pantalla de inicio")
 
                     autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
                     logging.info("✅ Login exitoso")
@@ -1595,7 +1595,6 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
             except Exception as e:
                 ultimo_error = str(e)
                 logging.error(f"❌ Error al iniciar sesión en Positiva: {ultimo_error}") #e
-                tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
 
                 if intento < 1:
                     driver.refresh()
@@ -1604,6 +1603,7 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                 #return False,False,"Login Fallido", str(e)
 
     if not login_exitoso:
+        tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
         return False, False, "Login Fallido", ultimo_error
 
     if bab_codigo in ['1', '2', '3']:

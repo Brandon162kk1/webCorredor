@@ -1,4 +1,4 @@
-﻿#   --- Froms ----
+#   --- Froms ----
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
@@ -14,7 +14,7 @@ def procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta
     try:
 
         # ------------------ Inicio del Flujo de Automatización ------------------
-        driver.get("https://plataformadigital.protectasecurity.pe/ecommerce/extranet/login")
+        driver.get(os.getenv("url_protecta"))
         logging.info("--- Ingresando a Protecta Seguros🌐 ---")
 
         user_input = wait.until(EC.presence_of_element_located((By.ID, "username")))

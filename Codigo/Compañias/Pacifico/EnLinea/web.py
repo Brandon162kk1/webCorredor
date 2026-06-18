@@ -1,4 +1,4 @@
-﻿#--- Froms ---
+#--- Froms ---
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -93,7 +93,7 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
   
     try:
 
-        driver.get("https://www0.pacificoseguros.com/loginPacifico/login.aspx") 
+        driver.get(os.getenv("url_pacifico_linea"))
         logging.info("⌛ Cargando la Web de Pacifico en Linea")
            
         resultado,asunto = validar_pagina(driver)
