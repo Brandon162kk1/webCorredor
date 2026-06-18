@@ -1060,7 +1060,6 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     # actions = ActionChains(driver)
     # actions.move_to_element(icon).click().perform()
     logging.info("🖱️ Clic en el Menú despegable de la izquierda")
-
     time.sleep(3)
 
     try:
@@ -1463,137 +1462,149 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
 
     if not login_exitoso:
 
-        try:
+        ultimo_error = None
 
+        for intento in range(2):
             logging.info("----------------------------")
-            driver.get(url_Positiva)
-            logging.info("⌛ Cargando la Web de Positiva")
+            logging.info(f"🔄 Intento de login número {intento + 1}")
 
             id_usuario = (By.ID, "b5-Input_User")
-            user_field = wait.until(EC.element_to_be_clickable(id_usuario))
-            user_field.clear()
-            mover_y_hacer_click_simple(driver, user_field)    
-            time_espera_alea(4,5)
-            logging.info(f"⌨️ Digitando el Username")
-            escribir_lento(user_field, ramo.usuario, min_delay=4, max_delay=5)
-            time_espera_alea(4,5)
-
-            password_field = wait.until(EC.element_to_be_clickable((By.ID, "b5-Input_PassWord")))
-            password_field.clear()
-            mover_y_hacer_click_simple(driver, password_field)         
-            time_espera_alea(4,5)
-            logging.info(f"⌨️ Digitando el Password") 
-            escribir_lento(password_field, ramo.clave, min_delay=4, max_delay=5)  
-            time_espera_alea(4,5)
-
-            login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
-            mover_y_hacer_click_simple(driver, login_button)
-            logging.info("🖱️ Clic en Iniciar Sesión")
-
-             #--- Opciones---
-            blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]") # Cuenta Bloqueada
-            change_password = (By.ID, "b5-b22-ChangePassword") # Posible Cambio de contraseña
-            temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
-            autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
-            error_screen_locator = (By.ID,"error-screen-message-text")
-            cod_verificacion = (By.ID, "b5-b17-Input_CodeVerification")
-            btn_validar_codigo = (By.ID, "b5-b17-b4-Button")
-
-            # def usuario_vacio(driver):
-            #     try:
-            #         elem = driver.find_element(By.ID, "b5-Input_User")
-            #         return elem if elem.get_attribute("value") == "" else False
-            #     except:
-            #         return False
 
             try:
+                driver.get(url_Positiva)
+                logging.info("⌛ Cargando la Web de Positiva")
 
-                resultado0 = wait.until(
-                    EC.any_of(
-                        EC.element_to_be_clickable(autogestion_locator),
-                        EC.visibility_of_element_located(error_screen_locator),
-                        EC.visibility_of_element_located(cod_verificacion),
-                        EC.element_to_be_clickable(change_password),
-                        EC.visibility_of_element_located(blocked_account),
-                        EC.visibility_of_element_located(temp_blocked)
-                        #usuario_vacio
+                user_field = wait.until(EC.element_to_be_clickable(id_usuario))
+                user_field.clear()
+                mover_y_hacer_click_simple(driver, user_field)    
+                time_espera_alea(2,3)
+                logging.info(f"⌨️ Digitando el Username")
+                escribir_lento(user_field, ramo.usuario, min_delay=1.5, max_delay=2)
+                time_espera_alea(2,3)
+
+                password_field = wait.until(EC.element_to_be_clickable((By.ID, "b5-Input_PassWord")))
+                password_field.clear()
+                mover_y_hacer_click_simple(driver, password_field)         
+                time_espera_alea(2,3)
+                logging.info(f"⌨️ Digitando el Password") 
+                escribir_lento(password_field, ramo.clave, min_delay=1.5, max_delay=2)  
+                time_espera_alea(2,3)
+
+                login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
+                mover_y_hacer_click_simple(driver, login_button)
+                logging.info("🖱️ Clic en Iniciar Sesión")
+
+                 #--- Opciones---
+                blocked_account = (By.XPATH, "//span[contains(text(),'Cuenta bloqueada')]") # Cuenta Bloqueada
+                change_password = (By.ID, "b5-b22-ChangePassword") # Posible Cambio de contraseña
+                temp_blocked = (By.XPATH, "//span[contains(text(),'Cuenta inhabilitada temporalmente')]")
+                autogestion_locator = (By.XPATH, "//div[contains(@class,'menu-item')]//span[normalize-space()='Autogestión']/parent::div")
+                error_screen_locator = (By.ID,"error-screen-message-text")
+                cod_verificacion = (By.ID, "b5-b17-Input_CodeVerification")
+                btn_validar_codigo = (By.ID, "b5-b17-b4-Button")
+
+                def usuario_vacio(driver):
+                    try:
+                        elem = driver.find_element(By.ID, "b5-Input_User")
+                        return elem if elem.get_attribute("value") == "" else False
+                    except:
+                        return False
+
+                try:
+
+                    resultado0 = wait.until(
+                        EC.any_of(
+                            EC.element_to_be_clickable(autogestion_locator),
+                            EC.visibility_of_element_located(error_screen_locator),
+                            EC.visibility_of_element_located(cod_verificacion),
+                            EC.element_to_be_clickable(change_password),
+                            EC.visibility_of_element_located(blocked_account),
+                            EC.visibility_of_element_located(temp_blocked),
+                            usuario_vacio
+                        )
                     )
-                )
 
-                elemento_id = resultado0.get_attribute("id")
+                    elemento_id = resultado0.get_attribute("id")
 
-                if elemento_id == "b5-b22-ChangePassword":
+                    if elemento_id == "b5-b22-ChangePassword":
 
-                    raise Exception("Contraseña expirada, se requiere cambio de contraseña")
+                        raise Exception("Contraseña expirada, se requiere cambio de contraseña")
 
-                    # logging.warning("⚠️ Se detectó la necesidad de cambio de contraseña")
-                    # resultado0.click()
-                    # logging.info("🖱️ Clic en 'Cambiar Contraseña'")
+                        # logging.warning("⚠️ Se detectó la necesidad de cambio de contraseña")
+                        # resultado0.click()
+                        # logging.info("🖱️ Clic en 'Cambiar Contraseña'")
 
-                    # continuar = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[.//div[contains(@class,'btn-label') and normalize-space()='Continuar']]")))
-                    # continuar.click()
-                    # logging.info("🖱️ Clic en 'Continuar'")
+                        # continuar = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[.//div[contains(@class,'btn-label') and normalize-space()='Continuar']]")))
+                        # continuar.click()
+                        # logging.info("🖱️ Clic en 'Continuar'")
 
-                    # input_cd_vef = wait.until(EC.visibility_of_element_located((By.ID, "b5-Input_CodeVerification")))
-                    # logging.info("✅ Apareció input de código")
-                    # input_cd_vef.clear()
-                    # codigo = codigo_compania(url_api_cod_pos,API_KEY_POSITIVA)
-                    # input_cd_vef.send_keys(codigo)
+                        # input_cd_vef = wait.until(EC.visibility_of_element_located((By.ID, "b5-Input_CodeVerification")))
+                        # logging.info("✅ Apareció input de código")
+                        # input_cd_vef.clear()
+                        # codigo = codigo_compania(url_api_cod_pos,API_KEY_POSITIVA)
+                        # input_cd_vef.send_keys(codigo)
 
-                    # wait.until(EC.element_to_be_clickable(btn_validar_codigo)).click()
-                    # logging.info("🖱️ Clic en Validar Código")
+                        # wait.until(EC.element_to_be_clickable(btn_validar_codigo)).click()
+                        # logging.info("🖱️ Clic en Validar Código")
 
-                    # btn_entendido = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(.,'Entendido')]")))
-                    # btn_entendido.click()
-                    # logging.info("🖱️ Clic en 'Entendido' para finalizar el proceso de cambio de contraseña")
+                        # btn_entendido = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(.,'Entendido')]")))
+                        # btn_entendido.click()
+                        # logging.info("🖱️ Clic en 'Entendido' para finalizar el proceso de cambio de contraseña")
 
-                    # # API para actualizar la contraseña en la base de datos de WebCorredor
-                    # password = codigo_compania(url_api_pas_pos,API_KEY_POSITIVA)
+                        # # API para actualizar la contraseña en la base de datos de WebCorredor
+                        # password = codigo_compania(url_api_pas_pos,API_KEY_POSITIVA)
 
-                    # update_password_cia(password,ramo)
+                        # update_password_cia(password,ramo)
 
-                    # raise Exception("Se restablecio el password, reprocesar en 3 minutos aproximadamente")
+                        # raise Exception("Se restablecio el password, reprocesar en 3 minutos aproximadamente")
 
-                if elemento_id == "b5-b17-Input_CodeVerification":
+                    if elemento_id == "b5-b17-Input_CodeVerification":
 
-                    logging.info("✅ Apareció input de código")
-                    resultado0.clear()
-                    codigo = codigo_compania(url_api_cod_pos,API_KEY_POSITIVA)
-                    resultado0.send_keys(codigo)
+                        logging.info("✅ Apareció input de código")
+                        resultado0.clear()
+                        codigo = codigo_compania(url_api_cod_pos,API_KEY_POSITIVA)
+                        resultado0.send_keys(codigo)
 
-                    wait.until(EC.element_to_be_clickable(btn_validar_codigo)).click()
-                    logging.info("🖱️ Clic en Validar Código")
+                        wait.until(EC.element_to_be_clickable(btn_validar_codigo)).click()
+                        logging.info("🖱️ Clic en Validar Código")
 
-                if elemento_id == "error-screen-message-text":
-                    texto_error = resultado0.text.strip()
-                    raise Exception(texto_error)
+                    if elemento_id == "error-screen-message-text":
+                        texto_error = resultado0.text.strip()
+                        raise Exception(texto_error)
 
-                if "Cuenta bloqueada" in resultado0.text:
-                    raise Exception(resultado0.text.strip())
+                    if "Cuenta bloqueada" in resultado0.text:
+                        raise Exception(resultado0.text.strip())
 
-                if "Cuenta inhabilitada temporalmente" in resultado0.text:
-                    raise Exception(resultado0.text.strip())
+                    if "Cuenta inhabilitada temporalmente" in resultado0.text:
+                        raise Exception(resultado0.text.strip())
 
-                # if elemento_id == "b5-Input_User":
-                #     logging.warning("⚠️ Se regresó a la pantalla de login")
-                #     raise Exception("Usuario o contraseña incorrectos, reprocesar")
+                    if elemento_id == "b5-Input_User":
+                        raise Exception("Refresh a la pantalla de Inicio")
 
-                autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
-                logging.info("✅ Login exitoso")
-                driver.execute_script("arguments[0].click();", autogestion)
-                login_exitoso = True
-                logging.info("🖱️ Clic en Autogestión")
-                ventana_menu_positiva = driver.current_window_handle
+                    autogestion = wait.until(EC.element_to_be_clickable(autogestion_locator))
+                    logging.info("✅ Login exitoso")
+                    driver.execute_script("arguments[0].click();", autogestion)
+                    login_exitoso = True
+                    logging.info("🖱️ Clic en Autogestión")
+                    ventana_menu_positiva = driver.current_window_handle
+                    break
 
-            except TimeoutException:
-                raise Exception("Problemas en el Inicio de Sesión, comunícate con el ejecutivo responsable para reprocesarlo")
+                except TimeoutException:
+                    raise Exception("Problemas en el Inicio de Sesión, comunícate con el ejecutivo responsable para reprocesarlo")
 
-        except Exception as e:
-            logging.error(f"❌ Error al iniciar sesión en Positiva: {e}")
-            tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
-            driver.refresh()
-            wait.until(EC.presence_of_element_located((By.ID, "b5-Input_User")))
-            return False,False,"Login Fallido", str(e)
+            except Exception as e:
+                ultimo_error = str(e)
+                logging.error(f"❌ Error al iniciar sesión en Positiva: {ultimo_error}") #e
+                tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
+
+                if intento < 1:
+                    driver.refresh()
+                    wait.until(EC.element_to_be_clickable(id_usuario))
+
+                #return False,False,"Login Fallido", str(e)
+
+    if not login_exitoso:
+        return False, False, "Login Fallido", ultimo_error
 
     if bab_codigo in ['1', '2', '3']:
         return ejecutar_con_manejo(driver,ruta_archivos_x_inclu,"SCTR",tipo_mes,lambda: solicitud_sctr(driver, wait, list_polizas, ruta_archivos_x_inclu,tipo_mes, palabra_clave, tipo_proceso, ba_codigo, ramo))
