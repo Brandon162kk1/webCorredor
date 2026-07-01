@@ -16,6 +16,14 @@ import random
 import pdfplumber
 import re
 
+def validar_modal_error(driver, elemento):
+    if not isinstance(elemento, bool) and elemento.get_attribute("id") == "divAlertaErrorGeneral":
+        mensaje = driver.find_element(
+            By.XPATH,
+            "//div[@id='divAlertaErrorGeneral']//p/span[2]"
+        ).text.strip()
+        raise Exception(mensaje)
+
 def descargar_documento_por_codigo(driver,wait,codigo_documento,prefijo,ramo,ruta_archivos_x_inclu):
 
     span = wait.until(EC.visibility_of_element_located((
