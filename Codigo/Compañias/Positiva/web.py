@@ -1463,7 +1463,7 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
 
         ultimo_error = None
 
-        for intento in range(2):
+        for intento in range(3):
             logging.info("----------------------------")
             logging.info(f"🔄 Intento de login número {intento + 1}")
 
