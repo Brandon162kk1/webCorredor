@@ -40,6 +40,11 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     driver.switch_to.window(driver.window_handles[-1])
     logging.info("⌛ Esperando la nueva ventana...")
 
+    resultado,asunto = validar_pagina(driver)
+
+    if not resultado:
+        raise Exception (f"{asunto}")
+
     transacciones = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Transacciones y Consultas")))
     transacciones.click()
     logging.info("🖱️ Clic en Transacciones y Consultas")
