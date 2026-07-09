@@ -472,17 +472,17 @@ def main():
                     ruta_archivos_x_inclu,ctx.ruc, ctx.correo, palabra_clave,tipo_proc,ctx.cliente,
                     ctx.giro,ctx.vida)
 
-                # if tipoErrorSCTR == "Login Fallido":
+                if tipoErrorSCTR == "Login Fallido":
 
-                #     logging.info("-----------------------------")
-                #     logging.info(f"⚠️ Login Fallido en SCTR, reintentando...")
+                    logging.info("-----------------------------")
+                    logging.info(f"⚠️ Login Fallido en SCTR, reintentando...")
 
-                #     contexto_sctr = ctx.pension if ctx.pension.debe_procesarse() else ctx.salud
-                #     conSCTR, endSCTR, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
-                #         driver, wait, polizas_sctr, compania_BA, ba_codigo, tipo_mes,
-                #         ruta_archivos_x_inclu, ctx.ruc, ctx.correo, tipo_proc,
-                #         palabra_clave, ctx.giro, ctx.cliente, contexto_sctr
-                #     )
+                    contexto_sctr = ctx.pension if ctx.pension.debe_procesarse() else ctx.salud
+                    conSCTR, endSCTR, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
+                        driver, wait, polizas_sctr, compania_BA, ba_codigo, tipo_mes,
+                        ruta_archivos_x_inclu, ctx.ruc, ctx.correo, tipo_proc,
+                        palabra_clave, ctx.giro, ctx.cliente, contexto_sctr
+                    )
                 
         else:
             raise Exception(f" Dato no válido -> {tipo_proc}-{ba_codigo}-{bb_codigo}-{compania_BA}-{compania_BB}-{ctx.salud.poliza}-{ctx.pension.poliza}-{ctx.vida.poliza}-{tipo_mes}")

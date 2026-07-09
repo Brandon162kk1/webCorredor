@@ -209,7 +209,19 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             btn_aceptar.click()
             logging.info(f"🖱️ Clic en {nom_btn}")
 
-            input_file = wait.until(EC.presence_of_element_located(file_input))
+            #input_file = wait.until(EC.presence_of_element_located(file_input))
+
+            resultado_dps_clic = wait.until(
+                EC.any_of(
+                    EC.presence_of_element_located(error_locator),
+                    EC.presence_of_element_located(file_input)
+                )
+            )
+
+            element_id_resultado_dps_clic = resultado_dps_clic.get_attribute("id")
+
+            if element_id_resultado_dps_clic != "fuPlanillaAjax":
+                raise Exception("Lo sentimos, ha ocurrido un error inesperado")
 
         elif element_id == "fuPlanillaAjax":
             logging.info("⌛ Página de carga lista (Trama)")
@@ -391,6 +403,8 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
         ))
 
         errores = []
+        dni_errados = []
+
         for fila in filas:
             error = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sError']").text
             nombres = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNombres']").get_attribute("title")
@@ -399,6 +413,9 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
             nrodoc = fila.find_element(By.XPATH, ".//td[@aria-describedby='gridErrorPlanilla_sNroDoc']").get_attribute("title")
 
             errores.append(f"{error} - {nombres} {paterno} {materno} | {nrodoc}")
+            dni_errados.append(nrodoc)
+
+        #enviar_dni_errados(dni_errados)
 
         detalle_errores = "\n".join(errores)
         raise Exception(f"Se encontró {cantidad_errores} {cantidad_texto} en la planilla\n{detalle_errores}")
