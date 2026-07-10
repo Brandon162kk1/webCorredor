@@ -121,7 +121,8 @@ def validar_pagina(driver):
         "ERR_CONNECTION_TIMED_OUT",
         "ERR_NAME_NOT_RESOLVED",
         "ERR_CONNECTION_REFUSED",
-        "ERR_INTERNET_DISCONNECTED"
+        "ERR_INTERNET_DISCONNECTED",
+        "ERR_EMPTY_RESPONSE",
     ]
 
     for error in errores_chrome:
