@@ -339,6 +339,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     if not os.path.exists(file_path):
         raise Exception (f"Archivo {ramo.poliza}.xlsx no encontrado")
     else:
+        input_file = wait.until(EC.presence_of_element_located((By.ID, "fuPlanillaAjax")))
         input_file.send_keys(file_path)
         logging.info(f"✅ Se subió el archivo '{ramo.poliza}.xlsx' para validar")
 
@@ -539,22 +540,45 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
 
-    span_numero = wait.until(EC.visibility_of_element_located((By.XPATH,f"//span[contains(text(),'{codigo_documento}')]")))
+    span_numero = wait.until(EC.visibility_of_element_located((By.XPATH,f"//span[normalize-space()='{codigo_documento}']")))
     logging.info(f"✅ Span encontrado: {span_numero.text}")
 
-    if len(list_polizas) == 1 and ba_codigo == '1':
-        selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
-    elif len(list_polizas) == 1 and ba_codigo == '2':
-        selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
+    #-----------------------------
+    #fila = span_numero.find_element(By.XPATH, "./ancestor::tr")
+
+    if len(list_polizas) == 1:
+        if ba_codigo == "1":
+            xpath_lupa = (
+                f"./following-sibling::span[1]"
+                f"//img[@data-nropolizasalud='{ramo.poliza}']"
+            )
+        else:
+            xpath_lupa = (
+                f"./following-sibling::span[1]"
+                f"//img[@data-nropolizapension='{ramo.poliza}']"
+            )
     else:
-        selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
+        xpath_lupa = (
+            f"./following-sibling::span[1]"
+            f"//img[@data-nropolizasalud='{list_polizas[0]}' "
+            f"and @data-nropolizapension='{list_polizas[1]}']"
+        )
 
-    #span = wait.until(EC.visibility_of_element_located(( By.XPATH, f"//span[contains(text(),'{codigo_documento}')]")))
-    #bloque = span_numero.find_element(By.XPATH, "./ancestor::div[1]")
-    #lupa = bloque.find_element(By.XPATH,f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]")
-    #lupa = span_numero.find_element(By.XPATH,f".//ancestor::tr//img[contains(@data-nropolizasalud,'{list_polizas[0]}') or contains(@data-nropolizapension,'{list_polizas[0]}')]")
+    lupa = wait.until(
+        lambda d: (
+            elementos := span_numero.find_elements(By.XPATH, xpath_lupa)
+        ) and elementos[0]
+    )
+    #-----------------------------
+    # if len(list_polizas) == 1 and ba_codigo == '1':
+    #     selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
+    # elif len(list_polizas) == 1 and ba_codigo == '2':
+    #     selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
+    # else:
+    #     selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
 
-    lupa = (By.XPATH, selector_xpath)
+    # lupa = (By.XPATH, selector_xpath)
+    #-----------------------------
     error_btn = (By.ID, "btnAceptarError")
 
     try:
