@@ -15,6 +15,7 @@ import time
 import random
 import pdfplumber
 import re
+import shutil
 
 def validar_modal_error(driver, elemento):
     if not isinstance(elemento, bool) and elemento.get_attribute("id") == "divAlertaErrorGeneral":
@@ -24,32 +25,85 @@ def validar_modal_error(driver, elemento):
         ).text.strip()
         raise Exception(mensaje)
 
-def descargar_documento_por_codigo(driver,wait,codigo_documento,prefijo,ramo,ruta_archivos_x_inclu):
+def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu):
 
-    span = wait.until(EC.visibility_of_element_located((
-        By.XPATH, f"//span[contains(text(),'{codigo_documento}')]"
-    )))
+    # span = wait.until(EC.visibility_of_element_located((
+    #     By.XPATH, f"//span[contains(text(),'{codigo_documento}')]"
+    # )))
 
-    bloque = span.find_element(By.XPATH, "./ancestor::div[1]")
-
-    lupa = bloque.find_element(
-        By.XPATH,
-        f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]"
+    span = wait.until(
+        EC.visibility_of_element_located(
+            (By.XPATH, f"//span[normalize-space()='{codigo_documento}']")
+        )
     )
+    logging.info(f"✅ Span encontrado: {codigo_documento}")
+
+    # bloque = span.find_element(By.XPATH, "./ancestor::div[1]")
+
+    # lupa = bloque.find_element(
+    #     By.XPATH,
+    #     f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]"
+    # )
+
+    if len(list_polizas) == 1:
+        if ba_codigo == "1":
+            xpath_lupa = (
+                f"./following-sibling::span[1]"
+                f"//img[@data-nropolizasalud='{ramo.poliza}']"
+            )
+        else:
+            xpath_lupa = (
+                f"./following-sibling::span[1]"
+                f"//img[@data-nropolizapension='{ramo.poliza}']"
+            )
+    else:
+        xpath_lupa = (
+            f"./following-sibling::span[1]"
+            f"//img[@data-nropolizasalud='{list_polizas[0]}' "
+            f"and @data-nropolizapension='{list_polizas[1]}']"
+        )
+
+    # lupa = wait.until(
+    #     lambda d: (
+    #         elems := span.find_elements(By.XPATH, xpath_lupa)
+    #     ) and elems[0]
+    # )
 
     #lupa = span_numero.find_element(By.XPATH,f".//ancestor::tr//img[contains(@data-nropolizasalud,'{list_polizas[0]}') or contains(@data-nropolizapension,'{list_polizas[0]}')]")
     #lupa = (By.XPATH, selector_xpath)
     error_btn = (By.ID, "btnAceptarError")
 
-    resultadol = wait.until(
-        EC.any_of(
-            EC.element_to_be_clickable(lupa),
-            EC.element_to_be_clickable(error_btn)
+    try:
+
+        lupa = wait.until(
+            lambda d: (
+                elems := span.find_elements(By.XPATH, xpath_lupa)
+            ) and elems[0]
         )
-    )
+
+        resultadol = wait.until(
+            EC.any_of(
+                EC.element_to_be_clickable(lupa),
+                EC.element_to_be_clickable(error_btn)
+            )
+        )
+    except TimeoutException:
+        raise Exception(f"Problemas en la compañía, buscar y descargar los documentos : {codigo_documento}")
 
     if resultadol.get_attribute("id") == "btnAceptarError":
-        raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
+        raise Exception(f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}")
+
+    # error_btn = (By.ID, "btnAceptarError")
+
+    # resultadol = wait.until(
+    #     EC.any_of(
+    #         EC.element_to_be_clickable(lupa),
+    #         EC.element_to_be_clickable(error_btn)
+    #     )
+    # )
+
+    # if resultadol.get_attribute("id") == "btnAceptarError":
+    #     raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
 
     for _ in range(3):
         try:
@@ -57,7 +111,7 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,prefijo,ramo,rut
             logging.info(f"🖱️ Clic en la lupa {codigo_documento}")
             break
         except StaleElementReferenceException:
-            resultado = wait.until(EC.element_to_be_clickable(lupa))
+            wait.until(EC.element_to_be_clickable(lupa))
 
     wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
     logging.info("📄 Panel PDF visible")
@@ -76,7 +130,74 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,prefijo,ramo,rut
         os.rename(archivo_nuevo[0], ruta_final)
         logging.info(f"🔄 Constancia renombrada")
     else:
-        raise Exception(f"No se descargó constancia, buscar en la compania con el código '{codigo_documento}'")
+        raise Exception(f"No se descargó constancia, buscar en la compañía con el código '{codigo_documento}'")
+
+    if tipo_mes == 'MA':
+
+        driver.switch_to.frame("ifContenedorPDFMaster")
+
+        boton_embebido = wait.until(EC.element_to_be_clickable((By.ID, "open-button")))
+
+        archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
+
+        driver.execute_script("arguments[0].click();", boton_embebido)
+        logging.info(f"🖱️ Clic en Descargar Endoso")
+
+        endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes_2, ".pdf", cantidad=1)
+
+        if endoso:
+            logging.info(f"✅ Endoso descargado exitosamente")
+            ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
+            os.rename(endoso[0], ruta_final)
+            logging.info("🔄 Endoso renombrado")
+        else:
+            raise Exception("No se descargó el endoso")
+
+        driver.switch_to.default_content()
+
+    if len(list_polizas) == 2:
+
+        ruta_salud = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[0]}.pdf")
+        ruta_pension = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[1]}.pdf")
+
+        if os.path.exists(ruta_pension):
+            shutil.copy2(ruta_pension, ruta_salud)
+            logging.info(f"📄 Copia creada como '{list_polizas[0]}.pdf'")
+
+        if tipo_mes == 'MA':
+            ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf")
+            ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[1]}.pdf")
+
+            if os.path.exists(ruta_endoso_pension):
+                shutil.copy2(ruta_endoso_pension, ruta_endoso_salud)
+                logging.info(f"📄 Copia creada como 'endoso_{list_polizas[0]}.pdf'")
+
+    btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
+    btn_cancelar_boton.click()
+    logging.info("✅ Cerrando panel de documentos")
+
+    try:
+        # wait.until(EC.invisibility_of_element_located((By.ID, "divPanelPDFMaster")))
+        # logging.info("📴 Panel PDF cerrado correctamente")
+
+        modal_pdf = (By.ID, "divPanelPDFMaster")
+        error_locator2 = (By.XPATH, "//h3[contains(text(),'Actualmente estamos presentando problemas, por favor')]")
+        resultadof = wait.until(
+            EC.any_of(
+                EC.invisibility_of_element_located(modal_pdf),
+                EC.presence_of_element_located(error_locator2)
+            )
+        )
+
+        if resultadof.get_attribute("id") == "divPanelPDFMaster":
+            logging.info("📴 Panel PDF cerrado correctamente")
+        else:
+            pass
+
+    except TimeoutException:
+        pass
+
+    logging.info(f"✅ {palabra_clave} realizada exitosamente")
 
 def escribir_lento(elemento, texto, min_delay, max_delay):
     """Envía texto carácter por carácter con retrasos aleatorios."""
