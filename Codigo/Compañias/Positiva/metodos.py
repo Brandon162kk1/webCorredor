@@ -5,7 +5,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException,StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException,StaleElementReferenceException,ElementClickInterceptedException
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Tiempo.fechas_horas import time_espera_alea
 # -- Imports --
@@ -27,91 +27,86 @@ def validar_modal_error(driver, elemento):
 
 def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu):
 
-    # span = wait.until(EC.visibility_of_element_located((
-    #     By.XPATH, f"//span[contains(text(),'{codigo_documento}')]"
-    # )))
+    # Esperar que aparezca el código
+    span_xpath = f"//span[normalize-space()='{codigo_documento}']"
 
-    span = wait.until(
-        EC.visibility_of_element_located(
-            (By.XPATH, f"//span[normalize-space()='{codigo_documento}']")
-        )
+    wait.until(
+        EC.visibility_of_element_located((By.XPATH, span_xpath))
     )
+
     logging.info(f"✅ Span encontrado: {codigo_documento}")
 
-    # bloque = span.find_element(By.XPATH, "./ancestor::div[1]")
-
-    # lupa = bloque.find_element(
-    #     By.XPATH,
-    #     f".//img[contains(@data-nropolizasalud,'{ramo.poliza}') or contains(@data-nropolizapension,'{ramo.poliza}')]"
-    # )
-
+    # XPath relativo de la lupa
     if len(list_polizas) == 1:
         if ba_codigo == "1":
-            xpath_lupa = (
+            xpath_lupa_relativo = (
                 f"./following-sibling::span[1]"
                 f"//img[@data-nropolizasalud='{ramo.poliza}']"
             )
         else:
-            xpath_lupa = (
+            xpath_lupa_relativo = (
                 f"./following-sibling::span[1]"
                 f"//img[@data-nropolizapension='{ramo.poliza}']"
             )
     else:
-        xpath_lupa = (
+        xpath_lupa_relativo = (
             f"./following-sibling::span[1]"
             f"//img[@data-nropolizasalud='{list_polizas[0]}' "
             f"and @data-nropolizapension='{list_polizas[1]}']"
         )
 
-    # lupa = wait.until(
-    #     lambda d: (
-    #         elems := span.find_elements(By.XPATH, xpath_lupa)
-    #     ) and elems[0]
-    # )
-
-    #lupa = span_numero.find_element(By.XPATH,f".//ancestor::tr//img[contains(@data-nropolizasalud,'{list_polizas[0]}') or contains(@data-nropolizapension,'{list_polizas[0]}')]")
-    #lupa = (By.XPATH, selector_xpath)
     error_btn = (By.ID, "btnAceptarError")
 
+    def obtener_lupa():
+        """
+        Siempre vuelve a localizar el span y la lupa.
+        Así evitamos referencias stale.
+        """
+        span = driver.find_element(By.XPATH, span_xpath)
+
+        lupa = span.find_element(By.XPATH, xpath_lupa_relativo)
+        logging.info(lupa.get_attribute("outerHTML"))
+
+        return span.find_element(By.XPATH, xpath_lupa_relativo)
+
     try:
-
-        lupa = wait.until(
-            lambda d: (
-                elems := span.find_elements(By.XPATH, xpath_lupa)
-            ) and elems[0]
-        )
-
-        resultadol = wait.until(
-            EC.any_of(
-                EC.element_to_be_clickable(lupa),
-                EC.element_to_be_clickable(error_btn)
-            )
-        )
+        wait.until(lambda d: obtener_lupa().is_displayed())
     except TimeoutException:
-        raise Exception(f"Problemas en la compañía, buscar y descargar los documentos : {codigo_documento}")
+        raise Exception(
+            f"Problemas en la compañía, buscar y descargar los documentos: {codigo_documento}"
+        )
 
-    if resultadol.get_attribute("id") == "btnAceptarError":
-        raise Exception(f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}")
+    error_btn = (By.ID, "btnAceptarError")
 
-    # error_btn = (By.ID, "btnAceptarError")
+    for intento in range(3):
 
-    # resultadol = wait.until(
-    #     EC.any_of(
-    #         EC.element_to_be_clickable(lupa),
-    #         EC.element_to_be_clickable(error_btn)
-    #     )
-    # )
-
-    # if resultadol.get_attribute("id") == "btnAceptarError":
-    #     raise Exception(f"Advertencia detectada. Código: {codigo_documento}")
-
-    for _ in range(3):
         try:
-            resultadol.click()
+
+            errores = driver.find_elements(*error_btn)
+
+            if errores and errores[0].is_displayed():
+                raise Exception(
+                    f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}"
+                )
+
+            lupa = obtener_lupa()
+            wait.until(lambda d: lupa.is_displayed() and lupa.is_enabled())
+
+            driver.execute_script("arguments[0].click();", lupa)
+
             logging.info(f"🖱️ Clic en la lupa {codigo_documento}")
             break
-        except StaleElementReferenceException:
-            wait.until(EC.element_to_be_clickable(lupa))
+
+        except (StaleElementReferenceException,ElementClickInterceptedException):
+
+            logging.warning(
+                f"⚠️ DOM actualizado. Reintentando ({intento+1}/3)..."
+            )
+
+    else:
+        raise Exception(
+            f"No fue posible hacer clic en la lupa del código {codigo_documento}"
+        )
 
     wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
     logging.info("📄 Panel PDF visible")
