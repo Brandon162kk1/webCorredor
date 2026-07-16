@@ -65,16 +65,14 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
         span = driver.find_element(By.XPATH, span_xpath)
 
         lupa = span.find_element(By.XPATH, xpath_lupa_relativo)
-        logging.info(lupa.get_attribute("outerHTML"))
+        #logging.info(lupa.get_attribute("outerHTML"))
 
         return span.find_element(By.XPATH, xpath_lupa_relativo)
 
     try:
         wait.until(lambda d: obtener_lupa().is_displayed())
     except TimeoutException:
-        raise Exception(
-            f"Problemas en la compañía, buscar y descargar los documentos: {codigo_documento}"
-        )
+        raise Exception(f"Problemas en la compañía, buscar y descargar los documentos: {codigo_documento}")
 
     error_btn = (By.ID, "btnAceptarError")
 
@@ -85,9 +83,7 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
             errores = driver.find_elements(*error_btn)
 
             if errores and errores[0].is_displayed():
-                raise Exception(
-                    f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}"
-                )
+                raise Exception(f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}")
 
             lupa = obtener_lupa()
             wait.until(lambda d: lupa.is_displayed() and lupa.is_enabled())
@@ -99,14 +95,10 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
 
         except (StaleElementReferenceException,ElementClickInterceptedException):
 
-            logging.warning(
-                f"⚠️ DOM actualizado. Reintentando ({intento+1}/3)..."
-            )
+            logging.warning(f"⚠️ DOM actualizado. Reintentando ({intento+1}/3)...")
 
     else:
-        raise Exception(
-            f"No fue posible hacer clic en la lupa del código {codigo_documento}"
-        )
+        raise Exception(f"No fue posible hacer clic en la lupa del código {codigo_documento}")
 
     wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
     logging.info("📄 Panel PDF visible")

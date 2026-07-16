@@ -11,13 +11,11 @@ from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lent
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
 from Apis.Get.metodos import codigo_compania
-from Apis.Put.web_corredor import update_password_cia
 #---- Import ---
 import os
 import re
 import logging
 import time
-import shutil
 import pandas as pd
 
 # --- Variables globales ---
@@ -542,131 +540,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
 
-    #-----------------------------
     descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu)
-    #-----------------------------
-
-    # span_numero = wait.until(EC.visibility_of_element_located((By.XPATH,f"//span[normalize-space()='{codigo_documento}']")))
-    # logging.info(f"✅ Span encontrado: {span_numero.text}")
-
-    # fila = span_numero.find_element(By.XPATH, "./ancestor::tr")
-
-    # if len(list_polizas) == 1 and ba_codigo == '1':
-    #     selector_xpath = f"//img[@data-nropolizasalud='{ramo.poliza}']"
-    # elif len(list_polizas) == 1 and ba_codigo == '2':
-    #     selector_xpath = f"//img[@data-nropolizapension='{ramo.poliza}']"
-    # else:
-    #     selector_xpath = f"//img[@data-nropolizasalud='{list_polizas[0]}' and @data-nropolizapension='{list_polizas[1]}']"
-
-    # lupa = (By.XPATH, selector_xpath)
-    # error_btn = (By.ID, "btnAceptarError")
-
-    # try:
-    #     resultadol = wait.until(
-    #         EC.any_of(
-    #             EC.element_to_be_clickable(lupa),
-    #             EC.element_to_be_clickable(error_btn)
-    #         )
-    #     )
-    # except TimeoutException:
-    #     raise Exception(f"Problemas en la compañía, buscar y descargar los documentos : {codigo_documento}")
-
-    # if resultadol.get_attribute("id") == "btnAceptarError":
-    #     raise Exception(f"Advertencia detectada. Código de la {palabra_clave}: {codigo_documento}")
-
-    # for _ in range(3):
-    #     try:
-    #         resultadol.click()
-    #         logging.info(f"🖱️ Clic en la lupa {codigo_documento}")
-    #         break
-    #     except StaleElementReferenceException:
-    #         resultado = wait.until(EC.element_to_be_clickable(lupa))
-
-    # wait.until(EC.visibility_of_element_located((By.ID, "divPanelPDFMaster")))
-    # logging.info("📄 Panel PDF visible")
-
-    # boton_guardar = wait.until(EC.element_to_be_clickable((By.ID, "btnDescargarConstanciaM")))
-
-    # archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
-
-    # driver.execute_script("arguments[0].click();", boton_guardar)
-    # logging.info(f"🖱️ Clic en Descargar Constancia")
-
-    # archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes, ".pdf", cantidad=1)
-
-    # if archivo_nuevo:
-    #     logging.info(f"✅ Constancia descargada exitosamente")
-    #     ruta_final = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-    #     os.rename(archivo_nuevo[0], ruta_final)
-    #     logging.info(f"🔄 Constancia renombrada")
-    # else:
-    #     raise Exception(f"No se descargó constancia, buscar en la compania con el código '{numero_doc}'")
-
-    # if tipo_mes == 'MA':
-
-    #     driver.switch_to.frame("ifContenedorPDFMaster")
-
-    #     boton_embebido = wait.until(EC.element_to_be_clickable((By.ID, "open-button")))
-
-    #     archivos_antes_2 = set(os.listdir(ruta_archivos_x_inclu))
-
-    #     driver.execute_script("arguments[0].click();", boton_embebido)
-    #     logging.info(f"🖱️ Clic en Descargar Endoso")
-
-    #     endoso = esperar_archivos_nuevos(ruta_archivos_x_inclu, archivos_antes_2, ".pdf", cantidad=1)
-
-    #     if endoso:
-    #         logging.info(f"✅ Endoso descargado exitosamente")
-    #         ruta_final = os.path.join(ruta_archivos_x_inclu, f"endoso_{ramo.poliza}.pdf")
-    #         os.rename(endoso[0], ruta_final)
-    #         logging.info("🔄 Endoso renombrado")
-    #     else:
-    #         raise Exception("No se descargó el endoso")
-
-    #     driver.switch_to.default_content()
-
-    # if len(list_polizas) == 2:
-
-    #     ruta_salud = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[0]}.pdf")
-    #     ruta_pension = os.path.join(ruta_archivos_x_inclu, f"{list_polizas[1]}.pdf")
-
-    #     if os.path.exists(ruta_pension):
-    #         shutil.copy2(ruta_pension, ruta_salud)
-    #         logging.info(f"📄 Copia creada como '{list_polizas[0]}.pdf'")
-
-    #     if tipo_mes == 'MA':
-    #         ruta_endoso_salud = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[0]}.pdf")
-    #         ruta_endoso_pension = os.path.join(ruta_archivos_x_inclu, f"endoso_{list_polizas[1]}.pdf")
-
-    #         if os.path.exists(ruta_endoso_pension):
-    #             shutil.copy2(ruta_endoso_pension, ruta_endoso_salud)
-    #             logging.info(f"📄 Copia creada como 'endoso_{list_polizas[0]}.pdf'")
-
-    # btn_cancelar_boton = wait.until(EC.element_to_be_clickable((By.ID, "btnPDFCancelarM")))
-    # btn_cancelar_boton.click()
-    # logging.info("✅ Cerrando panel de documentos")
-
-    # try:
-    #     # wait.until(EC.invisibility_of_element_located((By.ID, "divPanelPDFMaster")))
-    #     # logging.info("📴 Panel PDF cerrado correctamente")
-
-    #     modal_pdf = (By.ID, "divPanelPDFMaster")
-    #     resultadof = wait.until(
-    #         EC.any_of(
-    #             EC.invisibility_of_element_located(modal_pdf),
-    #             EC.presence_of_element_located(error_locator2)
-    #         )
-    #     )
-
-    #     if resultadof.get_attribute("id") == "divPanelPDFMaster":
-    #         logging.info("📴 Panel PDF cerrado correctamente")
-    #     else:
-    #         pass
-
-    # except TimeoutException:
-    #     pass
-
-    # logging.info(f"✅ {palabra_clave} realizada exitosamente")
 
 def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
  
@@ -1194,11 +1068,11 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
                 continue 
 
         if not fila_valida:
-            raise Exception(
-                f"No se encontró una fila vigente válida para la póliza {ramo.poliza}\n"
-                f"Solicitud: {ramo.f_inicio} al {ramo.f_fin}\n" 
-                f"Compañía: {inicio_vigencia} al {fin_vigencia}"
-            )
+
+            if tipo_proceso == 'IN':
+                raise Exception (f"La póliza '{ramo.poliza}' no fue renovada por SED Vida Ley el mes pasado")
+            else:
+                raise Exception(f"No se encontró una fila vigente válida para la póliza {ramo.poliza} porque deseas hacer la {palabra_clave} del {ramo.f_inicio} al {ramo.f_fin}")
 
         indice_fila = filas_vigentes.index(fila_valida) + 1
         checkbox = fila_valida.find_element(By.CSS_SELECTOR, "input[type='checkbox']")
