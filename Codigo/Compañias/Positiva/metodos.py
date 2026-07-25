@@ -19,24 +19,16 @@ import shutil
 
 def validar_modal_error(driver, elemento):
     if not isinstance(elemento, bool) and elemento.get_attribute("id") == "divAlertaErrorGeneral":
-        mensaje = driver.find_element(
-            By.XPATH,
-            "//div[@id='divAlertaErrorGeneral']//p/span[2]"
-        ).text.strip()
+        mensaje = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
         raise Exception(mensaje)
 
 def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu):
 
-    # Esperar que aparezca el código
     span_xpath = f"//span[normalize-space()='{codigo_documento}']"
-
-    wait.until(
-        EC.visibility_of_element_located((By.XPATH, span_xpath))
-    )
+    wait.until(EC.visibility_of_element_located((By.XPATH, span_xpath)))
 
     logging.info(f"✅ Span encontrado: {codigo_documento}")
 
-    # XPath relativo de la lupa
     if len(list_polizas) == 1:
         if ba_codigo == "1":
             xpath_lupa_relativo = (
@@ -64,7 +56,7 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
         """
         span = driver.find_element(By.XPATH, span_xpath)
 
-        lupa = span.find_element(By.XPATH, xpath_lupa_relativo)
+        #lupa = span.find_element(By.XPATH, xpath_lupa_relativo)
         #logging.info(lupa.get_attribute("outerHTML"))
 
         return span.find_element(By.XPATH, xpath_lupa_relativo)
@@ -164,8 +156,6 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
     logging.info("✅ Cerrando panel de documentos")
 
     try:
-        # wait.until(EC.invisibility_of_element_located((By.ID, "divPanelPDFMaster")))
-        # logging.info("📴 Panel PDF cerrado correctamente")
 
         modal_pdf = (By.ID, "divPanelPDFMaster")
         error_locator2 = (By.XPATH, "//h3[contains(text(),'Actualmente estamos presentando problemas, por favor')]")
@@ -246,13 +236,17 @@ def validar_pagina(driver):
     overlay = (By.ID, "ID_MODAL_PROCESS")
     user_field_1 = (By.NAME, "txtUsuario")
     user_field_2 = (By.NAME, "username")
+    error_locator = (By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")
+    error_locator2 = (By.XPATH, "//h3[contains(text(),'Actualmente estamos presentando problemas, por favor')]")
 
     try:
         WebDriverWait(driver, 5).until(
             EC.any_of(
                 EC.visibility_of_element_located(overlay),
                 EC.presence_of_element_located(user_field_1),
-                EC.presence_of_element_located(user_field_2)
+                EC.presence_of_element_located(user_field_2),
+                EC.presence_of_element_located(error_locator),
+                EC.presence_of_element_located(error_locator2)
             )
         )
 
@@ -265,6 +259,12 @@ def validar_pagina(driver):
 
         if driver.find_elements(*user_field_2):
             return False, "Redireccionó a otra página (login)"
+
+        if driver.find_elements(*error_locator):
+            return False, "Lo sentimos, ha ocurrido un error inesperado"
+
+        if driver.find_elements(*error_locator2):
+            return False, "Actualmente estamos presentando problemas, por favor"
 
         return True, asunto
 

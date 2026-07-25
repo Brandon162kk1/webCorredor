@@ -2,7 +2,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException,WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -1546,17 +1546,34 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
 def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
+    error = False
+    pos_error = None
+
     try:
         funcion()
         flag_extra = True if tipo_mes == "MA" else False
         return True, flag_extra, "", ""
+    except WebDriverException as e:
+        error = True
+        logging.exception(f"❌ Error técnico de Selenium | {e}")
+        pos_error = "Problemas Técnicos del Agente"
     except Exception as e:
-        resultado, asunto = validar_pagina(driver)
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
-        detalle = (f"{asunto}, intentar entre 5 a 10 minutos de nuevo"if not resultado else str(e))
-        logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
-        return False, False, f"LAPO-{tipo}-{tipo_mes}", detalle
+        error = True
+        pos_error = str(e)
+        # resultado, asunto = validar_pagina(driver)
+        #tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
+        # detalle = (f"{asunto}, intentar entre 5 a 10 minutos de nuevo"if not resultado else str(e))
+        # logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
+        # return False, False, f"LAPO-{tipo}-{tipo_mes}", detalle
     finally:
+
+        if error:
+            tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
+            resultado, asunto = validar_pagina(driver)
+            detalle = (f"{asunto}, intentar entre 5 a 10 minutos de nuevo"if not resultado else pos_error)
+            logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
+            return False, False, f"LAPO-{tipo}-{tipo_mes}", detalle
+
         driver.close()
         logging.info(f"✅ Cerrando la pestaña {tipo}")
         driver.switch_to.window(driver.window_handles[0])
