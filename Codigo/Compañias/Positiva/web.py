@@ -1560,24 +1560,28 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
     except Exception as e:
         error = True
         pos_error = str(e)
-        # resultado, asunto = validar_pagina(driver)
-        #tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
-        # detalle = (f"{asunto}, intentar entre 5 a 10 minutos de nuevo"if not resultado else str(e))
-        # logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
-        # return False, False, f"LAPO-{tipo}-{tipo_mes}", detalle
     finally:
+
+        retorno = None
 
         if error:
             tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
             resultado, asunto = validar_pagina(driver)
             detalle = (f"{asunto}, intentar entre 5 a 10 minutos de nuevo"if not resultado else pos_error)
             logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
-            return False, False, f"LAPO-{tipo}-{tipo_mes}", detalle
+            retorno = (False,False,f"LAPO-{tipo}-{tipo_mes}",detalle)
 
-        driver.close()
-        logging.info(f"✅ Cerrando la pestaña {tipo}")
-        driver.switch_to.window(driver.window_handles[0])
-        logging.info("🔙 Retornando al menú principal")
+        try:
+            if len(driver.window_handles) > 1:
+                driver.close()
+                logging.info(f"✅ Cerrando la pestaña {tipo}")
+                driver.switch_to.window(driver.window_handles[0])
+                logging.info("🔙 Retornando al menú principal")
+        except Exception:
+            logging.exception("Error cerrando la pestaña")
+
+        if retorno:
+            return retorno
 
 def detectar_tipo_mes(ruta_archivos,ramo):
 
