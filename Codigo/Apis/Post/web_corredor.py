@@ -16,6 +16,8 @@ headers = {
 
 def enviar_nota_movimiento(id_movimiento,detalle_error,correo,ruta_carpeta,const):
 
+    logging.info("-----------------------------")
+
     url = f"{API_BASE_URL}/api/movimiento/registrar-nota"
 
     imagenes = obtener_imagenes_error_para_nota(ruta_carpeta, const)

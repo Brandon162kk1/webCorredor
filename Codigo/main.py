@@ -14,7 +14,7 @@ from Apis.Post.web_corredor import enviar_nota_movimiento
 from Apis.Put.web_corredor import enviar_documentos,enviar_error_movimiento,enviar_estaca
 from LinuxDebian.Ventana.ventana import enviar_puerto_por_ramos
 # -- Froms Configuración ---
-from LinuxDebian.Carpetas.rutas import armar_ruta_archivos,contar_archivos,obtener_imagenes_para_correo_general
+from LinuxDebian.Carpetas.rutas import armar_ruta_archivos,asignar_error_trama,obtener_imagenes_para_correo_general,descargar_trama
 from Chrome.google import abrirDriver
 # -- Froms selenium ---
 from selenium.webdriver.support.ui import WebDriverWait
@@ -40,6 +40,8 @@ def to_bool(value):
 #--- Json que llegan desde Webhook como variable de Entorno -------
 data = json.loads(os.getenv("DATA"))
 
+# ------------------ CLASES ---------------
+
 class ContextoRPA:
 
     def __init__(self, data: dict):
@@ -57,15 +59,16 @@ class ContextoRPA:
 
     def __str__(self):
         data = {
-            "cliente": self.cliente,
-            "correo": self.correo,
-            "ruc": self.ruc,
-            "giro": self.giro,
-            "proceso": self.proceso,
-            "tipo_mes": self.tipo_mes,
-            "salud": self.salud.to_dict(ocultar_clave=True),
-            "pension": self.pension.to_dict(ocultar_clave=True),
-            "vida": self.vida.to_dict(ocultar_clave=True),
+            "Entorno": self.entorno,
+            "Cliente": self.cliente,
+            "Correo": self.correo,
+            "RUC": self.ruc,
+            "Giro de Negocio": self.giro,
+            "Proceso": self.proceso,
+            "Tipo de Mes": self.tipo_mes,
+            "Salud": self.salud.to_dict(ocultar_clave=True),
+            "Pension": self.pension.to_dict(ocultar_clave=True),
+            "Vida Ley": self.vida.to_dict(ocultar_clave=True),
         }
         return pformat(data)
 
@@ -306,7 +309,7 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
     return constancia,proforma,tipoError,detalleError
 
 def main():
- 
+
     driver = None
     conSCTR = False
     conVL = False
@@ -387,10 +390,11 @@ def main():
 
         ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
 
+        #logging.info(ctx)
+
         driver = abrirDriver(ruta_archivos_x_inclu)
         wait = WebDriverWait(driver,tiempo)
 
-        descargas_esperadas = 0
         logging.info("-----------------------------")
 
         for r in RAMOS:
@@ -401,34 +405,27 @@ def main():
                 continue
 
             if ctx_ramo.trama:
-                descargas_esperadas += 1
-                logging.info(f"⌛ Descargando trama {ctx_ramo.ramo}")
-                driver.get(ctx_ramo.trama)
-                time.sleep(1)
+
+                if not descargar_trama(driver,ctx_ramo.trama,f"trama {ctx_ramo.ramo}",ruta_archivos_x_inclu):
+
+                    tipoErrorSCTR, detalleErrorSCTR, tipoErrorVL, detalleErrorVL = asignar_error_trama(ctx_ramo)
+
+                    raise Exception(f"No se pudo descargar la trama de {ctx_ramo.ramo}")
 
             if ctx_ramo.trama_97:
-                descargas_esperadas += 1
-                logging.info(f"⌛ Descargando trama 97 {ctx_ramo.ramo}")
-                driver.get(ctx_ramo.trama_97)
-                time.sleep(1)
 
-        archivos_descargados = contar_archivos(ruta_archivos_x_inclu)
+                if not descargar_trama(driver,ctx_ramo.trama_97,f"trama 97 {ctx_ramo.ramo}",ruta_archivos_x_inclu):
 
-        if (archivos_descargados - 1 ) != descargas_esperadas :
+                    tipoErrorSCTR, detalleErrorSCTR, tipoErrorVL, detalleErrorVL = asignar_error_trama(ctx_ramo)
 
-            tipoErrorSCTR = "Fallas en la Trama con Azure"
-            detalleErrorSCTR = "Problemas en la trama, comunicate con el administrador"
-            tipoErrorVL = "Fallas en la Trama con Azure"
-            detalleErrorVL = "Problemas en la trama, comunicate con el administrador"
-
-            raise Exception(f"Descargas incompletas -> "f"esperadas = {descargas_esperadas}, "f"en carpeta = {archivos_descargados - 1 }")
+                    raise Exception(f"No se pudo descargar la trama 97 de {ctx_ramo.ramo}")
 
         logging.info("-----------------------------")
-        logging.info(f"✅ Validación OK : {archivos_descargados - 1} archivos descargados correctamente")
-        logging.info("-----------------------------")
+        logging.info("✅ Todas las tramas fueron descargadas correctamente")
 
-        if any(r["ctx"].id_poliza and not r["ctx"].activo for r in RAMOS):
-            enviar_puerto_por_ramos(RAMOS, puerto)
+        if ctx.entorno:
+            if any(r["ctx"].id_poliza and not r["ctx"].activo for r in RAMOS):
+                enviar_puerto_por_ramos(RAMOS, puerto)
 
         if tipo_proc and ba_codigo and bb_codigo and compania_BA and compania_BB and ctx.salud.poliza and ctx.pension.poliza and ctx.vida.poliza and tipo_mes:
             
@@ -472,17 +469,17 @@ def main():
                     ruta_archivos_x_inclu,ctx.ruc, ctx.correo, palabra_clave,tipo_proc,ctx.cliente,
                     ctx.giro,ctx.vida)
 
-                if tipoErrorSCTR == "Login Fallido":
+                # if tipoErrorSCTR == "Login Fallido":
 
-                    logging.info("-----------------------------")
-                    logging.info(f"⚠️ Login Fallido en SCTR, reintentando...")
+                #     logging.info("-----------------------------")
+                #     logging.info(f"⚠️ Login Fallido en SCTR, reintentando...")
 
-                    contexto_sctr = ctx.pension if ctx.pension.debe_procesarse() else ctx.salud
-                    conSCTR, endSCTR, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
-                        driver, wait, polizas_sctr, compania_BA, ba_codigo, tipo_mes,
-                        ruta_archivos_x_inclu, ctx.ruc, ctx.correo, tipo_proc,
-                        palabra_clave, ctx.giro, ctx.cliente, contexto_sctr
-                    )
+                #     contexto_sctr = ctx.pension if ctx.pension.debe_procesarse() else ctx.salud
+                #     conSCTR, endSCTR, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
+                #         driver, wait, polizas_sctr, compania_BA, ba_codigo, tipo_mes,
+                #         ruta_archivos_x_inclu, ctx.ruc, ctx.correo, tipo_proc,
+                #         palabra_clave, ctx.giro, ctx.cliente, contexto_sctr
+                #     )
                 
         else:
             raise Exception(f" Dato no válido -> {tipo_proc}-{ba_codigo}-{bb_codigo}-{compania_BA}-{compania_BB}-{ctx.salud.poliza}-{ctx.pension.poliza}-{ctx.vida.poliza}-{tipo_mes}")
@@ -499,15 +496,20 @@ def main():
                 return tipoErrorVL, detalleErrorVL
             return tipoErrorSCTR, detalleErrorSCTR
 
-        def enviar_estaca_si_aplica(id_mov,ctx_ramo,constancia,proforma):
+        def enviar_estaca_si_aplica(id_mov, ctx_ramo, constancia, proforma):
+
+            mensaje = None
+
             if tipo_mes == 'MV' and constancia and not proforma:
-                logging.info(f"⌛ Actualizando Constancia → {id_mov} ({ctx_ramo.ramo})")
-                enviar_estaca(id_mov, ctx_ramo.ramo, constancia, proforma)
+                mensaje = "Constancia"
             elif tipo_mes == 'MA' and constancia and proforma:
-                logging.info(f"⌛ Actualizando Constancia + Proforma → {id_mov} ({ctx_ramo.ramo})")
-                enviar_estaca(id_mov, ctx_ramo.ramo, constancia, proforma)
+                mensaje = "Constancia + Proforma"
             elif tipo_mes == 'MA' and not constancia and proforma:
-                logging.info(f"⌛ Actualizando Proforma → {id_mov} ({ctx_ramo.ramo})")
+                mensaje = "Proforma"
+
+            if mensaje:
+                logging.info("-----------------------------")
+                logging.info(f"⌛ Actualizando {mensaje} → {id_mov} ({ctx_ramo.ramo})")
                 enviar_estaca(id_mov, ctx_ramo.ramo, constancia, proforma)
 
         def enviar_docs(id_mov,ctx_ramo,constancia,proforma):
@@ -543,9 +545,7 @@ def main():
                 id_mov = ctx_ramo.id_poliza
 
                 if not id_mov:
-                    continue    
-
-                logging.info("-----------------------------")
+                    continue
 
                 enviar_estaca_si_aplica(id_mov,ctx_ramo,constancia,proforma)
                 time.sleep(1)
@@ -558,41 +558,41 @@ def main():
 
                 const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
 
-                logging.info(f"⌛ Enviando error '{ctx_ramo.ramo}' → {id_mov}")
-                enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
+                if ctx.entorno:
+                    enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
-                errores_detallados.append(f"{ctx_ramo.ramo.capitalize()} : {detalle_error}")
+                    errores_detallados.append(f"{ctx_ramo.ramo.capitalize()} : {detalle_error}")
 
-                lista_tramas = []
+                    lista_tramas = []
 
-                if ctx_ramo.trama:
-                    lista_tramas.append({
-                        "nombre": f"{ctx_ramo.poliza}.xlsx",
-                        "url": ctx_ramo.trama
+                    if ctx_ramo.trama:
+                        lista_tramas.append({
+                            "nombre": f"{ctx_ramo.poliza}.xlsx",
+                            "url": ctx_ramo.trama
+                        })
+
+                    if ctx_ramo.trama_97:
+                        lista_tramas.append({
+                            "nombre": f"{ctx_ramo.poliza}_97.xlsx",
+                            "url": ctx_ramo.trama_97
+                        })
+
+                    imagen = obtener_imagenes_para_correo_general(
+                        ruta_archivos_x_inclu,
+                        const
+                    )
+
+                    detalle_ramos.append({
+                        "ramo": ctx_ramo.ramo.capitalize(),
+                        "poliza": ctx_ramo.poliza,
+                        "vigencia": f"{ctx_ramo.f_inicio} al {ctx_ramo.f_fin}",
+                        "compania": ctx_ramo.compania,
+                        "sede": ctx_ramo.sede,
+                        "error": detalle_error,
+                        "tramas": lista_tramas,
+                        "imagen": imagen
+
                     })
-
-                if ctx_ramo.trama_97:
-                    lista_tramas.append({
-                        "nombre": f"{ctx_ramo.poliza}_97.xlsx",
-                        "url": ctx_ramo.trama_97
-                    })
-
-                imagen = obtener_imagenes_para_correo_general(
-                    ruta_archivos_x_inclu,
-                    const
-                )
-
-                detalle_ramos.append({
-                    "ramo": ctx_ramo.ramo.capitalize(),
-                    "poliza": ctx_ramo.poliza,
-                    "vigencia": f"{ctx_ramo.f_inicio} al {ctx_ramo.f_fin}",
-                    "compania": ctx_ramo.compania,
-                    "sede": ctx_ramo.sede,
-                    "error": detalle_error,
-                    "tramas": lista_tramas,
-                    "imagen": imagen
-
-                })
 
                 enviar_docs(id_mov,ctx_ramo,constancia,proforma)
 
@@ -601,22 +601,19 @@ def main():
             finally:
                 time.sleep(1)
 
-        if errores_detallados:
-
+        if ctx.entorno and errores_detallados:
             try:
-                logging.info("-----------------------------")
                 texto_errores = "\n".join(errores_detallados)
                 enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
             except Exception as e:
-                logging.warning(f"⚠️ Fallo aca :{e}")
+                logging.warning(f"⚠️ Fallo en registrar notas del movimiento :{e}")
             finally:
                 time.sleep(1)
 
             try:
-                logging.info("-----------------------------")
                 enviar_error_general(ctx,palabra_clave,detalle_ramos)
             except Exception as e:
-                logging.warning(f"⚠️ Fallo aca :{e}")
+                logging.warning(f"⚠️ Fallo al enviar correo de notificación :{e}")
             finally:
                 time.sleep(1)
 

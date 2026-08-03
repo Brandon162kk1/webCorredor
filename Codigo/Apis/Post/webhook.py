@@ -72,6 +72,8 @@ def enviar_error_generalAntiguo(cliente,ctx_ramo,palabra_clave,detalle_error,rut
 
 def enviar_error_general(ctx,palabra_clave,detalle_ramos):
 
+    logging.info("-----------------------------")
+
     template = env.get_template("error.html")
 
     html = template.render(

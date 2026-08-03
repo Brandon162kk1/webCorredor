@@ -540,7 +540,13 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ui-widget-overlay")))
 
-    descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu)
+    try:
+        descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu)
+    except WebDriverException as e:
+        logging.exception(f"❌ Error técnico de Selenium | {e}")
+        raise Exception(f"Problemas Técnicos del Agente")
+    except Exception as e:
+        raise Exception(f"{e}")
 
 def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
  
@@ -1547,6 +1553,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
     error = False
+    errorTecnico = False
     pos_error = None
 
     try:
@@ -1554,6 +1561,7 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
         flag_extra = True if tipo_mes == "MA" else False
         return True, flag_extra, "", ""
     except WebDriverException as e:
+        errorTecnico = True
         error = True
         logging.exception(f"❌ Error técnico de Selenium | {e}")
         pos_error = "Problemas Técnicos del Agente"
@@ -1564,13 +1572,20 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
         retorno = None
 
+        detalle = pos_error
+
+        #--------------------------------------------------------------------
         if error:
             tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
-            resultado, asunto = validar_pagina(driver)
-            detalle = (f"{asunto}, intentar entre 5 a 10 minutos de nuevo"if not resultado else pos_error)
-            logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
-            retorno = (False,False,f"LAPO-{tipo}-{tipo_mes}",detalle)
 
+            if errorTecnico:
+                resultado, asunto = validar_pagina(driver)
+                if not resultado:
+                    detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo"
+            logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
+
+            retorno = (False,False,f"LAPO-{tipo}-{tipo_mes}",detalle)
+        #--------------------------------------------------------------------
         try:
             if len(driver.window_handles) > 1:
                 driver.close()
@@ -1578,7 +1593,7 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
                 driver.switch_to.window(driver.window_handles[0])
                 logging.info("🔙 Retornando al menú principal")
         except Exception:
-            logging.exception("Error cerrando la pestaña")
+            logging.exception("❌ Error cerrando la pestaña")
 
         if retorno:
             return retorno

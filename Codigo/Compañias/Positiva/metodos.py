@@ -130,7 +130,7 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
             os.rename(endoso[0], ruta_final)
             logging.info("🔄 Endoso renombrado")
         else:
-            raise Exception("No se descargó el endoso")
+            raise Exception(f"No se descargó proforma, buscar en la compañía con el código '{codigo_documento}'")
 
         driver.switch_to.default_content()
 

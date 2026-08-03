@@ -80,6 +80,9 @@ def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma
 
 def enviar_error_movimiento(id_movimiento, ctx_ramo, error, detalle_error,ruta_carpeta,const):
 
+    logging.info("-----------------------------")
+    logging.info(f"⌛ Enviando error '{ctx_ramo.ramo}' → {id_movimiento}")
+
     url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/error"
 
     imagenes = obtener_imagenes_error_para_nota(ruta_carpeta, const)

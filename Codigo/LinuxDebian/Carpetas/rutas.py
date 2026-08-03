@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -- Imports --
-import os
+import os,time
 import logging
 import base64
 #---- Froms ---
@@ -74,7 +74,8 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
 
     id_poliza = obtener_id_poliza(ctx)
 
-    prefijo = "PRUEBAS_" if ctx.entorno == "LOCAL" else ""
+    #prefijo = "PRUEBAS_" if ctx.entorno == "LOCAL" else ""
+    prefijo = "PRUEBAS_" if not ctx.entorno else ""
 
     mapa_procesos = {
         "IN": "Inclusiones",
@@ -124,3 +125,23 @@ def contar_archivos(ruta):
         f for f in os.listdir(ruta)
         if os.path.isfile(os.path.join(ruta, f))
     ])
+
+def asignar_error_trama(ctx_ramo):
+    tipo = "Fallas en la Trama con Azure"
+    detalle = "Problemas al obtener la trama, comunicate con el administrador"
+
+    if ctx_ramo.ramo == "VIDALEY":
+        return None, None, tipo, detalle
+
+    return tipo, detalle, None, None
+
+def descargar_trama(driver, ruta, nombre, ruta_descargas):
+    antes = contar_archivos(ruta_descargas)
+
+    logging.info(f"⌛ Descargando {nombre}")
+    driver.get(ruta)
+    time.sleep(2)
+
+    despues = contar_archivos(ruta_descargas)
+
+    return despues == antes + 1
