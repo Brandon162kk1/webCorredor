@@ -2,7 +2,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException,WebDriverException
+from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException,WebDriverException,UnexpectedAlertPresentException
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -48,7 +48,7 @@ def solicitud_sctr(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palab
     logging.info("🖱️ Clic en Transacciones y Consultas")
 
     #-----------------------------
-    #descargar_documento_por_codigo(driver,wait,"INCL-236765",palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu)
+    #descargar_documento_por_codigo(driver,wait,"INCL-263140",palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu)
     #-----------------------------
 
     error_locator = (By.XPATH, "//h3[contains(text(),'Lo sentimos, ha ocurrido un error inesperado')]")
@@ -1076,7 +1076,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
         if not fila_valida:
 
             if tipo_proceso == 'IN':
-                raise Exception (f"La póliza '{ramo.poliza}' no fue renovada por SED Vida Ley el mes pasado")
+                raise Exception (f"La póliza '{ramo.poliza}' no fue renovada por SED Vida Ley el mes pasado, se realizó por la OV")
             else:
                 raise Exception(f"No se encontró una fila vigente válida para la póliza {ramo.poliza} porque deseas hacer la {palabra_clave} del {ramo.f_inicio} al {ramo.f_fin}")
 
@@ -1381,19 +1381,23 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
 
                 user_field = wait.until(EC.element_to_be_clickable(id_usuario))
                 user_field.clear()
-                mover_y_hacer_click_simple(driver, user_field)    
-                time_espera_alea(2,3)
+                mover_y_hacer_click_simple(driver, user_field)
+
+                #1.5 0.15,0.45
+                #2,3 0.15,0.45
+
+                time_espera_alea(1,2)
                 logging.info(f"⌨️ Digitando el Username")
-                escribir_lento(user_field, ramo.usuario, min_delay=1.5, max_delay=2)
-                time_espera_alea(2,3)
+                escribir_lento(user_field, ramo.usuario, min_delay=0.15, max_delay=0.45)
+                time_espera_alea(0.15,0.45)                                              
 
                 password_field = wait.until(EC.element_to_be_clickable((By.ID, "b5-Input_PassWord")))
                 password_field.clear()
                 mover_y_hacer_click_simple(driver, password_field)         
-                time_espera_alea(2,3)
+                time_espera_alea(0.15,0.45)
                 logging.info(f"⌨️ Digitando el Password") 
-                escribir_lento(password_field, ramo.clave, min_delay=1.5, max_delay=2)  
-                time_espera_alea(2,3)
+                escribir_lento(password_field, ramo.clave, min_delay=0.15, max_delay=0.45)
+                time_espera_alea(0.15,0.45)
 
                 login_button = wait.until(EC.element_to_be_clickable((By.ID, "b5-btnAction")))
                 mover_y_hacer_click_simple(driver, login_button)
@@ -1505,8 +1509,6 @@ def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,ti
                     driver.refresh()
                     wait.until(EC.element_to_be_clickable(id_usuario))
 
-                #return False,False,"Login Fallido", str(e)
-
     if not login_exitoso:
         tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
         return False, False, "Login Fallido", ultimo_error
@@ -1557,43 +1559,73 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
     pos_error = None
 
     try:
+
         funcion()
         flag_extra = True if tipo_mes == "MA" else False
         return True, flag_extra, "", ""
+
+    except UnexpectedAlertPresentException as e:
+
+        error = True
+
+        pos_error = getattr(e, "alert_text", None) or str(e)
+
+        try:
+            driver.switch_to.alert.accept()
+        except NoAlertPresentException:
+            pass
+
     except WebDriverException as e:
+
         errorTecnico = True
         error = True
-        logging.exception(f"❌ Error técnico de Selenium | {e}")
+        logging.exception(f"⚠️ Error técnico de Selenium | {e}")
         pos_error = "Problemas Técnicos del Agente"
+
     except Exception as e:
+
         error = True
         pos_error = str(e)
+
     finally:
 
         retorno = None
-
         detalle = pos_error
 
-        #--------------------------------------------------------------------
         if error:
-            tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
+
+            try:
+                tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
+            except Exception:
+                logging.exception("⚠️ No se pudo tomar screenshot")
 
             if errorTecnico:
-                resultado, asunto = validar_pagina(driver)
-                if not resultado:
-                    detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo"
+
+                try:
+
+                    resultado, asunto = validar_pagina(driver)
+                    if not resultado:
+                        detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo"
+
+                except Exception:
+
+                    logging.exception("⚠️ Error validando la página")
+
             logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
 
             retorno = (False,False,f"LAPO-{tipo}-{tipo_mes}",detalle)
-        #--------------------------------------------------------------------
+
         try:
+
             if len(driver.window_handles) > 1:
                 driver.close()
                 logging.info(f"✅ Cerrando la pestaña {tipo}")
                 driver.switch_to.window(driver.window_handles[0])
                 logging.info("🔙 Retornando al menú principal")
+
         except Exception:
-            logging.exception("❌ Error cerrando la pestaña")
+
+            logging.exception("⚠️ Error cerrando la pestaña")
 
         if retorno:
             return retorno
