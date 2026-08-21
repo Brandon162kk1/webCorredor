@@ -91,6 +91,17 @@ class RamoBase:
             data["clave"] = "****"
         return data
 
+    def __str__(self):
+        return (
+            f"{self.ramo.capitalize()} ("
+            f"Póliza: {self.poliza}, "
+            f"Proforma: {self.proforma}, "
+            f"Facturación Múltiple: {self.facturacion}, "
+            f"Sede: {self.sede}, "
+            f"Vigencia: {self.f_inicio} al {self.f_fin}"
+            f")"
+        )
+
 class Salud(RamoBase):
     def __init__(self, data: dict):
         super().__init__(
@@ -111,17 +122,6 @@ class Salud(RamoBase):
         self.trama_97 = data["tramaSalud97"]
         self.trama = data["tramaSalud"]
         self.sede = data["sedeSalud"]
-
-    def __str__(self):
-        return (
-            f"{self.ramo.capitalize()} ("
-            f"Póliza: {self.poliza}, "
-            f"Proforma: {self.proforma}, "
-            f"Facturación Múltiple: {self.facturacion}, "
-            f"Sede: {self.sede}, "
-            f"Vigencia: {self.f_inicio} al {self.f_fin}"
-            f")"
-        )
 
 class Pension(RamoBase):
     def __init__(self, data: dict):
@@ -144,17 +144,6 @@ class Pension(RamoBase):
         self.trama = data["tramaPension"]
         self.sede = data["sedePension"]
 
-    def __str__(self):
-        return (
-            f"{self.ramo.capitalize()} ("
-            f"Póliza: {self.poliza}, "
-            f"Proforma: {self.proforma}, "
-            f"Facturación Múltiple: {self.facturacion}, "
-            f"Sede: {self.sede}, "
-            f"Vigencia: {self.f_inicio} al {self.f_fin}"
-            f")"
-        )
-
 class VidaLey(RamoBase):
     def __init__(self, data: dict):
         super().__init__(
@@ -175,17 +164,6 @@ class VidaLey(RamoBase):
         self.trama_97 = data["tramaVida97"]
         self.trama = data["tramaVida"]
         self.sede = data["sedeVida"]
-
-    def __str__(self):
-        return (
-            f"{self.ramo.capitalize()} ("
-            f"Póliza: {self.poliza}, "
-            f"Proforma: {self.proforma}, "
-            f"Facturación Múltiple: {self.facturacion}, "
-            f"Sede: {self.sede}, "
-            f"Vigencia: {self.f_inicio} al {self.f_fin}"
-            f")"
-        )
 
 ctx = ContextoRPA(data)
       
@@ -308,6 +286,17 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
    
     return constancia,proforma,tipoError,detalleError
 
+COMPANIA_ABREV_MAP = {
+    'SANITAS': 'SANI',
+    'CRECER': 'CREC',
+    'PROTECTA': 'PROT',
+    'MAPFRE': 'MAPF',
+    'LA POSITIVA': 'LAPO',
+    'PACIFICO': 'PACI',
+    'RIMAC': 'RIMA',
+    'UNIVERSAL': 'NING'
+}
+
 def main():
 
     driver = None
@@ -326,28 +315,12 @@ def main():
         case _:
             tipo_mes = 'MV'
 
-    dispatch = {
-        'SANITAS': 'SANI',
-        'CRECER': 'CREC',
-        'PROTECTA': 'PROT',
-        'MAPFRE': 'MAPF',
-        'LA POSITIVA': 'LAPO',
-        'PACIFICO': 'PACI',
-        'RIMAC': 'RIMA',
-        'UNIVERSAL': 'NING'
-    }
-
-    if not ctx.salud.debe_procesarse() and not ctx.pension.debe_procesarse():
-        ba_codigo = '0'
-    elif ctx.salud.debe_procesarse() and ctx.pension.debe_procesarse():
-        ba_codigo = '3'
-    elif ctx.salud.debe_procesarse() and not ctx.pension.debe_procesarse():
-        ba_codigo = '1'
-    else:
-        ba_codigo = '2'
+    salud_proc = int(ctx.salud.debe_procesarse())
+    pension_proc = int(ctx.pension.debe_procesarse())
+    ba_codigo = str(salud_proc + (pension_proc * 2))
 
     def get_compania_abrev(nombre):
-        return dispatch.get(nombre, '')
+        return COMPANIA_ABREV_MAP.get(nombre, '')
 
     if ba_codigo in ('1','3'):
         compania_BA = get_compania_abrev(ctx.salud.compania)
@@ -404,21 +377,16 @@ def main():
             if ctx_ramo.activo:
                 continue
 
-            if ctx_ramo.trama:
+            tramas_a_descargar = [
+                (ctx_ramo.trama, f"trama {ctx_ramo.ramo}"),
+                (ctx_ramo.trama_97, f"trama 97 {ctx_ramo.ramo}")
+            ]
 
-                if not descargar_trama(driver,ctx_ramo.trama,f"trama {ctx_ramo.ramo}",ruta_archivos_x_inclu):
-
-                    tipoErrorSCTR, detalleErrorSCTR, tipoErrorVL, detalleErrorVL = asignar_error_trama(ctx_ramo)
-
-                    raise Exception(f"No se pudo descargar la trama de {ctx_ramo.ramo}")
-
-            if ctx_ramo.trama_97:
-
-                if not descargar_trama(driver,ctx_ramo.trama_97,f"trama 97 {ctx_ramo.ramo}",ruta_archivos_x_inclu):
-
-                    tipoErrorSCTR, detalleErrorSCTR, tipoErrorVL, detalleErrorVL = asignar_error_trama(ctx_ramo)
-
-                    raise Exception(f"No se pudo descargar la trama 97 de {ctx_ramo.ramo}")
+            for url_trama, nombre_trama in tramas_a_descargar:
+                if url_trama:
+                    if not descargar_trama(driver, url_trama, nombre_trama, ruta_archivos_x_inclu):
+                        tipoErrorSCTR, detalleErrorSCTR, tipoErrorVL, detalleErrorVL = asignar_error_trama(ctx_ramo)
+                        raise Exception(f"No se pudo descargar la {nombre_trama}")
 
         logging.info("-----------------------------")
         logging.info("✅ Todas las tramas fueron descargadas correctamente")

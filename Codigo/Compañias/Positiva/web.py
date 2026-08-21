@@ -1561,7 +1561,7 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
     try:
 
         funcion()
-        flag_extra = True if tipo_mes == "MA" else False
+        flag_extra = (tipo_mes == "MA")
         return True, flag_extra, "", ""
 
     except UnexpectedAlertPresentException as e:

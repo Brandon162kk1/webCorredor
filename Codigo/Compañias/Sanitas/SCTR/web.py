@@ -4,7 +4,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
 from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from selenium.webdriver import ActionChains
@@ -178,7 +177,7 @@ def detectar_constancia_en_tabla(wait):
             if "constancia salud" in texto:
                 encontrada_salud = True
 
-            if "constancia pension" in texto or "constancia pensión" in texto:
+            if "constancia pension" in texto:
                 encontrada_pension = True
 
         except:

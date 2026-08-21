@@ -19,7 +19,6 @@ def abrirDriver(ruta_archivos_x_inclu):
     chrome_options.add_argument("--window-size=1920,1080")  
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--disable-infobars")
 
     # Importante para imprimir sin Dialogo
     chrome_options.add_argument("--kiosk-printing")
@@ -43,8 +42,7 @@ def abrirDriver(ruta_archivos_x_inclu):
             "selectedDestinationId": "Save as PDF",
             "version": 2
         }
-        """,
-        "savefile.default_directory": ruta_archivos_x_inclu
+        """
     }
     chrome_options.add_experimental_option("prefs", prefs)
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
