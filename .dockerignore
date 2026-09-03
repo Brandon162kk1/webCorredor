@@ -13,6 +13,3 @@ venv/
 # Ignorar directorios del IDE
 .vscode/
 .idea/
-
-#Imagenes bases
-Dockerfile.base

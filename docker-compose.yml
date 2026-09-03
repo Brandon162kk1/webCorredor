@@ -5,8 +5,5 @@ services:
     volumes:
       - ./Codigo:/app/Codigo
 
-# Comando: docker build --no-cache -t web_corredor .
 # Comando: docker compose build
-
-# Comando para crear una imagen base : docker build -f Dockerfile.base -t chromedriver:stable .
 # Comando restart : docker compose restart webCorredor

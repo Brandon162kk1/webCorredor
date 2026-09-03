@@ -62,7 +62,7 @@ def obtener_imagenes_error_para_nota(ruta_carpeta, const):
 
     return imagenes_payload
 
-def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compania_BB,ctx, poliza1, poliza2, poliza3):
+def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compania_BB,ctx, poliza1, poliza2, poliza3,entorno):
 
     log_buffer = StringIO()
     logging.basicConfig(
@@ -74,8 +74,7 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
 
     id_poliza = obtener_id_poliza(ctx)
 
-    #prefijo = "PRUEBAS_" if ctx.entorno == "LOCAL" else ""
-    prefijo = "PRUEBAS_" if not ctx.entorno else ""
+    prefijo = "PRUEBAS_" if not entorno else ""
 
     mapa_procesos = {
         "IN": "Inclusiones",

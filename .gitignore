@@ -25,8 +25,6 @@ config.json
 # Otros directorios generados
 Downloads/
 
-Dockerfile.base
-
 # --- Docker ---
 volumen_codigo/
 *.pid

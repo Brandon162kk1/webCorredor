@@ -25,6 +25,7 @@ from pprint import pformat
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 puerto = os.getenv("puerto")
+entorno = os.getenv("entorno","false").strip().lower() == "true"
 
 def to_bool(value):
     if isinstance(value, bool):
@@ -361,9 +362,10 @@ def main():
                 palabra_clave = 'descarga de Constancia'
                 tiempo = 90
 
-        ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza)
+        ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza,entorno)
 
-        #logging.info(ctx)
+        if not entorno:
+            logging.info(ctx)
 
         driver = abrirDriver(ruta_archivos_x_inclu)
         wait = WebDriverWait(driver,tiempo)
@@ -391,7 +393,7 @@ def main():
         logging.info("-----------------------------")
         logging.info("✅ Todas las tramas fueron descargadas correctamente")
 
-        if ctx.entorno:
+        if entorno:
             if any(r["ctx"].id_poliza and not r["ctx"].activo for r in RAMOS):
                 enviar_puerto_por_ramos(RAMOS, puerto)
 
@@ -526,7 +528,7 @@ def main():
 
                 const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
 
-                if ctx.entorno:
+                if entorno:
                     enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
                     errores_detallados.append(f"{ctx_ramo.ramo.capitalize()} : {detalle_error}")
@@ -569,7 +571,7 @@ def main():
             finally:
                 time.sleep(1)
 
-        if ctx.entorno and errores_detallados:
+        if entorno and errores_detallados:
             try:
                 texto_errores = "\n".join(errores_detallados)
                 enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
