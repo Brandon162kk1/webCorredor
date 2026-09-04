@@ -2,12 +2,25 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException,NoAlertPresentException,StaleElementReferenceException,WebDriverException,UnexpectedAlertPresentException
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoAlertPresentException,
+    StaleElementReferenceException,
+    WebDriverException,
+    UnexpectedAlertPresentException
+)
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from Tiempo.fechas_horas import get_fecha_hoy,time_espera_alea
-from Compañias.Positiva.metodos import mover_y_hacer_click_simple,escribir_lento,validar_pagina,leer_pdf,validar_modal_error,descargar_documento_por_codigo
+from Compañias.Positiva.metodos import (
+    mover_y_hacer_click_simple,
+    escribir_lento,validar_pagina,
+    leer_pdf,
+    validar_modal_error,
+    descargar_documento_por_codigo,
+    manejar_alerta
+)
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
 from Apis.Get.metodos import codigo_compania
@@ -634,6 +647,8 @@ def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     driver.execute_script("arguments[0].click();", buscar_link)
     logging.info("🖱️ Clic en la lupa 🔍")
 
+    #manejar_alerta(driver)
+
     try:
         alert = wait.until(EC.alert_is_present())
         logging.info(f"⚠️ Alerta presente: {alert.text}")
@@ -646,6 +661,7 @@ def solicitud_vidaley_ov(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ejecutivo
     nueva_ventana2 = (set(driver.window_handles) - handles_antes_ventana2).pop()
     driver.switch_to.window(nueva_ventana2)
     logging.info("--- Ventana 2---------🌐")
+
 
     time.sleep(3)
 
@@ -1570,10 +1586,8 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
         pos_error = getattr(e, "alert_text", None) or str(e)
 
-        try:
-            driver.switch_to.alert.accept()
-        except NoAlertPresentException:
-            pass
+        # Intentar manejar el alert que provocó la excepción
+        manejar_alerta(driver)
 
     except WebDriverException as e:
 
@@ -1593,6 +1607,20 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
         detalle = pos_error
 
         if error:
+
+
+            alerta_detectado = manejar_alerta(driver)
+
+            if alerta_detectado:
+
+                logging.warning(
+                    f"⚠️ Alert pendiente durante el manejo del error: "
+                    f"{alerta_detectado}"
+                )
+
+                # Si no teníamos mensaje de error, usar el alert
+                if not detalle:
+                    detalle = alerta_detectado
 
             try:
                 tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
@@ -1616,6 +1644,10 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
             retorno = (False,False,f"LAPO-{tipo}-{tipo_mes}",detalle)
 
         try:
+
+            # Por seguridad, revisar nuevamente si apareció
+            # otro alert durante el manejo del error.
+            manejar_alerta(driver)
 
             if len(driver.window_handles) > 1:
                 driver.close()

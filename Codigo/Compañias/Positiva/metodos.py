@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # -- Froms ---
 from selenium.common.exceptions import (
-    #NoAlertPresentException,
-    #UnexpectedAlertPresentException,
+    NoAlertPresentException,
+    UnexpectedAlertPresentException,
     TimeoutException,
     StaleElementReferenceException,
     ElementClickInterceptedException
@@ -21,6 +21,44 @@ import random
 import pdfplumber
 import re
 import shutil
+
+def manejar_alerta(driver, accion="accept"):
+    """
+    Detecta y maneja un alert de JavaScript si existe.
+
+    Retorna:
+        str: texto del alert si existía.
+        None: si no había alert.
+    """
+
+    try:
+
+    #   alert = wait.until(EC.alert_is_present())
+    #   logging.info(f"⚠️ Alerta presente: {alert.text}")
+    #   alert.accept()
+    #   logging.info("✅ Alerta aceptada")
+
+        alerta = driver.switch_to.alert
+        texto = alerta.text
+
+        logging.warning(f"⚠️ Alert detectado: {texto}")
+
+        if accion == "accept":
+            alerta.accept()
+            logging.info("✅ Alert aceptado")
+
+        elif accion == "dismiss":
+            alerta.dismiss()
+            logging.info("✅ Alert cancelado")
+
+        return texto
+
+    except NoAlertPresentException:
+        return None
+
+    except Exception:
+        logging.exception("⚠️ Error manejando alert")
+        return None
 
 def validar_modal_error(driver, elemento):
     if not isinstance(elemento, bool) and elemento.get_attribute("id") == "divAlertaErrorGeneral":

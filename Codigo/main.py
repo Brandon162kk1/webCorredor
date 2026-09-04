@@ -46,7 +46,7 @@ data = json.loads(os.getenv("DATA"))
 class ContextoRPA:
 
     def __init__(self, data: dict):
-        self.entorno = data["entorno"]
+
         self.cliente = data["cliente"]
         self.correo = data["correo"]
         self.ruc = data["ruc"]
@@ -60,7 +60,6 @@ class ContextoRPA:
 
     def __str__(self):
         data = {
-            "Entorno": self.entorno,
             "Cliente": self.cliente,
             "Correo": self.correo,
             "RUC": self.ruc,
