@@ -5,7 +5,8 @@ from selenium.common.exceptions import (
     UnexpectedAlertPresentException,
     TimeoutException,
     StaleElementReferenceException,
-    ElementClickInterceptedException
+    ElementClickInterceptedException,
+    WebDriverException
 )
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
@@ -33,11 +34,6 @@ def manejar_alerta(driver, accion="accept"):
 
     try:
 
-    #   alert = wait.until(EC.alert_is_present())
-    #   logging.info(f"⚠️ Alerta presente: {alert.text}")
-    #   alert.accept()
-    #   logging.info("✅ Alerta aceptada")
-
         alerta = driver.switch_to.alert
         texto = alerta.text
 
@@ -56,6 +52,12 @@ def manejar_alerta(driver, accion="accept"):
     except NoAlertPresentException:
         return None
 
+    except WebDriverException as e:
+        logging.warning(
+            f"⚠️ No se pudo consultar el alert porque "
+            f"ChromeDriver no responde: {e}"
+        )
+        return None
     except Exception:
         logging.exception("⚠️ Error manejando alert")
         return None

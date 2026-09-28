@@ -1568,7 +1568,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
 
     return ejecutar_con_manejo(driver,ruta_archivos_x_inclu,"VIDALEY",tipo_mes,funcion)
 
-def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
+def ejecutar_con_manejo(driver, ruta_archivos_x_inclu, tipo, tipo_mes, funcion):
 
     error = False
     errorTecnico = False
@@ -1577,7 +1577,9 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
     try:
 
         funcion()
+
         flag_extra = (tipo_mes == "MA")
+
         return True, flag_extra, "", ""
 
     except UnexpectedAlertPresentException as e:
@@ -1586,14 +1588,19 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
 
         pos_error = getattr(e, "alert_text", None) or str(e)
 
-        # Intentar manejar el alert que provocó la excepción
+        logging.warning(f"⚠️ Alert inesperado detectado: {pos_error}")
+
+        # Aquí sí tiene sentido intentar manejar el alert,
+        # porque Selenium indicó específicamente que existe uno.
         manejar_alerta(driver)
 
     except WebDriverException as e:
 
         errorTecnico = True
         error = True
+
         logging.exception(f"⚠️ Error técnico de Selenium | {e}")
+
         pos_error = "Problemas Técnicos del Agente"
 
     except Exception as e:
@@ -1606,58 +1613,93 @@ def ejecutar_con_manejo(driver,ruta_archivos_x_inclu,tipo,tipo_mes,funcion):
         retorno = None
         detalle = pos_error
 
+        # MANEJO DEL ERROR
         if error:
 
+            # SOLO intentar revisar alert si NO fue un error técnico.
+            # Si ChromeDriver no responde, llamar nuevamente a
+            # driver.switch_to.alert puede generar otro timeout de 120s.
+            if not errorTecnico:
 
-            alerta_detectado = manejar_alerta(driver)
+                try:
 
-            if alerta_detectado:
+                    alerta_detectado = manejar_alerta(driver)
 
-                logging.warning(
-                    f"⚠️ Alert pendiente durante el manejo del error: "
-                    f"{alerta_detectado}"
+                    if alerta_detectado:
+
+                        logging.warning(
+                            f"⚠️ Alert pendiente durante el manejo "
+                            f"del error: {alerta_detectado}"
+                        )
+
+                        if not detalle:
+                            detalle = alerta_detectado
+
+                except Exception:
+
+                    logging.exception("⚠️ Error revisando alert durante el manejo")
+
+            # SCREENSHOT
+            try:
+
+                tomar_capturar(
+                    driver,
+                    ruta_archivos_x_inclu,
+                    f"ERROR_{tipo}_{tipo_mes}"
                 )
 
-                # Si no teníamos mensaje de error, usar el alert
-                if not detalle:
-                    detalle = alerta_detectado
-
-            try:
-                tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo}_{tipo_mes}")
             except Exception:
+
                 logging.exception("⚠️ No se pudo tomar screenshot")
 
+            # VALIDAR PÁGINA
             if errorTecnico:
 
                 try:
 
                     resultado, asunto = validar_pagina(driver)
+
                     if not resultado:
-                        detalle = f"{asunto}, intentar entre 5 a 10 minutos de nuevo"
+
+                        detalle = (
+                            f"{asunto}, intentar entre 5 a 10 "
+                            f"minutos de nuevo"
+                        )
 
                 except Exception:
 
                     logging.exception("⚠️ Error validando la página")
 
-            logging.error(f"❌ Error en La Positiva ({tipo}) - {tipo_mes}: {detalle}")
+            logging.error(
+                f"❌ Error en La Positiva "
+                f"({tipo}) - {tipo_mes}: {detalle}"
+            )
 
             retorno = (False,False,f"LAPO-{tipo}-{tipo_mes}",detalle)
 
-        try:
+        # CIERRE DE PESTAÑA
+        # Si ChromeDriver tuvo un error técnico, NO hacer más
+        # operaciones contra el driver.
+        if not errorTecnico:
 
-            # Por seguridad, revisar nuevamente si apareció
-            # otro alert durante el manejo del error.
-            manejar_alerta(driver)
+            try:
 
-            if len(driver.window_handles) > 1:
-                driver.close()
-                logging.info(f"✅ Cerrando la pestaña {tipo}")
-                driver.switch_to.window(driver.window_handles[0])
-                logging.info("🔙 Retornando al menú principal")
+                # Revisar nuevamente si apareció otro alert.
+                manejar_alerta(driver)
 
-        except Exception:
+                if len(driver.window_handles) > 1:
 
-            logging.exception("⚠️ Error cerrando la pestaña")
+                    driver.close()
+
+                    logging.info(f"✅ Cerrando la pestaña {tipo}")
+
+                    driver.switch_to.window(driver.window_handles[0])
+
+                    logging.info("🔙 Retornando al menú principal")
+
+            except Exception:
+
+                logging.exception("⚠️ Error cerrando la pestaña")
 
         if retorno:
             return retorno
