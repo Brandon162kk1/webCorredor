@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # -- Froms Compañias ---
 from Compañias.Mapfre.web import realizar_solicitud_mapfre
-from Compañias.Pacifico.EnLinea.web import realizar_solicitud_pacifico
+#from Compañias.Pacifico.EnLinea.web import realizar_solicitud_pacifico
+from Compañias.Pacifico.SomosCorredores.web import realizar_solicitud_pacifico
 from Compañias.Positiva.web import realizar_solicitud_positiva
 from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
 from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer_vl
@@ -457,7 +458,7 @@ def main():
         logging.error(f"⚠️ Conclusión: {e}")
     finally:
 
-        if driver:
+        if driver and entorno:
             driver.quit()
 
         def obtener_error(ctx_ramo):

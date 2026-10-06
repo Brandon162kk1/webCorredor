@@ -1,9 +1,11 @@
 #   --- Froms ----
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import Select,WebDriverWait
+from selenium.common.exceptions import TimeoutException
 from Tiempo.fechas_horas import get_timestamp
+from LinuxDebian.Ventana.ventana import desbloquear_interaccion,bloquear_interaccion,esperar_archivos_nuevos
+from Apis.Put.web_corredor import enviar_aviso_captcha
 #   --- Imports ----
 import time
 import os
@@ -27,17 +29,27 @@ def procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta
         pass_input.send_keys(ramo.clave)
         logging.info("⌨️ Digitando el Password")
 
-        logging.info("🧩 Resuelve el CAPTCHA manualmente y clic en 'Ingresar'.")
+        # if not enviar_aviso_captcha(ramo):
+        #     raise Exception(f"No se pudo avisar para resolver el Captcha")
+
+        #logging.info("🧩 Resuelve el CAPTCHA manualmente y clic en 'Ingresar'.")
 
         #desbloquear_interaccion()
-        driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"captcha_{get_timestamp()}.png"))
-        wait_humano = WebDriverWait(driver,300)
-        wait_humano.until(EC.presence_of_element_located((By.XPATH, "//span[text()='VIDA LEY']")))
+        #driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"captcha_{get_timestamp()}.png"))
 
-        #bloquear_interaccion()
+        # Tiempo estimado para resolver captcha 5 minutos
+        wait_humano = WebDriverWait(driver, 300, poll_frequency=1)
+        desbloquear_interaccion()
 
-        logging.info("✅ Login exitoso detectado (Cerrar sesión visible)")
-        logging.info("🚀 Continuando flujo automáticamente")
+        try:
+            wait_humano.until(EC.presence_of_element_located((By.XPATH, "//span[text()='VIDA LEY']")))
+        except TimeoutException:
+            raise Exception("No se pudo iniciar sessión")
+        finally:
+            bloquear_interaccion()
+
+        # logging.info("✅ Login exitoso detectado (Cerrar sesión visible)")
+        # logging.info("🚀 Continuando flujo automáticamente")
 
         # ingresar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Ingresar')]")))
         # ingresar_btn.click()
@@ -92,16 +104,16 @@ def procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta
         logging.info("⌨️ Digitando la Póliza")
         time.sleep(2)
 
-        dropdown4 = Select(wait.until(EC.presence_of_element_located((By.XPATH, "//select[@formcontrolname='contractorDocumentType']"))))
-        dropdown4.select_by_value("1")
-        logging.info(f"🖱️ Clic en 'RUC'")
-        time.sleep(2)
+        # dropdown4 = Select(wait.until(EC.presence_of_element_located((By.XPATH, "//select[@formcontrolname='contractorDocumentType']"))))
+        # dropdown4.select_by_value("1")
+        # logging.info(f"🖱️ Clic en 'RUC'")
+        # time.sleep(2)
 
-        input_num_contra = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@formcontrolname='contractorDocumentNumber']")))
-        input_num_contra.clear()
-        input_num_contra.send_keys(ruc_empresa)
-        logging.info("⌨️ Digitando RUC")
-        time.sleep(2)
+        # input_num_contra = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@formcontrolname='contractorDocumentNumber']")))
+        # input_num_contra.clear()
+        # input_num_contra.send_keys(ruc_empresa)
+        # logging.info("⌨️ Digitando RUC")
+        # time.sleep(2)
 
         buscar_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[span[text()='Buscar']]")))
         buscar_button.click()
@@ -126,11 +138,12 @@ def procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta
         # Esperar a que cargue la nueva página de adjuntar el archivo
         #time.sleep(8)
 
-        file_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='file']")))
+        file_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='file']")))
         # Hacer scroll hasta el input
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", file_input)
 
-        ruta_trama_protecta = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsm"
+        #ruta_trama_protecta = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsm"
+        ruta_trama_protecta = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsx"
         file_input.send_keys(ruta_trama_protecta)
         logging.info(f" ✅ Trama '{ramo.poliza}.xlsm' subida para validar' ")
 
@@ -146,6 +159,7 @@ def procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta
 
         boton_procesar = wait.until(EC.presence_of_element_located((By.XPATH, "//button[span[text()='PROCESAR']]")))
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", boton_procesar)
+
         #wait.until(EC.element_to_be_clickable((By.XPATH, "//button[span[text()='PROCESAR']]"))).click()
 
     except Exception as e:

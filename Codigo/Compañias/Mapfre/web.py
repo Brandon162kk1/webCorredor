@@ -1,8 +1,14 @@
 #--- Froms ---
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoAlertPresentException,
+    StaleElementReferenceException,
+    WebDriverException,
+    UnexpectedAlertPresentException
+)
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 from Tiempo.fechas_horas import tipo_vigencia
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
@@ -158,19 +164,62 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
     driver.execute_script("arguments[0].click();", div_objetivo)
     logging.info(f"🖱️ Clic en el 'div' de la póliza: {ramo.poliza}")
 
-    text = "Incluir" if tipo_proceso == "IN" else "Declarar"
+    # text = "Incluir" if tipo_proceso == "IN" else "Planilla" # declarar
 
-    #Hacer Click a Declarar
-    boton_declarar = wait.until(EC.element_to_be_clickable((By.XPATH, f"//a[normalize-space()='{text}']")))
+    # #Hacer Click a Declarar
+    # boton_declarar = wait.until(EC.element_to_be_clickable((By.XPATH, f"//a[normalize-space()='{text}']")))
+    # driver.execute_script("arguments[0].click();", boton_declarar)
+    # logging.info(f"🖱️ Clic en botón '{text}'")
+
+    if tipo_proceso == "IN":
+        textos = ["Incluir"]
+    else:
+        textos = ["Planilla", "Declarar"]
+
+    xpath_textos = " or ".join(
+        f"translate(normalize-space(.), "
+        f"'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚ', "
+        f"'abcdefghijklmnopqrstuvwxyzáéíóú') = '{t.lower()}'"
+        for t in textos
+    )
+
+    boton_declarar = wait.until(
+        EC.element_to_be_clickable((
+            By.XPATH,
+            f"//a[{xpath_textos}]"
+        ))
+    )
+
     driver.execute_script("arguments[0].click();", boton_declarar)
-    logging.info(f"🖱️ Clic en botón '{text}'")
+
+    logging.info(f"🖱️ Clic en botón encontrado entre: {textos}")
 
     file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}_97.xls"))
     file_path_leer = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsx"))
 
     if bab_codigo != '4':
 
-        bloques2 = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.row.gnSecToggle.ng-star-inserted")))
+        # Esperar a que los bloques estén presentes, si carga la tabla es porque ya esta renovado esa fecha
+        resultado = wait.until(lambda d: (
+            "BOTON" if d.find_elements(By.ID, "iDropdownPrintProof")
+            else "BLOQUES" if d.find_elements(
+                By.CSS_SELECTOR,
+                "div.row.gnSecToggle.ng-star-inserted"
+            )
+            else False
+        ))
+
+        # Si apareció el botón "Generar constancia"
+        if resultado == "BOTON":
+            raise Exception(f"Se esta intentando renovar de nuevo del {fecha_inicio_web} al {fecha_fin_web}")
+
+        #bloques2 = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.row.gnSecToggle.ng-star-inserted")))
+
+        bloques2 = driver.find_elements(
+            By.CSS_SELECTOR,
+            "div.row.gnSecToggle.ng-star-inserted"
+        )
+
         logging.info("-------------------------")
         logging.info(f"🔍 Bloques encontrados: {len(bloques2)}")
 
@@ -233,14 +282,46 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
         """, btn)
         logging.info(f"🖱️ Clic en 'Procesar'")
 
-        try:
-            errores = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//li[@class='col-10 cnt-item item-dato g-text-uppercase g-text-left-xs']")))
+        # Esperar ERROR o que Siguiente esté realmente clickeable
+        resultado = wait.until(lambda d: (
+            "ERROR"
+            if d.find_elements(
+                By.XPATH,
+                "//li[@class='col-10 cnt-item item-dato g-text-uppercase g-text-left-xs']"
+            )
+            else "SIGUIENTE"
+            if any(
+                EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//a[contains(@class, 'g-button') and normalize-space()='Siguiente']"
+                ))(d)
+                for _ in [0]
+            )
+            else False
+        ))
+
+        if resultado == "ERROR":
+
+            errores = driver.find_elements(
+                By.XPATH,
+                "//li[@class='col-10 cnt-item item-dato g-text-uppercase g-text-left-xs']"
+            )
+
             lista_errores = [e.text.strip() for e in errores]
+
             raise Exception(lista_errores)
-        except TimeoutException:
-            pass
+
+        logging.info("✅ 'Siguiente' está disponible")
+
+        # try:
+        #     errores = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//li[@class='col-10 cnt-item item-dato g-text-uppercase g-text-left-xs']")))
+        #     lista_errores = [e.text.strip() for e in errores]
+        #     raise Exception(lista_errores)
+        # except TimeoutException:
+        #     pass
 
     boton = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'g-button') and normalize-space()='Siguiente']")))
+
     # Forzar click compatible con Angular
     driver.execute_script("""
     var element = arguments[0];
@@ -423,7 +504,7 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
 
     boton_enviar = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'Enviar documentos')]")))
     driver.execute_script("arguments[0].click();", boton_enviar)
-    logging.info("🖱️ Clic en 'Enviar Documentos'.")
+    logging.info("🖱️ Clic en 'Enviar Documentos'")
 
     try:
 
@@ -472,8 +553,9 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
     ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
     tipoError = ""
     detalleError = ""
-    constancia = True
-    proforma = True
+    constancia = False
+    proforma = False
+    error = False
 
     if not login_exitoso:
 
@@ -544,17 +626,54 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
             except TimeoutException:
                 pass
         
-            consulta_gestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='CONSTANCIAS SCTR Y VL']")))
-            consulta_gestion.click()
-            logging.info("🖱️ Clic en 'CONSTANCIAS SCTR Y VL'")
+            # #consulta_gestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='Constancias Sctr Y Vl']")))
+            # consulta_gestion = wait.until(
+            #     EC.element_to_be_clickable((
+            #         By.XPATH,
+            #         "//span[translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚ', 'abcdefghijklmnopqrstuvwxyzáéíóú') = 'constancias sctr y vl']"
+            #     ))
+            # )
 
-            ventana_solicitud_mapfre = driver.current_window_handle
-            login_exitoso = True
+            # #consulta_gestion.click()
+            # driver.execute_script(
+            #     "arguments[0].scrollIntoView({block: 'center'});",
+            #     consulta_gestion
+            # )
+
+            # driver.execute_script(
+            #     "arguments[0].click();",
+            #     consulta_gestion
+            # )
+            # logging.info("🖱️ Clic en 'Constancias Sctr y Vl'")
+
+            # ventana_solicitud_mapfre = driver.current_window_handle
+            # login_exitoso = True
     
         except Exception as e:
             logging.error(f"❌ Error al iniciar sesión en Mapfre: {e}")
             tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
-            return False,False,"Página Web", "Hubo problemas al iniciar sessión en la compañía"
+            return constancia,proforma,"Login Fallido", "Hubo problemas al iniciar sessión en la compañía"
+
+        try:
+
+            #consulta_gestion = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[normalize-space()='Constancias Sctr Y Vl']")))
+            consulta_gestion = wait.until(
+                EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//span[translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚ', 'abcdefghijklmnopqrstuvwxyzáéíóú') = 'constancias sctr y vl']"
+                ))
+            )
+
+            #consulta_gestion.click()
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",consulta_gestion)
+            driver.execute_script("arguments[0].click();",consulta_gestion)
+            logging.info("🖱️ Clic en 'Constancias Sctr y Vl'")
+
+            ventana_solicitud_mapfre = driver.current_window_handle
+            login_exitoso = True
+
+        except Exception as e:
+            return constancia,proforma,"Página Web", "Fallas Tecnicas"
 
     try:
 
@@ -562,8 +681,9 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
 
     except Exception as e:
 
-        logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
-        tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
+        error = True
+        #logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
+        #tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
 
         try:
 
@@ -594,14 +714,26 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
         except TimeoutException:
             pass
 
-        tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
+        #tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
         detalleError = str(e)
-        constancia = False
-        proforma = False
+
+    except WebDriverException as e:
+
+        error = True
+        logging.exception(f"⚠️ Error técnico de Selenium | {e}")
+        detalleError = "Problemas Técnicos del Agente"
+
     finally:
+
+        if error:
+            logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {detalleError}")
+            tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
+            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
+
         time.sleep(3)
-        link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[span[text()='Constancias SCTR y VL']]")))  
+        link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[span[text()='Constancias SCTR y VL']]")))
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", link)
         driver.execute_script("arguments[0].click();", link)
         logging.info("🔙 Regresando al menú de Constancias")
+
         return constancia,proforma,tipoError,detalleError

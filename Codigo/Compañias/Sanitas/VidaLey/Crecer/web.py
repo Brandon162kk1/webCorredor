@@ -53,8 +53,11 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     pass_input.send_keys(ramo.clave)
     logging.info(f"⌨️ Digitando el Password")
 
-    if not enviar_aviso_captcha(ramo):
-        raise Exception(f"No se pudo avisar para resolver el Captcha")
+    # Envio de aviso de captcha al API para que el usuario resuelva el captcha manualmente
+    # if not enviar_aviso_captcha(ramo):
+    #     raise Exception(f"No se pudo avisar para resolver el Captcha")
+
+    # Enviar por wsp al ejecutivo responsable para su captcha
 
     # Tiempo estimado para resolver captcha 5 minutos
     wait_humano = WebDriverWait(driver, 300, poll_frequency=1)
@@ -65,13 +68,10 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
 
         resultado = wait_humano.until(
             EC.any_of(
-
                 # Login exitoso
                 EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")),
-
                 # Contraseña temporal
                 EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Debe crear una contraseña nueva.')]")),
-
                 # Modal de error
                 EC.visibility_of_element_located((By.CLASS_NAME, "modal-content"))
             )
@@ -93,6 +93,11 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
             boton_aceptar = resultado.find_element(By.XPATH, ".//button[contains(text(),'Aceptar')]")
             boton_aceptar.click()
             logging.info("🖱️ Clic en 'Aceptar'")
+
+            # Esperar que aparezca el enlace de "Cerrar sesión" para confirmar que el login fue exitoso
+            wait_humano.until(EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")))
+            logging.info("✅ Login exitoso")
+
         else:
             logging.info("✅ Login exitoso")
 
@@ -100,32 +105,6 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
         raise Exception("No se pudo iniciar sessión")
     finally:
         bloquear_interaccion()
-
-    input("Esperar")
-
-    # #-----------------------
-
-    # try:
-    #     WebDriverWait(driver,150).until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Debe crear una contraseña nueva.')]")))
-    #     logging.warning("⚠️ Alerta de contraseña temporal detectada")
-    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"cambiarPassword")
-    #     raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla manualmente antes de continuar con el proceso automático o comunicate con tu administrador.")
-
-    # except TimeoutException:
-
-    #     try:
-    #         modal = WebDriverWait(driver,15).until(EC.visibility_of_element_located((By.CLASS_NAME, "modal-content")))
-    #         mensaje = modal.find_element(By.CLASS_NAME, "security-body").text
-    #         logging.info(f"📩 Mensaje del modal: {mensaje}")
-    #         boton_aceptar = modal.find_element(By.XPATH, ".//button[contains(text(),'Aceptar')]")
-    #         boton_aceptar.click()
-    #         logging.info("🖱️ Clic en 'Aceptar'")
-    #     except TimeoutException:
-    #         pass
-
-    # wait_humano.until(EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")))
-    # bloquear_interaccion()
-    # logging.info("✅ Login exitoso detectado")
 
     if tipo_proceso == 'IN':
 
@@ -230,6 +209,8 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
     except :
         pass
 
+    input("Esperar")
+
     # Encuentra el botón por su texto
     boton_endoso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Generar Endoso')]")))
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_endoso)
@@ -302,7 +283,7 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     
     span_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Gestión de Cotización']")))
     logging.info("🔍 Ubicándose en 'Gestión de Cotización'")
-    time.sleep(3)
+    #time.sleep(3)
 
     actions = ActionChains(driver)
     actions.move_to_element(span_element).click().perform()
@@ -312,9 +293,9 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     link.click()
     logging.info("🖱️ Clic en 'Renovación Vida Ley'")
 
-    time.sleep(3)
+    #time.sleep(3)
         
-    input_fullname = wait.until(EC.visibility_of_element_located((By.ID, "spolizanumber")))
+    input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber"))) # visibility_of_element_located
     input_fullname.clear()
     input_fullname.send_keys(ramo.poliza)
     logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
@@ -323,14 +304,31 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     boton.click()
     logging.info("🖱️ Clic en 'Busca Póliza")
 
-    try:
-        div_poliza= WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "swal2-content")))
-        texto_alerta_poliza = div_poliza.text
-        logging.warning(f"⚠️ Mensaje de Advertencia encontrado: {texto_alerta_poliza}")
-        driver.screenshot(os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}_noExiste.png"))
-        raise Exception(texto_alerta_poliza)    
-    except TimeoutException:
-        pass
+    resultado = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located((By.ID, "swal2-content")),
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[contains(., 'Cargar plantilla')]")
+            )
+        )
+    )
+
+    if resultado.get_attribute("id") == "swal2-content":
+        texto_alerta_poliza = resultado.text
+        #logging.warning(f"⚠️ Mensaje de Advertencia encontrado: {texto_alerta_poliza}")
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"{ramo.poliza}_noExiste")
+        raise Exception(texto_alerta_poliza)
+
+    # try:
+    #     div_poliza= WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "swal2-content")))
+    #     texto_alerta_poliza = div_poliza.text
+    #     logging.warning(f"⚠️ Mensaje de Advertencia encontrado: {texto_alerta_poliza}")
+
+    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"{ramo.poliza}_noExiste")
+
+    #     raise Exception(texto_alerta_poliza)    
+    # except TimeoutException:
+    #     pass
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
 
@@ -349,22 +347,39 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
 
-    try:
-        # Modal de error al subir la trama
-        div_alerta = WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "swal2-content")))
-        texto_alerta = div_alerta.text
-        logging.warning(f"⚠️ Mensaje de Error encontrado: {texto_alerta}")
-        driver.screenshot(os.path.join(ruta_archivos_x_inclu, f"errorTrama_{ramo.poliza}.png"))
-        raise Exception(texto_alerta)
-    except TimeoutException:
-        pass
+    resultado1 = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located((By.ID, "swal2-content")),
+            EC.element_to_be_clickable(
+                (By.XPATH, '//input[@value="Validar"]')
+            )
+        )
+    )
 
-    boton_validar = wait.until(EC.visibility_of_element_located((By.XPATH, '//input[@value="Validar"]')))
+    if resultado1.get_attribute("id") == "swal2-content":
+        texto_error_poliza = resultado1.text
+        #logging.warning(f"⚠️ Mensaje de Error encontrado: {texto_error_poliza}")
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"errorTrama_{ramo.poliza}")
+        raise Exception(texto_error_poliza)
+
+    # try:
+    #     # Modal de error al subir la trama
+    #     div_alerta = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.ID, "swal2-content"))) # visibility_of_element_located
+    #     texto_alerta = div_alerta.text
+    #     logging.warning(f"⚠️ Mensaje de Error encontrado: {texto_alerta}")
+    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"errorTrama_{ramo.poliza}")
+    #     raise Exception(texto_alerta)
+    # except TimeoutException:
+    #     pass
+
+    boton_validar = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@value="Validar"]'))) # visibility_of_element_located
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_validar)
     boton_validar.click()
     logging.info("🖱️ Clic en 'Validar'")
         
     time.sleep(5)
+
+    input("Esperar")
 
     try:
 
@@ -461,7 +476,7 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
             cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
 
             codigo_cip = cip_elemento.text
-            logging.info(f"CIP obtenido: {codigo_cip}")
+            logging.info(f"✅ CIP obtenido: {codigo_cip}")
 
             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
             logging.info("Scroll hasta el codigo para tomar captura")
@@ -470,9 +485,9 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
             imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
 
-            driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,"cod_cip.png"))
+            tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
 
-            imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"cod_cip.png"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
+            imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"codigo_de_pago"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
 
             # Cuando termines
             driver.switch_to.default_content()

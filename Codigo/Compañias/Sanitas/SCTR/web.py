@@ -301,7 +301,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             resultado_poliza = wait.until(
                 EC.any_of(
                     EC.visibility_of_element_located(modal_advertencia),
-                    EC.presence_of_element_located(client)
+                    EC.element_to_be_clickable(client) #presence_of_element_located
                 )
             )
 
@@ -310,11 +310,31 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 span_txt_modal = resultado_poliza.find_element(By.ID, "message").text
                 raise Exception(f"{span_txt_modal}")
             else:
-                client_branch_office_select = wait.until(EC.presence_of_element_located((client)))
+                client_branch_office_select = wait.until(EC.element_to_be_clickable((client)))
                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", client_branch_office_select)
 
             time.sleep(2)
-    
+
+            sede_buscada = normalizar(ramo.sede)
+
+            def sede_disponible(driver):
+                try:
+                    select_element = driver.find_element(By.ID, "ClientBranchOfficeId")
+                    select = Select(select_element)
+
+                    for option in select.options:
+                        texto = option.text.strip()
+
+                        if normalizar(texto) == sede_buscada:
+                            return select_element
+
+                    return False
+
+                except Exception:
+                    return False
+
+            client_branch_office_select = wait.until(sede_disponible)
+
             select = Select(client_branch_office_select)
 
             for option in select.options:                                       #----- for 1
@@ -329,6 +349,26 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             time.sleep(2)
 
             if tipo_proceso == 'IN':
+
+                input_fecha = (By.ID, "InsureFrom")
+
+                resultado_0 = wait.until(
+                        EC.any_of(
+                            EC.visibility_of_element_located(modal_advertencia),
+                            EC.visibility_of_element_located(input_fecha)
+                        )
+                    )
+
+                if resultado_0.get_attribute("id") == "MessageBox":
+                    span_txt_fecha = resultado_0.find_element(By.ID, "message").text
+                    logging.warning(f"⚠️ Apareció el modal con advertencia: {span_txt_fecha}")
+
+                    if span_txt_fecha == "No es posible realizar movimientos retroactivos superiores a 2 días.":
+                        raise Exception(f"{span_txt_fecha}")
+
+                    btn_aceptar = wait.until(EC.element_to_be_clickable((By.ID, "CloseModal")))
+                    btn_aceptar.click()
+                    logging.info("🖱️ Clic en 'Aceptar'")
 
                 input_fecha = wait.until(EC.visibility_of_element_located((By.ID, "InsureFrom")))
                 valor_fecha_web = input_fecha.get_attribute("value")

@@ -1,4 +1,4 @@
-﻿# -- Imports --
+# -- Imports --
 import time
 import subprocess
 import logging
@@ -73,7 +73,7 @@ def subir_trama(boton,ruta_trama):
             name = subprocess.check_output(
                 ["xdotool", "getwindowname", win]
             ).decode().strip()
-            logging.info(str(win) + " -> " + name)
+            logging.info(f"✅ {str(win)} -> {name}")
 
         logging.info(f"Id Ventana: {ventana_id}")
         # Activar la ventana específica

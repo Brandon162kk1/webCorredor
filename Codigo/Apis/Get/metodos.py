@@ -23,6 +23,6 @@ def codigo_compania(url, api_key, max_retries=15):
             logging.warning(f"⚠️ Intento {intentos + 1}/{max_retries} - Error de conexión: {e}")
 
         intentos += 1
-        time.sleep(2)
+        time.sleep(5)
 
     raise RuntimeError(f"❌ Se excedieron los {max_retries} reintentos para obtener el código de la compañía desde: {url}")

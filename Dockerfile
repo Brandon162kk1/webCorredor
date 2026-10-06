@@ -2,7 +2,7 @@
 FROM chromedriver:stable
 
 # Crear carpetas necesarias
-RUN mkdir -p /app/Downloads
+RUN mkdir -p /app/Downloads /app/logs
 
 # Copiar requirements.txt
 COPY requirements.txt /app/
