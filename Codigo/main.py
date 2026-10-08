@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # -- Froms Compañias ---
 from Compañias.Mapfre.web import realizar_solicitud_mapfre
-#from Compañias.Pacifico.EnLinea.web import realizar_solicitud_pacifico
 from Compañias.Pacifico.SomosCorredores.web import realizar_solicitud_pacifico
 from Compañias.Positiva.web import realizar_solicitud_positiva
 from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
@@ -196,7 +195,7 @@ def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_me
     def ejecutar_pacifico():
         logging.info("✅ Compañía: Pacifico")
         return realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-                                           ruc_empresa,ejecutivo_responsable,ba_codigo,ramo)
+                                           ruc_empresa,ejecutivo_responsable,ba_codigo,ramo,nombre_cliente)
 
     dispatch = {
         'SANI': ejecutar_sanitas,
@@ -267,7 +266,7 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
     def ejecutar_pacifico():
         logging.info("✅ Compañía: Pacifico")
         return realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-                                           ruc_empresa,ejecutivo_responsable,bb_codigo,ramo)
+                                           ruc_empresa,ejecutivo_responsable,bb_codigo,ramo,nombre_cliente)
 
     dispatch = {
         'CREC': ejecutar_crecer,

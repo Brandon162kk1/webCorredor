@@ -35,7 +35,8 @@ def login_completado(driver):
 
     return False
 
-def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,ruc_empresa,tipo_mes,ramo):
+def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,
+                    palabra_clave,ruc_empresa,tipo_mes,ramo):
  
     tipoError = ""
     detalleError = ""
@@ -53,11 +54,14 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     pass_input.send_keys(ramo.clave)
     logging.info(f"⌨️ Digitando el Password")
 
+    raise Exception("Agente no disponible en estos momentos")
+
     # Envio de aviso de captcha al API para que el usuario resuelva el captcha manualmente
     # if not enviar_aviso_captcha(ramo):
     #     raise Exception(f"No se pudo avisar para resolver el Captcha")
 
-    # Enviar por wsp al ejecutivo responsable para su captcha
+    # Enviar por wsp al ejecutivo responsable para que resuelva captcha manualmente
+    #enviar_msj_wsp(ramo,"notificacion",None,palabra_clave,nombre_cliente)
 
     # Tiempo estimado para resolver captcha 5 minutos
     wait_humano = WebDriverWait(driver, 300, poll_frequency=1)
@@ -230,6 +234,9 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
         driver.execute_script("arguments[0].scrollIntoView(true);", btn_pagar_endoso)
         btn_pagar_endoso.click()
         logging.info("🖱️ Clic en 'Pagar Endoso'")
+
+        # Enviar por wsp al ejecutivo responsable para decidir que metodo de pago usar
+        #enviar_msj_wsp(ramo,"notificacion",None,palabra_clave,nombre_cliente)
 
         pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
         pago_efectivo_img.click()
