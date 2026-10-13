@@ -78,7 +78,8 @@ def armar_ruta_archivos(tipo_proceso, ba_codigo, bb_codigo, compania_BA, compani
 
     mapa_procesos = {
         "IN": "Inclusiones",
-        "RE": "Renovaciones"
+        "RE": "Renovaciones",
+        "NE": "Neteos"
     }
 
     nombre_base = mapa_procesos.get(tipo_proceso)

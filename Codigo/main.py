@@ -230,14 +230,13 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
 
         if tipo_mes == 'MV':
 
-            logging.info("Tipo: Mes Vencido")
-            # Por el momento se utilizara la misma plantilla para Inclusiones y Renovaciones
-            generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
+            logging.info("✅ Tipo: Mes Vencido")
+            # Por el momento se utilizara la misma plantilla para Inclusiones y Renovaciones (Ruc solo renovación)
+            generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo,tipo_proceso)
             # if tipo_proceso == 'IN':
             #     generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo)
             # else:
             #     generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
-                
             time.sleep(2)
             return True,False,"",""
 
@@ -250,11 +249,11 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
         logging.info("✅ Compañía: Protecta")
 
         if tipo_mes == 'MV':
-            logging.info("Tipo: Mes Vencido (manual por compañía)")
+            logging.info("✅Tipo: Mes Vencido (manual por compañía)")
             time.sleep(5)
             return True,True, "", ""
         else:
-            logging.info("Tipo: Mes Adelantado")
+            logging.info("✅ Tipo: Mes Adelantado")
             procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,ramo)
             return True,True, "", ""
 
@@ -356,6 +355,10 @@ def main():
                 tipo_proc = 'RE'
                 palabra_clave = 'Renovacion'
                 tiempo = 300
+            case 'NETEO':
+                tipo_proc = 'NE'
+                palabra_clave = 'Neteo'
+                tiempo = 150
             case _:
                 tipo_proc = 'DES'
                 palabra_clave = 'descarga de Constancia'

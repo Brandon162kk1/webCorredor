@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException,StaleElementReferenceException
 from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from selenium.webdriver import ActionChains
@@ -23,17 +23,18 @@ import subprocess
 def pruebas_impresion(driver,wait,ramo):
     
     try:
+
         texto_link = 'Contratos'
-        link = wait.until(EC.presence_of_element_located((By.XPATH, f"//a[contains(text(),'{texto_link}')]")))
+        link = wait.until(EC.element_to_be_clickable((By.XPATH, f"//a[contains(text(),'{texto_link}')]")))
         link.click()
 
         logging.info(f"🖱️ Clic en {texto_link}")
 
-        contract_number_input = wait.until(EC.presence_of_element_located((By.ID, 'ContractNumber')))
+        contract_number_input = wait.until(EC.element_to_be_clickable((By.ID, 'ContractNumber')))
         contract_number_input.send_keys(ramo.poliza)
         logging.info("⌨️ Digitando Póliza")
 
-        search_button = wait.until(EC.presence_of_element_located((By.ID, 'btnSearchContracts')))
+        search_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnSearchContracts')))
         search_button.click()
         logging.info("🖱️ Clic en Filtrar")
 
@@ -249,9 +250,19 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 resultado_login.click()
                 logging.info("🖱️ Clic en Afiliaciones")
 
-            #pruebas_impresion(driver,wait,ramo)
+            # pruebas_impresion(driver,wait,ramo)
 
-            texto_link = "Inclusión" if tipo_proceso == "IN" else "Renovación"
+            #texto_link = "Inclusión" if tipo_proceso == "IN" else "Renovación" #Neteo
+            textos_proceso = {
+                "IN": "Inclusión",
+                "RE": "Renovación",
+                "NE": "Neteo"
+            }
+
+            try:
+                texto_link = textos_proceso[tipo_proceso]
+            except KeyError:
+                raise ValueError(f"Tipo de proceso no válido: {tipo_proceso}")
 
             link = wait.until(EC.element_to_be_clickable((By.XPATH, f"//a[contains(text(),'{texto_link}')]")))
             link.click()
@@ -294,6 +305,43 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             accept_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnSelectContract')))
             accept_button.click()
             logging.info("🖱️ Clic en Aceptar")
+
+            if tipo_proceso == 'NE':
+
+                sede_impresion_id = (By.ID, "PrintBranchOfficeId")
+
+                def sede_69_disponible(driver):
+                    try:
+                        elemento = driver.find_element(*sede_impresion_id)
+                        select = Select(elemento)
+
+                        return any(
+                            option.get_attribute("value") == "69"
+                            for option in select.options
+                        )
+
+                    except StaleElementReferenceException:
+                        return False
+
+                wait.until(sede_69_disponible)
+
+                select_element = wait.until(
+                    EC.element_to_be_clickable(sede_impresion_id)
+                )
+
+                Select(select_element).select_by_value("69")
+
+                logging.info("🖱️ Sede de impresión seleccionada: Lima - San Isidro")
+
+                datos_movimiento_icono = (By.XPATH,"//a[contains(@href, '#collapseFive')]//span[contains(@class, 'collapse-icon')]")
+
+                icono = wait.until(EC.element_to_be_clickable(datos_movimiento_icono))
+
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",icono)
+
+                icono.click()
+
+            #----------------------------------------------------------------------------------
 
             modal_advertencia = (By.ID, "MessageBox")
             client = (By.ID, "ClientBranchOfficeId")

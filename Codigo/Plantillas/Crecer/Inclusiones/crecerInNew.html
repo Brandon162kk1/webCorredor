@@ -149,120 +149,129 @@
 
 <body>
 
-    <!-- ============================
-         HEADER (FIJO EN TODAS)
-    ============================ -->
+  <!-- ============================
+       HEADER (FIJO EN TODAS)
+  ============================ -->
 
-    <div class="header">
-        <table>
-            <tr>
-                <td style="width:40%;">
-                    <img src="{{logo}}" width="150">
-                </td>
-                <td class="encabezado-derecha" style="width:60%;">
-                    {{encabezado_logo | safe}}
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- ============================
-         CONTENIDO
-    ============================ -->
-
-    <p>{{fecha_texto}}</p>
-
-    <center><p><strong>{{titulo_html}}</strong></p></center>
-    <br>
-
-    <div class="linea">
-        <div class="label">POLIZA N°</div>
-        <div class="colon">:</div>
-        <div class="value">{{poliza}}</div>
-    </div>
-
-    <div class="linea">
-        <div class="label">PRODUCTO</div>
-        <div class="colon">:</div>
-        <div class="value">{{producto}}</div>
-    </div>
-
-    <div class="linea">
-        <div class="label">CONTRATANTE</div>
-        <div class="colon">:</div>
-        <div class="value">{{contratante}}</div>
-    </div>
-
-    <div class="linea">
-        <div class="label">TRAMITE</div>
-        <div class="colon">:</div>
-        <div class="value">{{tramite}}</div>
-    </div>
-
-    <p><strong>_______________________________________________________________________________________________</strong></p>
-
-    <p>{{descripcion_html}} {{rango_fech}}.</p>
-
-    <p><strong>{{subtitulo_html}}</strong></p>
-
+  <div class="header">
     <table>
-        <thead>
-            <tr>
-                <th>Nro.</th>
-                <th>Nombres</th>
-                <th>Apellido Paterno</th>
-                <th>Apellido Materno</th>
-                <th>Nro. Documento</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for persona in datos_tabla %}
-            <tr>
-                <td>{{ persona['N°'] }}</td>
-                <td>{{ persona['Nombres'] }}</td>
-                <td>{{ persona['Ap. Paterno'] }}</td>
-                <td>{{ persona['Ap. Materno'] }}</td>
-                <td>
-                    {% if persona['N° Documento']|string|length == 8 %}
-                    DNI: {{ persona['N° Documento'] }}
-                    {% else %}
-                    CE: {{ persona['N° Documento'] }}
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+      <tr>
+        <td style="width:40%;">
+          <img src="{{logo}}" width="150">
+        </td>
+        <td class="encabezado-derecha" style="width:60%;">
+          {{encabezado_texto | safe}}
+        </td>
+      </tr>
     </table>
+  </div>
 
-    <p style="margin-top: 30px;">Atentamente,</p>
+  <!-- ============================
+       CONTENIDO
+  ============================ -->
 
-    <!-- ============================
-         FIRMAS
-    ============================ -->
+  <p>{{fecha_texto}}</p>
 
-    <table class="firmas">
-        <tr>
-            <td>
-                <img src="{{firma_ger_ope}}" class="firma-img">
-                <p class="firma-linea">________________________</p>
-                <p class="firma-nombre">LUIS E. ASMAT CUSTODIO</p>
-                <p class="firma-cargo">Gerente de Operaciones</p>
-                <p class="firma-cargo">CRECER SEGUROS</p>
-            </td>
-            <td>
-                <img src="{{firma_ger_com}}" class="firma-img">
-                <p class="firma-linea">________________________</p>
-                <p class="firma-nombre">PAUL RAMIREZ OLAZABAL</p>
-                <p class="firma-cargo">Gerente Comercial</p>
-                <p class="firma-cargo">CRECER SEGUROS SA</p>
-            </td>
-            <td>
-                <div class="espacio-firma"></div>
-                <p class="firma-linea">________________________</p>
-                <p class="firma-nombre">CONTRATANTE</p>
-            </td>
-        </tr>
-    </table>
+  <center><p><strong>{{titulo_html}}</strong></p></center>
+  <br>
+
+  <div class="linea">
+    <div class="label">POLIZA N°</div>
+    <div class="colon">:</div>
+    <div class="value">{{poliza}}</div>
+  </div>
+
+  {% if producto %}
+  <div class="linea">
+    <div class="label">PRODUCTO</div>
+    <div class="colon">:</div>
+    <div class="value">{{producto}}</div>
+  </div>
+  {% endif %}
+
+  <div class="linea">
+    <div class="label">CONTRATANTE</div>
+    <div class="colon">:</div>
+    <div class="value">{{contratante}}</div>
+  </div>
+
+  <div class="linea">
+    <div class="label">TRAMITE</div>
+    <div class="colon">:</div>
+    <div class="value">{{tramite}}</div>
+  </div>
+
+  <p><strong>_______________________________________________________________________________________________</strong></p>
+
+  <!--<p>{{descripcion_html}} {{rango_fech}}.</p>-->
+
+  <p style="margin-top:10px; text-align: justify;">
+    {{descripcion_html}} <strong>{{rango_fech}}</strong>.
+  </p>
+
+  <!--<p><strong>{{subtitulo_html}}</strong></p>-->
+  <p><strong>ASEGURADOS INCLUIDOS:</strong></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nro.</th>
+        <th>Nombres</th>
+        <th>Apellido Paterno</th>
+        <th>Apellido Materno</th>
+        <th>Nro. Documento</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for persona in datos_tabla %}
+      <tr>
+        <td>{{ persona['N°'] }}</td>
+        <td>{{ persona['Nombres'] }}</td>
+        <td>{{ persona['Ap. Paterno'] }}</td>
+        <td>{{ persona['Ap. Materno'] }}</td>
+        <td>{{ persona['N° Documento'] }}</td>
+        <!--<td>
+            {% if persona['N° Documento']|string|length == 8 %}
+            DNI: {{ persona['N° Documento'] }}
+            {% else %}
+            CE: {{ persona['N° Documento'] }}
+            {% endif %}
+          </td>-->
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+
+  <p style="margin-top: 30px;">Atentamente,</p>
+
+  <!-- ============================
+       FIRMAS
+  ============================ -->
+
+  <table class="firmas">
+    <tr>
+      <td>
+        <img src="{{firma_ger_ope}}" class="firma-img">
+        <p class="firma-linea">________________________</p>
+        <p class="firma-nombre">LUIS E. ASMAT CUSTODIO</p>
+        <p class="firma-cargo">Gerente de Operaciones</p>
+        <p class="firma-cargo">CRECER SEGUROS</p>
+      </td>
+      <td>
+        <img src="{{firma_ger_com}}" class="firma-img">
+        <p class="firma-linea">________________________</p>
+        <p class="firma-nombre">PAUL RAMIREZ OLAZABAL</p>
+        <p class="firma-cargo">Gerente Comercial</p>
+        <p class="firma-cargo">CRECER SEGUROS SA</p>
+      </td>
+      <td>
+        <div class="espacio-firma"></div>
+        <p class="firma-linea">________________________</p>
+        <p class="firma-nombre">CONTRATANTE</p>
+      </td>
+    </tr>
+  </table>
 
 </body>
 </html>

@@ -13,6 +13,7 @@ from Tiempo.fechas_horas import get_timestamp
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from Chrome.google import tomar_capturar
 from Apis.Post.webhook import enviar_msj_wsp
+from datetime import datetime
 #---- Import ---
 import os
 import logging
@@ -26,25 +27,67 @@ url_pacifico = os.getenv("url_pacifico")
 def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,
                  ba_codigo,ramo):
 
-    tab_endosos = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#idTabGenerarEndosos a")))
-    driver.execute_script("arguments[0].click();", tab_endosos)
-    logging.info("🖱️ Clic en Generar Endosos")
+    tab_gestion = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#policyManagement a")))
+    driver.execute_script("arguments[0].click();", tab_gestion)
+    logging.info("🖱️ Clic en Gestión de Póliza")
 
-    try:
-        # Intentar detectar el modal de error
-        modal_error = WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.XPATH,"//div[contains(@class,'mensaje-descarga') and contains(@class,'error')]")))
-    
-        titulo_error = modal_error.find_element(By.TAG_NAME, "h3").text
-        logging.error(f"❌ Se detectó un error inesperado en la web: {titulo_error}")
+    if tipo_proceso == 'IN':
+        boton = wait.until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[normalize-space()='Incluye trabajadores']")
+            )
+        )
+        accion = "Incluye trabajadores"
+    else:
+        boton = wait.until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[normalize-space()='Renueva ahora']")
+            )
+        )
+        accion = "Renueva ahora"
 
-        raise Exception(titulo_error)
+    driver.execute_script("arguments[0].click();", boton)
+    logging.info(f"🖱️ Clic en '{accion}'")
 
-    except TimeoutException:
-        pass
+    def seleccionar_fecha(wait, id_boton, fecha):
 
-    tab_personas = wait.until(EC.element_to_be_clickable((By.ID, "idTabInclusionPersonas")))
-    driver.execute_script("arguments[0].click();", tab_personas)
-    logging.info("🖱️ Clic en Inclusión de Personas (por li)")
+        # Abrir el desplegable
+        wait.until(EC.element_to_be_clickable((By.ID, id_boton))).click()
+        logging.info("🖱️ Abrir desplegable")
+
+        # Seleccionar la fecha deseada
+        opcion = wait.until(
+            EC.element_to_be_clickable((
+                By.XPATH,
+                f"//div[@role='listbox']//button[@value='{fecha}']"
+            ))
+        )
+        logging.info("🖱️ Opciones cargadas")
+        opcion.click()
+        logging.info(f"🖱️ clic en {fecha}")
+
+    seleccionar_fecha(wait,"inclusion-start-date",ramo.f_inicio)
+
+    time.sleep(3)
+
+    seleccionar_fecha(wait,"inclusion-end-date",ramo.f_fin)
+
+    # Localizar el input de carga
+    input_archivo = wait.until(
+        lambda d: d.find_element(
+            By.XPATH,
+            "//div[contains(@class,'step-card')]//input[@type='file']"
+        )
+    )
+
+    file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.xlsm"))
+
+    if not os.path.exists(file_path):
+       raise FileNotFoundError(f"La ruta {file_path} no existe")
+
+    # Adjuntar el archivo
+    input_archivo.send_keys(file_path)
+    logging.info(f"📎 Archivo adjuntado: {file_path}")
 
 def solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
 
@@ -55,7 +98,7 @@ def solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,
     if tipo_proceso == 'IN':
         boton = wait.until(
             EC.element_to_be_clickable(
-                (By.XPATH, "//button[normalize-space()='Incluye ahora']")
+                (By.XPATH, "//button[normalize-space()='Incluye ahora']") # Incluye trabajadores
             )
         )
         accion = "Incluye ahora"
