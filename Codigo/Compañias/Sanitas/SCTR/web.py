@@ -301,6 +301,8 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 continue
 
             time.sleep(2)
+
+            input("Esperar")
             
             accept_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnSelectContract')))
             accept_button.click()
@@ -678,7 +680,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                 try:
 
-                    descargar_link = fila_objetivo.find_element(By.XPATH, f".//a[@title='{title_documento}']")
+                    descargar_link = fila_objetivo.find_element(By.XPATH, f".//a[@title='{title_documento}']") #Imprimir con prefactura
 
                     driver.execute_script("arguments[0].scrollIntoView(true);", descargar_link)
 
@@ -700,8 +702,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                     if impresion:
                         try:
-                            time.sleep(3)
-                            aceptar_btn = WebDriverWait(driver,5).until(EC.element_to_be_clickable((By.ID, "CloseModal")))
+                            aceptar_btn = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.ID, "CloseModal")))
                             aceptar_btn.click()
                             logging.info(f"🖱️ Clic en 'Aceptar' para cerrar el Modal")
                         except TimeoutException:
