@@ -302,8 +302,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             time.sleep(2)
 
-            input("Esperar")
-            
             accept_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnSelectContract')))
             accept_button.click()
             logging.info("🖱️ Clic en Aceptar")
@@ -501,10 +499,26 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 EC.any_of(
                     EC.visibility_of_element_located(modal_error_trama),
                     EC.visibility_of_element_located(modal_advertencia),
+                    # Tabla de inclusiones con al menos un registro
                     lambda d: (
                         len(d.find_elements(By.CSS_SELECTOR, "#inclusionsTable tbody tr")) > 0
                         and
                         not d.find_elements(By.CSS_SELECTOR, "#inclusionsTable td.dataTables_empty")
+                    ),
+                    # Al menos una tabla de neteos con registros reales
+                    lambda d: any(
+                        len(filas := d.find_elements(
+                            By.CSS_SELECTOR, f"#{tabla} tbody tr"
+                        )) > 0
+                        and not d.find_elements(
+                            By.CSS_SELECTOR, f"#{tabla} td.dataTables_empty"
+                        )
+                        for tabla in (
+                            "neteosTotalsTableAI",
+                            "neteosTotalsTableAE",
+                            "neteosTotalsTableBI",
+                            "neteosTotalsTableBE"
+                        )
                     )
                 )
             )
@@ -606,7 +620,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 tipoError = "Solo existe Proformas"
                 detalleError = "Primero pagar para obtener constancias"
 
-            if tipo_mes != "MV":
+            if tipo_mes != "MV" and tipo_proceso != 'NE':
 
                 proforma = True
 

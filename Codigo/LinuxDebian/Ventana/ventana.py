@@ -6,6 +6,8 @@ import os
 #-- Froms --
 from Apis.Put.web_corredor import enviar_puerto
 
+puerto = os.getenv("puerto")
+
 #-------- Interacción Humana --------
 def bloquear_interaccion():
     subprocess.run(["x11vnc", "-remote", "viewonly"], check=False)
@@ -50,7 +52,7 @@ def esperar_archivos_nuevos(directorio, archivos_antes, extension, cantidad, tim
 
     return None
 
-def enviar_puerto_por_ramos(RAMOS, puerto):
+def enviar_puerto_por_ramos(RAMOS):
     for r in RAMOS:
 
         ctx_ramo = r["ctx"]

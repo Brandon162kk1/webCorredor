@@ -1,9 +1,16 @@
 #   --- Froms ----
+from turtle import clear
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (
+    TimeoutException,
+    NoAlertPresentException,
+    StaleElementReferenceException,
+    WebDriverException,
+    UnexpectedAlertPresentException
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from Tiempo.fechas_horas import get_timestamp,get_fecha_menos_x_dias
@@ -12,6 +19,7 @@ from LinuxDebian.OtrosMetodos.metodos import subir_trama
 from Compañias.Sanitas.metodos import imagen_a_pdf
 from Chrome.google import tomar_capturar
 from Apis.Put.web_corredor import enviar_aviso_captcha
+from Apis.Post.webhook import enviar_msj_wsp
 #   --- Imports ----
 import time
 import os
@@ -19,17 +27,20 @@ import logging
 import zipfile
 import re
 
+url_n8n_base = os.getenv("url_host_prod")
+puerto = os.getenv("puerto")
+entorno = os.getenv("entorno","false").strip().lower() == "true"
+
+url_crecer = f"{url_n8n_base}:{puerto}"
+
 def login_completado(driver):
 
-    # 1️⃣ Si aparece cerrar sesión
     if driver.find_elements(By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]"):
         return True
 
-    # 2️⃣ Si cambió la URL
     if "login" not in driver.current_url.lower():
         return True
 
-    # 3️⃣ Si desapareció el input de usuario
     if not driver.find_elements(By.ID, "suser"):
         return True
 
@@ -37,7 +48,11 @@ def login_completado(driver):
 
 def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,
                     palabra_clave,ruc_empresa,tipo_mes,ramo):
- 
+
+    if tipo_proceso in ('NE','IN'):
+        msj = f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía"
+        return False,False,f"CREC-VL-{tipo_mes}",msj
+
     tipoError = ""
     detalleError = ""
 
@@ -54,29 +69,28 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     pass_input.send_keys(ramo.clave)
     logging.info(f"⌨️ Digitando el Password")
 
-    raise Exception("Agente no disponible en estos momentos")
+    # Metodo para enviar mensaje al wsp del ejecutivo responsable
+    msj = f"Ingresar al siguiente enlace {url_crecer} para resolver el captcha manualmente de la {palabra_clave}."
+    enviar_msj_wsp(ramo,"notificacion",msj)
+
+    # raise Exception("Agente no disponible en estos momentos")
 
     # Envio de aviso de captcha al API para que el usuario resuelva el captcha manualmente
     # if not enviar_aviso_captcha(ramo):
     #     raise Exception(f"No se pudo avisar para resolver el Captcha")
 
-    # Enviar por wsp al ejecutivo responsable para que resuelva captcha manualmente
-    #enviar_msj_wsp(ramo,"notificacion",None,palabra_clave,nombre_cliente)
-
     # Tiempo estimado para resolver captcha 5 minutos
     wait_humano = WebDriverWait(driver, 300, poll_frequency=1)
-    desbloquear_interaccion()
 
-    #-----------------------
     try:
+
+        if entorno:
+            desbloquear_interaccion()
 
         resultado = wait_humano.until(
             EC.any_of(
-                # Login exitoso
                 EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")),
-                # Contraseña temporal
                 EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Debe crear una contraseña nueva.')]")),
-                # Modal de error
                 EC.visibility_of_element_located((By.CLASS_NAME, "modal-content"))
             )
         )
@@ -97,8 +111,6 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
             boton_aceptar = resultado.find_element(By.XPATH, ".//button[contains(text(),'Aceptar')]")
             boton_aceptar.click()
             logging.info("🖱️ Clic en 'Aceptar'")
-
-            # Esperar que aparezca el enlace de "Cerrar sesión" para confirmar que el login fue exitoso
             wait_humano.until(EC.presence_of_element_located((By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]")))
             logging.info("✅ Login exitoso")
 
@@ -108,7 +120,8 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     except TimeoutException:
         raise Exception("No se pudo iniciar sessión")
     finally:
-        bloquear_interaccion()
+        if entorno :
+            bloquear_interaccion()
 
     if tipo_proceso == 'IN':
 
@@ -128,6 +141,8 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
             return False,False,f"CREC-VL-{tipo_mes}",str(e)
 
+    elif tipo_proceso == 'NE':
+        raise Exception("Los neteos se realizan de manera manu")
     else:
 
         try:
@@ -155,7 +170,7 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
     input_fullname = wait.until(EC.visibility_of_element_located((By.ID, "spolizanumber")))
     input_fullname.clear()
     input_fullname.send_keys(ramo.poliza)
-    logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
+    logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}") #agregar r1 la primera vez
         
     select_ramos = wait.until(EC.visibility_of_element_located((By.ID, "Ramos")))
     select = Select(select_ramos)
@@ -174,6 +189,8 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
     logging.info("🖱️ Clic en 'Buscar Póliza")
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
+
+    # valdiar que salga modal para mostrar error 
 
     #Esperar que cargue la tabla con mas de 0 filas y esten visibles
     wait.until(EC.visibility_of_element_located((By.XPATH,"//table[contains(@class, 'table-striped') and contains(@class, 'table-bordered')]//tbody/tr")))
@@ -290,7 +307,6 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     
     span_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Gestión de Cotización']")))
     logging.info("🔍 Ubicándose en 'Gestión de Cotización'")
-    #time.sleep(3)
 
     actions = ActionChains(driver)
     actions.move_to_element(span_element).click().perform()
@@ -299,9 +315,7 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     link = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Renovación Vida Ley")))
     link.click()
     logging.info("🖱️ Clic en 'Renovación Vida Ley'")
-
-    #time.sleep(3)
-        
+  
     input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber"))) # visibility_of_element_located
     input_fullname.clear()
     input_fullname.send_keys(ramo.poliza)
@@ -322,20 +336,8 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     if resultado.get_attribute("id") == "swal2-content":
         texto_alerta_poliza = resultado.text
-        #logging.warning(f"⚠️ Mensaje de Advertencia encontrado: {texto_alerta_poliza}")
         tomar_capturar(driver,ruta_archivos_x_inclu,f"{ramo.poliza}_noExiste")
         raise Exception(texto_alerta_poliza)
-
-    # try:
-    #     div_poliza= WebDriverWait(driver,8).until(EC.visibility_of_element_located((By.ID, "swal2-content")))
-    #     texto_alerta_poliza = div_poliza.text
-    #     logging.warning(f"⚠️ Mensaje de Advertencia encontrado: {texto_alerta_poliza}")
-
-    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"{ramo.poliza}_noExiste")
-
-    #     raise Exception(texto_alerta_poliza)    
-    # except TimeoutException:
-    #     pass
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
 
@@ -348,7 +350,7 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     if subir_trama(boton_subir,ruta_trama_crecer_vl_xlsx):               
         time.sleep(3)
-        logging.info(f"✅ Trama {ramo.poliza}.xls adjuntada")
+        logging.info(f"✅ Trama {ramo.poliza}.xlsx adjuntada")
     else:
         raise Exception(f"No se pudo subir la trama {ramo.poliza}.xlsx")
 
@@ -365,28 +367,28 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     if resultado1.get_attribute("id") == "swal2-content":
         texto_error_poliza = resultado1.text
-        #logging.warning(f"⚠️ Mensaje de Error encontrado: {texto_error_poliza}")
         tomar_capturar(driver,ruta_archivos_x_inclu,f"errorTrama_{ramo.poliza}")
         raise Exception(texto_error_poliza)
-
-    # try:
-    #     # Modal de error al subir la trama
-    #     div_alerta = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.ID, "swal2-content"))) # visibility_of_element_located
-    #     texto_alerta = div_alerta.text
-    #     logging.warning(f"⚠️ Mensaje de Error encontrado: {texto_alerta}")
-    #     tomar_capturar(driver,ruta_archivos_x_inclu,f"errorTrama_{ramo.poliza}")
-    #     raise Exception(texto_alerta)
-    # except TimeoutException:
-    #     pass
 
     boton_validar = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@value="Validar"]'))) # visibility_of_element_located
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_validar)
     boton_validar.click()
     logging.info("🖱️ Clic en 'Validar'")
-        
-    time.sleep(5)
 
-    input("Esperar")
+    # Validar que salga modal de error de Renovacióno el boton ok presente
+    resultado2 = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located((By.ID, "swal2-content")),
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")
+            )
+        )
+    )
+
+    if resultado2.get_attribute("id") == "swal2-content":
+        texto_error_modal = resultado2.text
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"modal_renovacion_{ramo.poliza}")
+        raise Exception(texto_error_modal)
 
     try:
 
@@ -413,13 +415,10 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         driver.execute_script("arguments[0].click();", checkbox)
         logging.info("🖱️ Checkbox marcado correctamente")
 
-        try:
-            btn_aceptar = WebDriverWait(driver,10).until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Aceptar']")))
-            btn_aceptar.click()
-            logging.info("🖱️ Clic en 'Aceptar'")
-        except TimeoutException:
-            pass
-
+        btn_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Aceptar']")))
+        btn_aceptar.click()
+        logging.info("🖱️ Clic en 'Aceptar'")
+  
         btn_generar = wait.until(EC.element_to_be_clickable((By.ID, "btngenerate")))
         btn_generar.click()
         logging.info("🖱️ Clic en 'Renovar'")
@@ -438,72 +437,105 @@ def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         btn_cerrar.click()
         logging.info("🖱️ Clic en 'Cerrar'")
 
-        try:
-
-            email_input = wait.until(EC.presence_of_element_located((By.ID, "semailpolicy")))
-            wait.until(EC.visibility_of_element_located((By.ID, "semailpolicy")))
-            email_input.clear()
-            email_input.send_keys(correo)
-            logging.info("✍️ Correo ingresado correctamente")
-
-            # Esperar botón Guardar Correo
-            btn_guardar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Guardar Correo']")))
-            btn_guardar.click()
-            logging.info("🖱️ Clic en Guardar Correo")
-
-        except TimeoutException:
-
-            btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
-            driver.execute_script("arguments[0].click();", btn_ok)
-            logging.info("🖱️ Clic en 'Ok'")
-
-            time.sleep(300)
-
-            #Clic en Pago Efectivo me falta
-            #------------------------------------
-
-            contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
-            texto_cip = contenido.text
-            logging.info(f"Mensaje CIP: {texto_cip}")
-
-            btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
-            driver.execute_script("arguments[0].click();", btn_ok)
-            logging.info("🖱️ Clic en 'Ok'")
-
-            wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
-
-            # 1️⃣ Esperar que el iframe esté disponible y cambiar contexto
-            wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
-            logging.info("✅ Ya estoy dentro del iframe")
-
-            # Esperar que aparezca el texto indicador
-            wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
-
-            # Ahora obtener el número (solo números largos)
-            cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
-
-            codigo_cip = cip_elemento.text
-            logging.info(f"✅ CIP obtenido: {codigo_cip}")
-
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
-            logging.info("Scroll hasta el codigo para tomar captura")
-
-            cip_elemento.screenshot(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"))
-
-            imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
-
-            tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
-
-            imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"codigo_de_pago"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
-
-            # Cuando termines
-            driver.switch_to.default_content()
-            logging.info("Saliendo del iframe")
-
+    except WebDriverException as e:
+        logging.error(f"❌ Ocurrió un error tecnico: {e}")
     except Exception as e:
-        logging.error(f"❌ Error durante el proceso de renovación: {e}")
+        logging.error(f"❌ Ocurrió un error: {e}")
+
+    try:
+
+        email_input = WebDriverWait(driver,15).until(EC.element_to_be_clickable((By.ID, "semailpolicy")))
+        email_input.clear()
+        email_input.send_keys(correo)
+        logging.info("✍️ Correo ingresado correctamente")
+
+        # Esperar botón Guardar Correo
+        btn_guardar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Guardar Correo']")))
+        btn_guardar.click()
+        logging.info("🖱️ Clic en Guardar Correo")
+
+    except TimeoutException:
+
+        btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
+        driver.execute_script("arguments[0].click();", btn_ok)
+        logging.info("🖱️ Clic en 'Ok'")
+
+    # Dejar interaccion humana habilitada para que el ejecutivo decida si es codigo de pago , por banco ,etc
+    try:
+        # Esperar que el iframe esté disponible y cambiar contexto
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
+        logging.info("✅ Ya estoy dentro del iframe")
+
+        # Esperar que aparezca el texto indicador
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
+
+        # Ahora obtener el número (solo números largos)
+        cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
+
+        codigo_cip = cip_elemento.text
+        logging.info(f"✅ CIP obtenido: {codigo_cip}")
+
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
+        logging.info("✅ Scroll hasta el codigo para tomar captura")
+
+        cip_elemento.screenshot(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"))
+        logging.info("✅ Captura solo del cip")
+
+        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
+        logging.info("✅ CIP en pdf")
+
+        tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
+        logging.info("✅ Captura toda la pantalla")
+
+        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"codigo_de_pago"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
+        logging.info("✅ Captura en pdf")
+    except WebDriverException as e:
+        logging.error(f"❌ Ocurrió un error tecnico: {e}")
+    except Exception as e:
+        logging.error(f"❌ Ocurrió un error: {e}")
     finally:
-        input("Esperar")
+        pass
+
+        #Clic en Pago Efectivo me falta
+        #------------------------------------
+
+        # contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
+        # texto_cip = contenido.text
+        # logging.info(f"Mensaje CIP: {texto_cip}")
+
+        # btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
+        # driver.execute_script("arguments[0].click();", btn_ok)
+        # logging.info("🖱️ Clic en 'Ok'")
+
+        # wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
+
+        # # 1️⃣ Esperar que el iframe esté disponible y cambiar contexto
+        # wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
+        # logging.info("✅ Ya estoy dentro del iframe")
+
+        # # Esperar que aparezca el texto indicador
+        # wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
+
+        # # Ahora obtener el número (solo números largos)
+        # cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
+
+        # codigo_cip = cip_elemento.text
+        # logging.info(f"✅ CIP obtenido: {codigo_cip}")
+
+        # driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
+        # logging.info("Scroll hasta el codigo para tomar captura")
+
+        # cip_elemento.screenshot(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"))
+
+        # imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
+
+        # tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
+
+        # imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"codigo_de_pago"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
+
+        # # Cuando termines
+        # driver.switch_to.default_content()
+        # logging.info("Saliendo del iframe")
 
 def buscar_cuota_y_descargar_constancia(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ramo,cod_pago='346593644'):
 

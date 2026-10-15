@@ -11,12 +11,6 @@ service_n8n = os.getenv("service_n8n")
 webhook_wsp = os.getenv("webhook_wsp")
 url_n8n_wsp = f"{service_n8n}{webhook_wsp}"
 
-# url_n8n_base = os.getenv("url_n8n_base")
-# puerto_n8n = os.getenv("puerto_n8n")
-
-# if puerto_n8n:
-#     url_n8n_base = f"{url_n8n_base}:{puerto_n8n}"
-
 webhook_correo = os.getenv("webhook_correo")
 url_n8n_correo = f"{service_n8n}{webhook_correo}"
 
@@ -64,7 +58,7 @@ def enviar_error_general(ctx,palabra_clave,detalle_ramos):
     except Exception as e:
         logging.error(f"❌ Error enviando la notificación por el webhook, Motivo : {e}")
 
-def enviar_msj_wsp(ramo,tipo,archivo=None,proceso=None,cliente=None):
+def enviar_msj_wsp(ramo,tipo,mensaje):
 
     logging.info("-----------------------------")
     logging.info(f"⌛ Enviando Notificación por WhatsApp")
@@ -88,34 +82,7 @@ def enviar_msj_wsp(ramo,tipo,archivo=None,proceso=None,cliente=None):
 
     if tipo == "notificacion":
         payload["tipo"] = f"sendText"
-        payload["mensaje"] = f"""Reenviar el codigo de 6 digitos para continuar con la {proceso.lower()} de {cliente}"""
-
-    elif tipo == "documento":
-
-        if not archivo:
-            logging.error("⚠️ No se recibió el archivo")
-            return
-
-        if not os.path.exists(archivo):
-            logging.error(f"❌ No existe el archivo: {archivo}")
-            return
-
-
-        try:
-            with open(archivo, "rb") as f:
-                archivo_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-            payload["archivo"] = archivo_base64
-            payload["nombreArchivo"] = os.path.basename(archivo)
-            payload["mimetype"] = "application/pdf"
-            payload["tipo"] = f"sendMedia"
-
-            payload["mensaje"] = f"""📋 ."""
-
-        except Exception as e:
-            logging.error(f"❌ Error convirtiendo .jpeg a Base64: {e}")
-            return
-
+        payload["mensaje"] = mensaje
     else:
         logging.error(f"❌ Tipo de mensaje no soportado: {tipo}")
         return

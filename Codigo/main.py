@@ -24,7 +24,6 @@ from pprint import pformat
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-puerto = os.getenv("puerto")
 entorno = os.getenv("entorno","false").strip().lower() == "true"
 
 def to_bool(value):
@@ -233,10 +232,6 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
             logging.info("✅ Tipo: Mes Vencido")
             # Por el momento se utilizara la misma plantilla para Inclusiones y Renovaciones (Ruc solo renovación)
             generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo,tipo_proceso)
-            # if tipo_proceso == 'IN':
-            #     generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo)
-            # else:
-            #     generarConstanciaReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo)
             time.sleep(2)
             return True,False,"",""
 
@@ -397,7 +392,7 @@ def main():
 
         if entorno:
             if any(r["ctx"].id_poliza and not r["ctx"].activo for r in RAMOS):
-                enviar_puerto_por_ramos(RAMOS, puerto)
+                enviar_puerto_por_ramos(RAMOS)
 
         if tipo_proc and ba_codigo and bb_codigo and compania_BA and compania_BB and ctx.salud.poliza and ctx.pension.poliza and ctx.vida.poliza and tipo_mes:
             

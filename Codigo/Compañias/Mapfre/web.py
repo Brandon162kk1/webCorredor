@@ -503,8 +503,16 @@ def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_
             pass_input.send_keys(ramo.clave)
             logging.info("⌨️ Digitando el Password")
 
-            ingresar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Ingresar')]")))
-            ingresar_btn.click()
+            #ingresar_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Ingresar')]")))
+            ingresar_btn = wait.until(
+                EC.element_to_be_clickable((
+                    By.CSS_SELECTOR,
+                    "button.g-button.g-button--border-green[type='submit']"
+                ))
+            )
+
+            driver.execute_script("arguments[0].click();", ingresar_btn)
+            #ingresar_btn.click()
             logging.info("🖱️ Clic en 'Ingresar' en Mapfre")
 
             elemento = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".card-modality__item--left")))

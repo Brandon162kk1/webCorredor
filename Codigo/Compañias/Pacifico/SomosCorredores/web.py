@@ -24,12 +24,25 @@ login_exitoso = False
 # --- Variables de Entorno ---
 url_pacifico = os.getenv("url_pacifico")
 
-def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,
-                 ba_codigo,ramo):
+def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
 
     tab_gestion = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#policyManagement a")))
     driver.execute_script("arguments[0].click();", tab_gestion)
     logging.info("🖱️ Clic en Gestión de Póliza")
+
+    # botones = driver.find_elements(
+    #     By.XPATH,
+    #     "//button[contains(normalize-space(.), 'Renueva ahora')]"
+    # )
+
+    # logging.info(f"🔎 Botones encontrados: {len(botones)}")
+
+    # for boton in botones:
+    #     logging.info(
+    #         f"Texto: {boton.text} | "
+    #         f"Visible: {boton.is_displayed()} | "
+    #         f"Habilitado: {boton.is_enabled()}"
+    #     )
 
     if tipo_proceso == 'IN':
         boton = wait.until(
@@ -40,9 +53,11 @@ def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra
         accion = "Incluye trabajadores"
     else:
         boton = wait.until(
-            EC.element_to_be_clickable(
-                (By.XPATH, "//button[normalize-space()='Renueva ahora']")
-            )
+            EC.element_to_be_clickable((
+                By.XPATH,
+                "//button[contains(@class, 'vl-endorsement-button') "
+                "and contains(normalize-space(.), 'Renueva ahora')]"
+            ))
         )
         accion = "Renueva ahora"
 
@@ -66,28 +81,155 @@ def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra
         opcion.click()
         logging.info(f"🖱️ clic en {fecha}")
 
-    seleccionar_fecha(wait,"inclusion-start-date",ramo.f_inicio)
+    if tipo_proceso == 'IN':
 
-    time.sleep(3)
+        seleccionar_fecha(wait,"inclusion-start-date",ramo.f_inicio)
+        time.sleep(3)
+        seleccionar_fecha(wait,"inclusion-end-date",ramo.f_fin)
 
-    seleccionar_fecha(wait,"inclusion-end-date",ramo.f_fin)
+    else:
 
-    # Localizar el input de carga
-    input_archivo = wait.until(
-        lambda d: d.find_element(
-            By.XPATH,
-            "//div[contains(@class,'step-card')]//input[@type='file']"
+        tab_renovacion = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'card-header') and .//h3[normalize-space()='Renovación Manual']]")))
+        driver.execute_script("arguments[0].click();", tab_renovacion)
+        logging.info("🖱️ Clic en Renovación Manual")
+
+    # Inclusiones funcionando correctamente, pero renovaciones no, por eso el try-except
+    try:
+        # Localizar el input de carga
+        input_archivo = wait.until(
+            lambda d: d.find_element(
+                By.XPATH,
+                "//div[contains(@class,'step-card')]//input[@type='file']"
+            )
         )
-    )
+        logging.info("✅ Input de archivo localizado Inclusión")
+    except :
+            # Localizar la tarjeta y su input de archivo
+        input_archivo = wait.until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                "//button[contains(@class,'btn-upload') and contains(.,'Adjuntar trama')]"
+                "/following-sibling::input[@type='file']"
+            ))
+        )
+        logging.info("✅ Input de archivo localizado Renovación")
 
     file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.xlsm"))
 
     if not os.path.exists(file_path):
        raise FileNotFoundError(f"La ruta {file_path} no existe")
 
-    # Adjuntar el archivo
     input_archivo.send_keys(file_path)
-    logging.info(f"📎 Archivo adjuntado: {file_path}")
+    logging.info(f"✅ Archivo adjuntado: {file_path}")
+
+    try:
+        resultado_trama = wait.until(
+            EC.any_of(
+                EC.visibility_of_element_located((
+                    By.XPATH,
+                    "//div[@role='status' and .//span[normalize-space()='Archivo validado']]"
+                )),
+                EC.visibility_of_element_located((
+                    By.XPATH,
+                    "//div[@class='trama-error-banner' and @role='alert']"
+                ))
+            )
+        )
+
+        if resultado_trama.get_attribute("role") == "status":
+            logging.info("✅ Archivo validado correctamente")
+        else:
+            mensaje = resultado_trama.find_element(By.CLASS_NAME, "trama-error-banner__text").text
+            raise Exception(mensaje)
+
+    except TimeoutException:
+        raise Exception("No se obtuvo respuesta de validación de la trama en 30 segundos")
+
+    checkbox_nombramiento = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"input[name='declaracion-nombramiento']")))
+
+    if not checkbox_nombramiento.is_selected():
+        checkbox_nombramiento.click()
+
+    logging.info("✅ Declaración de nombramiento marcada")
+
+    checkbox_siniestros = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"input[name='declaracion-siniestros']")))
+
+    if not checkbox_siniestros.is_selected():
+        checkbox_siniestros.click()
+
+    logging.info("✅ Declaración de siniestros marcada")
+
+    btn_siguiente = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"button.btn-next")))
+
+    btn_siguiente.click()
+
+    logging.info("🖱️ Clic en Siguiente")
+
+    if tipo_proceso == 'IN':
+        btn_incluir = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"button.renewal-manual-summary__btn--incluir")))
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", btn_incluir)
+        btn_incluir.click()
+        logging.info("🖱️ Clic en Incluir")
+    else:
+        btn_renovar = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"button.renewal-manual-summary__btn--renovar")))
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", btn_renovar)
+        btn_renovar.click()
+        logging.info("🖱️ Clic en Renovar")
+
+    # Esperar que aparezca el contenedor
+    contenedor = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.content-documents")))
+
+    # Obtener SOLO los botones dentro del div
+    botones = contenedor.find_elements(By.TAG_NAME, "button")
+
+    logging.info("Total botones encontrados:", len(botones))
+
+    # Base común para ambos casos
+    mapa_nombres = {
+        "constancia": f"{list_polizas[0]}",
+        "liquidación": f"endoso_{list_polizas[1]}"
+    }
+
+    # Hacerles clic uno por uno
+    for boton in botones:
+
+        archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
+        # Asegurar que es visible y clickeable
+        btn = wait.until(EC.element_to_be_clickable(boton))
+        texto = boton.text.strip()
+
+        alias = None  # nombre final para guardar archivo
+
+        # Buscar si alguna palabra clave está dentro del texto del botón
+        for palabra, nuevo_nombre in mapa_nombres.items():
+            if palabra.lower() in texto.lower():
+                alias = nuevo_nombre
+                break  # ya encontraste la coincidencia, no sigas
+
+        # Si no coinciden, poner un nombre genérico
+        if not alias:
+            driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"docDesconocido_{get_timestamp()}.png"))
+            raise Exception ("Documento desconocido")
+
+        driver.execute_script("arguments[0].click();", btn)
+        logging.info(f"🖱️ Clic en Descargar")
+
+        archivo_nuevo = esperar_archivos_nuevos(ruta_archivos_x_inclu,archivos_antes,".pdf",cantidad=1)
+
+        if archivo_nuevo:
+            logging.info(f"✅ Documento '{texto}' descargado exitosamente")
+            ruta_original = archivo_nuevo[0]
+            ruta_final = os.path.join(ruta_archivos_x_inclu, f"{alias}.pdf")
+            os.rename(ruta_original, ruta_final)
+            logging.info(f"🔄 {texto} renombrado a '{alias}.pdf'")
+        else:
+            raise Exception(f"No se descargo ningun archivo")
+
+    time.sleep(2)
+    btn_finalizar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Finalizar']")))
+    btn_finalizar.click()
+    logging.info("🖱️ Clic en 'Finalizar'")
 
 def solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
 
@@ -136,7 +278,6 @@ def solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,
 
         logging.warning(f"⚠️ Se detectó el mensaje de error: {elemento.text}")
         raise Exception(elemento.text)
-
 
     elif resultado == "MODAL":
 
@@ -429,7 +570,8 @@ def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_
             codigo_path = "/codigo/codigo.txt"
 
             # Metodo para enviar mensaje al wsp del ejecutivo responsable
-            enviar_msj_wsp(ramo,"notificacion",None,palabra_clave,nombre_cliente)
+            msj = f"""Reenviar por este medio el código de 6 dígitos para continuar con la {palabra_clave.lower()} de {nombre_cliente}"""
+            enviar_msj_wsp(ramo,"notificacion",msj)
 
             while not os.path.exists(codigo_path):
                 time.sleep(2)
