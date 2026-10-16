@@ -192,14 +192,15 @@ def detectar_constancia_en_tabla(wait):
 
     return "No hay constancia, solo Proformas"
 
-def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x_inclu,
-                               tipo_proceso,palabra_clave,ba_codigo,ramo):
+def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x_inclu,
+                  tipo_proceso,palabra_clave,ba_codigo,ramo):
 
     encontrado = False
     constancia = False
     constancia_conjunta = False
     proforma = False
     tipoError = ""
+    companiaTipoError = ""
     detalleError = ""
 
     try:
@@ -207,12 +208,14 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
         for i, url in enumerate(list_url_san):
 
             if i == 0:
-                compania = "Crecer" 
+                compania = "Crecer"
                 logging.info(f"--------- Sanitas {compania} -----------")
             else:
                 compania = "Protecta" 
                 logging.info(f"------- Sanitas {compania} ----------")
-                        
+
+            companiaTipoError = compania
+
             driver.get(url)
             logging.info(f"⌛ Cargando la Web de Sanitas {compania}")
 
@@ -252,7 +255,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             # pruebas_impresion(driver,wait,ramo)
 
-            #texto_link = "Inclusión" if tipo_proceso == "IN" else "Renovación" #Neteo
             textos_proceso = {
                 "IN": "Inclusión",
                 "RE": "Renovación",
@@ -285,10 +287,6 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("🖱️ Clic en Buscar")
 
             try:
-                
-                # filas = wait.until(EC.element_to_be_clickable((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
-                # fila_correcta = filas[0]
-                # fila_correcta.click()
 
                 fila_correcta = WebDriverWait(driver,10).until(EC.element_to_be_clickable((By.XPATH, f"//td[contains(text(),'{ramo.poliza}')]/parent::tr")))
                 fila_correcta.click()
@@ -325,9 +323,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                 wait.until(sede_69_disponible)
 
-                select_element = wait.until(
-                    EC.element_to_be_clickable(sede_impresion_id)
-                )
+                select_element = wait.until(EC.element_to_be_clickable(sede_impresion_id))
 
                 Select(select_element).select_by_value("69")
 
@@ -349,7 +345,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             resultado_poliza = wait.until(
                 EC.any_of(
                     EC.visibility_of_element_located(modal_advertencia),
-                    EC.element_to_be_clickable(client) #presence_of_element_located
+                    EC.element_to_be_clickable(client)
                 )
             )
 
@@ -366,6 +362,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             sede_buscada = normalizar(ramo.sede)
 
             def sede_disponible(driver):
+
                 try:
                     select_element = driver.find_element(By.ID, "ClientBranchOfficeId")
                     select = Select(select_element)
@@ -385,12 +382,12 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             select = Select(client_branch_office_select)
 
-            for option in select.options:                                       #----- for 1
+            for option in select.options:                                       
                 texto_opcion = option.text.strip()
                 if normalizar(ramo.sede) == normalizar(texto_opcion):
                     select.select_by_visible_text(texto_opcion)
                     logging.info(f"🖱️ Opción seleccionada: {texto_opcion}")
-                    break                                                       #----- for 1
+                    break                                                       
             else:
                 raise Exception("No se encontró ninguna Sede que coincida")
 
@@ -661,7 +658,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
             logging.info(f"📂 Documentos a descargar: {documentos_a_descargar}")
 
-            for doc in documentos_a_descargar:                                                          ## --- for 2
+            for doc in documentos_a_descargar:                                                          
 
                 nombre_documento = doc["nombreDoc"]
                 alias_archivo = doc["alias"]
@@ -671,7 +668,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
                 filas = driver.find_elements(By.XPATH, "//table[@id='createdDocumentsTable']//tr")
                 fila_objetivo = None
 
-                for i, fila in enumerate(filas, 1):                        # ----------- for 3
+                for i, fila in enumerate(filas, 1):                       
 
                     try:
                         celdas = fila.find_elements(By.XPATH, "./td")
@@ -684,7 +681,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                         if normalizar(nombre_documento) in normalizar(texto_celda):
                             fila_objetivo = fila
-                            break                                           # salimos de este for3  porque ya encontramos la fila
+                            break                                           
                     except Exception as e:
                         logging.warning(f"⚠️ Fila {i} error: {str(e)}")
 
@@ -694,7 +691,7 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
 
                 try:
 
-                    descargar_link = fila_objetivo.find_element(By.XPATH, f".//a[@title='{title_documento}']") #Imprimir con prefactura
+                    descargar_link = fila_objetivo.find_element(By.XPATH, f".//a[@title='{title_documento}']")
 
                     driver.execute_script("arguments[0].scrollIntoView(true);", descargar_link)
 
@@ -753,11 +750,9 @@ def realizar_solicitud_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ru
             logging.info("-----------------")
             logging.info(f"✅ {palabra_clave} en SANITAS realizada exitosamente")
 
-        time.sleep(3) 
-
     except Exception as e:
         logging.error(f"❌ Error en Sanitas (SCTR) - {tipo_mes}: {e}")
-        tipoError = f"SANI-SCTR-{tipo_mes}"
+        tipoError = f"{companiaTipoError.upper()[:4]}-SCTR-{tipo_mes}"
         detalleError = str(e)
         tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_SCTR_{tipo_mes}")
     finally:

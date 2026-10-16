@@ -1375,7 +1375,7 @@ def solicitud_vidaley_vl(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable
     boton_aceptar.click()
     logging.info("🖱️ Clic en 'Aceptar' final")
 
-def realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,ruta_archivos_x_inclu,
+def login_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,ruta_archivos_x_inclu,
                                    ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo):
   
     global ventana_menu_positiva

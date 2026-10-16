@@ -515,7 +515,7 @@ def solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,
     btn_finalizar.click()
     logging.info("🖱️ Clic en 'Finalizar'")
 
-def realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
+def login_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
                                 tipo_proceso,palabra_clave,ruc_empresa,
                                 ejecutivo_responsable,bab_codigo,ramo,nombre_cliente):
 

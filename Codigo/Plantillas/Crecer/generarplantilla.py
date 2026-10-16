@@ -1,9 +1,11 @@
-import os
-import pandas as pd
 from jinja2 import Environment, FileSystemLoader
+from Tiempo.fechas_horas import get_fecha_hoy
+from weasyprint import HTML # type: ignore
 #import pdfkit
 import logging
-from Tiempo.fechas_horas import get_fecha_hoy
+import time
+import os
+import pandas as pd
 
 # Apagar completamente logs de weasyprint y fonttools
 logging.getLogger("weasyprint").handlers = []
@@ -16,8 +18,6 @@ logging.getLogger("fontTools").setLevel(logging.CRITICAL)
 
 # Opcional: bajar nivel global
 logging.basicConfig(level=logging.CRITICAL)
-
-from weasyprint import HTML # type: ignore
 
 def fecha_lima_formateada():
     try:
@@ -56,127 +56,98 @@ def leer_asegurados_excel(ruta_excel, incluir_nombres=True):
     df.insert(0, "N°", range(1, len(df) + 1))
     return df.to_dict(orient="records")
 
-def generarConstanciaInCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ramo):
-
-    rango = obtener_rango_vigencia(ramo)
-    datos_tabla = leer_asegurados_excel(
-        os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx")
-    )
-
-    encabezado = (
-        "Crecer Seguros S.A. Compañía de Seguros – RUC: 20600098633<br>"
-        "Av. Ricardo Rivera Navarrete 501 oficina 1101-A, San Isidro, Lima – Perú<br>"
-        "T: Lima (01) 4174400 / Provincia (0801) 17440<br>"
-        "gestionalcliente@crecerseguros.pe"
-    )
-
-    # encabezado = (
-    #     "Lima: (01) 417 4400<br>"
-    #     "Provincias: (0801) 17440<br>"
-    #     "gestionalcliente@crecerseguros.pe<br>"
-    #     "Av. Jorge Basadre 310, Piso 2, San Isidro - Lima"
-    # )
-
-    ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Inclusiones"
-
-    contexto = {
-        "poliza": ramo.poliza,
-        "producto": "VIDA LEY",
-        "contratante": nombre_cliente,
-        "tramite": f"{palabra_clave.upper()} DE ASEGURADOS",
-        "rango_fech": rango,
-        "fecha_texto": fecha_lima_formateada(),
-        "datos_tabla": datos_tabla,
-        "encabezado_logo": encabezado,
-        "titulo_html": f"ENDOSO DE {palabra_clave.upper()} DE ASEGURADOS",
-        "subtitulo_html": "ASEGURADOS INCLUIDOS:",
-        "descripcion_html": f"""Por medio del presente endoso se deja constancia que, a solicitud del Contratante, se procede a incluir al (los)
-        siguientes Asegurados a partir de""",
-        "firma_ger_ope": os.path.join(ruta_plantilla, "gerente_operaciones.jpg"),
-        "firma_ger_com": os.path.join(ruta_plantilla, "gerente_comercial.jpg"),
-        "logo": os.path.join(ruta_plantilla, "logo_crecer.jpg")
-    }
-
-    # 🔹 Cargar plantilla Jinja
-    env = Environment(loader=FileSystemLoader(ruta_plantilla))
-    template = env.get_template("crecerInNew.html")
-    html_renderizado = template.render(contexto)
-
-    salida_pdf = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
-
-    # 🔹 Generar PDF
-    HTML(string=html_renderizado, base_url=ruta_plantilla).write_pdf(salida_pdf)
-    logging.info("✅ PDF generado correctamente")
-
 def generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc,ramo,tipo_proceso):
 
-    rango = obtener_rango_vigencia(ramo)
+    tipoError = ""
+    detalleError = ""
+    constancia = True
 
-    datos_tabla = leer_asegurados_excel(os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx"),False if tipo_proceso == 'RE' else True)
+    try:
+        rango = obtener_rango_vigencia(ramo)
 
-    ruta_plantilla_base = "/app/Codigo/Plantillas/Crecer"
+        datos_tabla = leer_asegurados_excel(os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx"),False if tipo_proceso == 'RE' else True)
 
-    if tipo_proceso == 'RE':
-        ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Renovaciones"
-        encabezado = (
-            "Lima: (01) 417 4400<br>"
-            "Provincias: (0801) 17440<br>"
-            "gestionalcliente@crecerseguros.pe<br>"
-            "Av. Ricardo Rivera Navarrete 501 oficina 1101-A, San Isidro - Lima"
-        )
-        titulo = "CONSTANCIA - SEGURO VIDA LEY TRABAJADORES"
-        tramite = f"{palabra_clave.upper()}"
-        descripcion = """Por medio de la presente constancia indicamos la relación de Asegurados que integran la póliza vida ley en la vigencia del"""
-    else:
-        ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Inclusiones"
-        encabezado = (
-            "Crecer Seguros S.A. Compañía de Seguros – RUC: 20600098633<br>"
-            "Av. Ricardo Rivera Navarrete 501 oficina 1101-A, San Isidro, Lima – Perú<br>"
-            "T: Lima (01) 4174400 / Provincia (0801) 17440<br>"
-            "gestionalcliente@crecerseguros.pe"
-        )
-        titulo = "ENDOSO DE INCLUSIÓN DE ASEGURADOS"
-        tramite = f"{palabra_clave.upper().capitalize()} de Asegurados"
-        descripcion = """Por medio del presente endoso se deja constancia que, a solicitud del Contratante, se procede a incluir al (los) siguientes Asegurados a partir de"""
+        ruta_plantilla_base = "/app/Codigo/Plantillas/Crecer"
 
-    contexto = {
-        "poliza": ramo.poliza,
-        "contratante": nombre_cliente,
-        "tramite": tramite,
-        "rango_fech": rango,
-        "fecha_texto": fecha_lima_formateada(),
-        "datos_tabla": datos_tabla,
-        "titulo_html": titulo,
-        "encabezado_texto": encabezado,
-        "descripcion_html": descripcion,
+        if tipo_proceso == 'RE':
 
-        # Rutas sin file://
-        "logo": os.path.join(ruta_plantilla_base, "crecer_re_logo.jpg"),
-        "firma_ger_ope": os.path.join(ruta_plantilla_base, "gerente_operaciones.jpg"),
-        "firma_ger_com": os.path.join(ruta_plantilla_base, "gerente_comercial.jpg")
-    }
+            ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Renovaciones"
+            encabezado = (
+                "Lima: (01) 417 4400<br>"
+                "Provincias: (0801) 17440<br>"
+                "gestionalcliente@crecerseguros.pe<br>"
+                "Av. Ricardo Rivera Navarrete 501 oficina 1101-A, San Isidro - Lima"
+            )
+            titulo = "CONSTANCIA - SEGURO VIDA LEY TRABAJADORES"
+            tramite = f"{palabra_clave.upper()}"
+            descripcion = """Por medio de la presente constancia indicamos la relación de Asegurados que integran la póliza vida ley en la vigencia del"""
 
-    if tipo_proceso == 'RE':
-        contexto["ruc"] = ruc
-        contexto["subtitulo_html"] = "CODIGO SBS N° VI1787300005"
-        contexto["sede"] = ramo.sede
-        contexto["img_footer"] = os.path.join(ruta_plantilla_base, "img_footer.jpg")
-        contexto["redes_footer"] = os.path.join(ruta_plantilla_base, "redesSocialesCrecer.jpg")
-    else:
-        contexto["producto"] = "Vida Ley Trabajadores"
+        else:
 
-    # Cargar plantilla
-    env = Environment(loader=FileSystemLoader(ruta_plantilla))
+            ruta_plantilla = "/app/Codigo/Plantillas/Crecer/Inclusiones"
+            encabezado = (
+                "Crecer Seguros S.A. Compañía de Seguros – RUC: 20600098633<br>"
+                "Av. Ricardo Rivera Navarrete 501 oficina 1101-A, San Isidro, Lima – Perú<br>"
+                "T: Lima (01) 4174400 / Provincia (0801) 17440<br>"
+                "gestionalcliente@crecerseguros.pe"
+            )
+            titulo = "ENDOSO DE INCLUSIÓN DE ASEGURADOS"
+            tramite = f"{palabra_clave.upper().capitalize()} de Asegurados"
+            descripcion = """Por medio del presente endoso se deja constancia que, a solicitud del Contratante, se procede a incluir al (los) siguientes Asegurados a partir de"""
 
-    if tipo_proceso == 'RE':
-        template = env.get_template("crecerReNew.html")
-    else:
-        template = env.get_template("crecerInNew.html")
+        contexto = {
+            "poliza": ramo.poliza,
+            "contratante": nombre_cliente,
+            "tramite": tramite,
+            "rango_fech": rango,
+            "fecha_texto": fecha_lima_formateada(),
+            "datos_tabla": datos_tabla,
+            "titulo_html": titulo,
+            "encabezado_texto": encabezado,
+            "descripcion_html": descripcion,
 
-    html_renderizado = template.render(contexto)
+            # Rutas sin file://
+            "logo": os.path.join(ruta_plantilla_base, "crecer_re_logo.jpg"),
+            "firma_ger_ope": os.path.join(ruta_plantilla_base, "gerente_operaciones.jpg"),
+            "firma_ger_com": os.path.join(ruta_plantilla_base, "gerente_comercial.jpg")
+        }
 
-    salida_pdf = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+        if tipo_proceso == 'RE':
+            contexto["ruc"] = ruc
+            contexto["subtitulo_html"] = "CODIGO SBS N° VI1787300005"
+            contexto["sede"] = ramo.sede
+            contexto["img_footer"] = os.path.join(ruta_plantilla_base, "img_footer.jpg")
+            contexto["redes_footer"] = os.path.join(ruta_plantilla_base, "redesSocialesCrecer.jpg")
+        else:
+            contexto["producto"] = "Vida Ley Trabajadores"
 
-    # 🔹 Generar PDF
-    HTML(string=html_renderizado,base_url=ruta_plantilla_base).write_pdf(salida_pdf)
-    logging.info("✅ PDF generado correctamente")
+        # Cargar plantilla
+        env = Environment(loader=FileSystemLoader(ruta_plantilla))
+
+        if tipo_proceso == 'RE':
+            template = env.get_template("crecerReNew.html")
+        else:
+            template = env.get_template("crecerInNew.html")
+
+        html_renderizado = template.render(contexto)
+
+        salida_pdf = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+
+        # Generar PDF
+        HTML(string=html_renderizado,base_url=ruta_plantilla_base).write_pdf(salida_pdf)
+        logging.info("✅ PDF generado correctamente")
+
+        time.sleep(2)
+
+        ruta_vl = os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.pdf")
+
+        if not os.path.exists(ruta_vl):
+            raise Exception(f"No se genero la constancia manual")
+
+    except Exception as e:
+        detalleError = str(e)
+        constancia = False
+        logging.error(f"❌ Error en Crecer (VL) - MV: {detalleError}")
+        tipoError = f"CREC-VL-MV"
+    finally:
+        return constancia,False,tipoError,detalleError

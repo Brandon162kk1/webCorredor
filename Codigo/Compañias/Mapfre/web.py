@@ -29,7 +29,8 @@ url_mapfre = os.getenv("url_mapfre")
 url_api_cod_map = os.getenv("url_api_cod_map")
 API_KEY_MAPFRE = os.getenv("API_KEY_MAPFRE")
 
-def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,bab_codigo,list_polizas,ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
+def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,
+                      bab_codigo,list_polizas,ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
 
     ramo_opcion = "Vida Ley" if bab_codigo == '4' else "SCTR General"
 
@@ -474,7 +475,8 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
 
     logging.info(f"✅ {palabra_clave} en Mapfre realizada exitosamente")
 
-def realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,ejecutivo_responsable,ba_codigo,bab_codigo,nombre_cliente,ramo):
+def login_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
+                 ejecutivo_responsable,ba_codigo,bab_codigo,nombre_cliente,ramo):
 
     global ventana_solicitud_mapfre
     global login_exitoso

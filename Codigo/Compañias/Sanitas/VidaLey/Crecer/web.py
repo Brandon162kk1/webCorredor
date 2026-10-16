@@ -11,6 +11,7 @@ from selenium.common.exceptions import (
     WebDriverException,
     UnexpectedAlertPresentException
 )
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from Tiempo.fechas_horas import get_timestamp,get_fecha_menos_x_dias
@@ -46,10 +47,10 @@ def login_completado(driver):
 
     return False
 
-def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,
+def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,
                     palabra_clave,ruc_empresa,tipo_mes,ramo):
 
-    if tipo_proceso in ('NE','IN'):
+    if tipo_proceso in ('NE','IN','RE') and entorno:
         msj = f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía"
         return False,False,f"CREC-VL-{tipo_mes}",msj
 
@@ -126,7 +127,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     if tipo_proceso == 'IN':
 
         try:
-            inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo)
+            inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo)
             return False,True,tipoError,detalleError
         except Exception as e:
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
@@ -135,7 +136,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
     elif tipo_proceso == 'RE':
 
         try:
-            renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,ramo)
+            renovacion_crecer(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,ramo)
             return False,True,tipoError,detalleError
         except Exception as e :
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
@@ -152,7 +153,7 @@ def login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_res
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
             return False,False,f"CREC-VL-{tipo_mes}",str(e)
 
-def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
+def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
     span_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Gestión de Endoso']")))
     logging.info("🔍 Ubicándose en 'Gestión de Endoso'")
@@ -167,22 +168,22 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
 
     time.sleep(3)
 
-    input_fullname = wait.until(EC.visibility_of_element_located((By.ID, "spolizanumber")))
+    input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber")))
     input_fullname.clear()
-    input_fullname.send_keys(ramo.poliza)
+    input_fullname.send_keys(f"{ramo.poliza}-R1")
     logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}") #agregar r1 la primera vez
         
-    select_ramos = wait.until(EC.visibility_of_element_located((By.ID, "Ramos")))
+    select_ramos = wait.until(EC.element_to_be_clickable((By.ID, "Ramos")))
     select = Select(select_ramos)
     select.select_by_value("2")
     logging.info("🖱️ Clic en la opción Vida Ley")
 
-    select_accion = wait.until(EC.visibility_of_element_located((By.ID, "Action")))
+    select_accion = wait.until(EC.element_to_be_clickable((By.ID, "Action")))
     select2= Select(select_accion)
     select2.select_by_value("1")
     logging.info("🖱️ Clic en la opción Inclusión")
 
-    time.sleep(2)
+    #time.sleep(2)
 
     boton = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Buscar Póliza')]")))
     boton.click()
@@ -195,16 +196,26 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
     #Esperar que cargue la tabla con mas de 0 filas y esten visibles
     wait.until(EC.visibility_of_element_located((By.XPATH,"//table[contains(@class, 'table-striped') and contains(@class, 'table-bordered')]//tbody/tr")))
 
-    # campo_fecha = wait.until(EC.presence_of_element_located((By.ID, "dFechaInicio1")))
-    # # Hacer clic para abrir el calendario
-    # actions = ActionChains(driver)
-    # actions.move_to_element(campo_fecha).click().perform()
+    try:
+        campo_fecha = wait.until(EC.element_to_be_clickable((By.ID, "dFechaInicio1")))
+        # Hacer clic para abrir el calendario
+        actions = ActionChains(driver)
+        actions.move_to_element(campo_fecha).click().perform()
 
-    # fecha_actual = fecha.strftime('%d/%m/%Y')
-    # campo_fecha.send_keys(fecha_actual)
-    # logging.info("✅ Se ingresó la fecha actual")
+        fecha_inicio = ramo.f_inicio
+        fecha_actual = fecha_inicio.strftime('%d/%m/%Y')
+        campo_fecha.send_keys(fecha_actual)
+        logging.info("✅ Se ingresó la fecha actual")
+    except WebDriverException as e:
+        logging.error(f"❌ Ocurrió un error tecnico al ingresar la fecha: {e}")
+        raise Exception(f"Error tecnico al ingresar la fecha: {e}")
+    except Exception as e:
+        logging.error(f"❌ Ocurrió un error al ingresar la fecha: {e}")
+        raise Exception(f"Error al ingresar la fecha: {e}")
+    finally:
+        pass
 
-    time.sleep(3)
+    #time.sleep(3)
 
     input_file = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Cargar excel')]")))
     driver.execute_script("arguments[0].scrollIntoView(true);", input_file)
@@ -222,7 +233,7 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
 
     try:
         # Modal de Endoso Retroactivo
-        boton_ok = WebDriverWait(driver,15).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK')]")))
+        boton_ok = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK')]")))
         driver.screenshot(os.path.join(ruta_archivos_x_inclu, f"error_subidaTramaCrecer_{ramo.poliza}.png"))
         boton_ok.click()
         logging.error(f"🖱️Clic en Ok")
@@ -230,22 +241,37 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
     except :
         pass
 
-    input("Esperar")
-
     # Encuentra el botón por su texto
     boton_endoso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Generar Endoso')]")))
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_endoso)
     boton_endoso.click()
     logging.info("🖱️ Clic en 'Generar Endoso'")
 
-    time.sleep(10)
 
     try:
-        # Modal de confirmacion de generación de endoso
-        driver.save_screenshot(os.path.join(ruta_archivos_x_inclu, f"conf_endoso-{ramo.poliza}.png"))
+
+        modal_advertencia = (By.ID, "swal2-content")
+
+        resultado = wait.until(
+            EC.any_of(
+                EC.visibility_of_element_located(modal_advertencia),
+                EC.staleness_of(boton_ok)
+            )
+        )
+
+        if isinstance(resultado, WebElement):
+            # Modal de confirmacion de generación de endoso
+            driver.save_screenshot(os.path.join(ruta_archivos_x_inclu, f"aviso_{ramo.poliza}.png"))
+            texto_modal = resultado.text
+            logging.warning(f"⚠️ Mensaje de advertencia: {texto_modal}")
+            raise Exception (texto_modal)
+        else:
+            pass
 
         wait.until(EC.staleness_of(boton_ok))
         wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+
+        input("Esperar")
 
         btn_pagar_endoso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Pagar Endoso')]")))
         driver.execute_script("arguments[0].scrollIntoView(true);", btn_pagar_endoso)
@@ -254,6 +280,8 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
 
         # Enviar por wsp al ejecutivo responsable para decidir que metodo de pago usar
         #enviar_msj_wsp(ramo,"notificacion",None,palabra_clave,nombre_cliente)
+
+        input("Esperar")
 
         pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
         pago_efectivo_img.click()
@@ -303,7 +331,7 @@ def inclusion_crecer_vly(driver,wait,ruta_archivos_x_inclu,ramo):
         logging.info("📌 Aca nos quedamos para validar")
         input("Esperar")
 
-def renovacion_crecer_vly(driver,wait,ruta_archivos_x_inclu,correo,ramo):
+def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     
     span_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Gestión de Cotización']")))
     logging.info("🔍 Ubicándose en 'Gestión de Cotización'")

@@ -11,7 +11,13 @@ import time
 import os
 import logging
 
-def procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,ramo):
+entorno = os.getenv("entorno","false").strip().lower() == "true"
+
+def login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,tipo_mes,ramo):
+
+    if tipo_proceso in ('NE','IN','RE') and entorno:
+        msj = f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía"
+        return False,False,f"PROT-VL-{tipo_mes}",msj
 
     try:
 

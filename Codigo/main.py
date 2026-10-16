@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 # -- Froms Compañias ---
-from Compañias.Mapfre.web import realizar_solicitud_mapfre
-from Compañias.Pacifico.SomosCorredores.web import realizar_solicitud_pacifico
-from Compañias.Positiva.web import realizar_solicitud_positiva
-from Compañias.Sanitas.SCTR.web import realizar_solicitud_sanitas
-from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer_vl
-from Compañias.Sanitas.VidaLey.Protecta.web import procesar_solicitud_san_protecta_vl
-from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
+from Compañias.Mapfre.web import login_mapfre
+from Compañias.Pacifico.SomosCorredores.web import login_pacifico
+from Compañias.Positiva.web import login_positiva
+from Compañias.Sanitas.SCTR.web import login_sanitas
+from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer
+from Compañias.Sanitas.VidaLey.Protecta.web import login_protecta
+# from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
 from Plantillas.Crecer.generarplantilla import generarConstanciaInReCrecer
 # -- Froms Apis ---
 from Apis.Post.webhook import enviar_error_general
@@ -170,31 +170,35 @@ def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_me
                           ruc_empresa,ejecutivo_responsable,tipo_proceso,palabra_clave,actividad,nombre_cliente,
                           ramo):
 
-    def ejecutar_rimac_portal_web():
-        logging.info("✅ Compañía: Rímac - Portal Web")
-        return realizar_solicitud_PortalWeb(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,
-                                             palabra_clave,ejecutivo_responsable,ba_codigo,nombre_cliente,ruc_empresa,ramo)
+    # def ejecutar_rimac_portal_web():
+    #     logging.info("✅ Compañía: Rímac - Portal Web")
+    #     return realizar_solicitud_PortalWeb(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
+    #                                         tipo_proceso,palabra_clave,ejecutivo_responsable,ba_codigo,
+    #                                         nombre_cliente,ruc_empresa,ramo)
 
     def ejecutar_mapfre():
         logging.info("✅ Compañía: Mapfre")
-        return realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-                                         ejecutivo_responsable,ba_codigo,ba_codigo,nombre_cliente,ramo)
+        return login_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
+                                         tipo_proceso,palabra_clave,ejecutivo_responsable,ba_codigo,
+                                         ba_codigo,nombre_cliente,ramo)
 
     def ejecutar_sanitas():
 
         urls = [os.getenv("login_url_sanitas_crecer"),os.getenv("login_url_sanitas_protecta")]
         logging.info(f"✅ Compañía: Sanitas")
-        return realizar_solicitud_sanitas(driver,wait,urls,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,ba_codigo,ramo)
+        return login_sanitas(driver,wait,urls,list_polizas,tipo_mes,ruta_archivos_x_inclu,
+                                          tipo_proceso,palabra_clave,ba_codigo,ramo)
 
     def ejecutar_lapositiva():
         logging.info("✅ Compañía: La Positiva")
-        return realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,ba_codigo,tipo_mes,ruta_archivos_x_inclu,
+        return login_positiva(driver,wait,list_polizas,ba_codigo,ba_codigo,tipo_mes,ruta_archivos_x_inclu,
                                               ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
 
     def ejecutar_pacifico():
         logging.info("✅ Compañía: Pacifico")
-        return realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-                                           ruc_empresa,ejecutivo_responsable,ba_codigo,ramo,nombre_cliente)
+        return login_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
+                                           tipo_proceso,palabra_clave,ruc_empresa,ejecutivo_responsable,
+                                           ba_codigo,ramo,nombre_cliente)
 
     dispatch = {
         'SANI': ejecutar_sanitas,
@@ -203,7 +207,7 @@ def derivar_compania_sctr(driver,wait,list_polizas,compania_BA,ba_codigo,tipo_me
         'MAPF': ejecutar_mapfre,
         'LAPO': ejecutar_lapositiva,
         'PACI': ejecutar_pacifico,
-        'RIMA': ejecutar_rimac_portal_web
+        # 'RIMA': ejecutar_rimac_portal_web
     }
 
     if compania_BA not in dispatch:
@@ -221,8 +225,9 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
 
     def ejecutar_mapfre():
         logging.info("✅ Compañía: Mapfre")
-        return realizar_solicitud_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
-                                         ejecutivo_responsable,ba_codigo,bb_codigo,nombre_cliente,ramo)
+        return login_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
+                                         tipo_proceso,palabra_clave,ejecutivo_responsable,ba_codigo,
+                                         bb_codigo,nombre_cliente,ramo)
 
     def ejecutar_crecer():
         logging.info("✅ Compañía: Crecer")
@@ -231,35 +236,26 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
 
             logging.info("✅ Tipo: Mes Vencido")
             # Por el momento se utilizara la misma plantilla para Inclusiones y Renovaciones (Ruc solo renovación)
-            generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo,tipo_proceso)
-            time.sleep(2)
-            return True,False,"",""
+            return generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo,tipo_proceso)
 
         else:
-
             logging.info("Tipo: Mes Adelantado")
-            return login_crecer_vl(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,palabra_clave,ruc_empresa,tipo_mes,ramo)
+            return login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,
+                                   palabra_clave,ruc_empresa,tipo_mes,ramo)
 
     def ejecutar_protecta():
         logging.info("✅ Compañía: Protecta")
 
-        if tipo_mes == 'MV':
-            logging.info("✅Tipo: Mes Vencido (manual por compañía)")
-            time.sleep(5)
-            return True,True, "", ""
-        else:
-            logging.info("✅ Tipo: Mes Adelantado")
-            procesar_solicitud_san_protecta_vl(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,ramo)
-            return True,True, "", ""
+        return login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,tipo_mes,ramo)
 
     def ejecutar_lapositiva():
         logging.info("✅ Compañía: La Positiva")
-        return realizar_solicitud_positiva(driver,wait,list_polizas,ba_codigo,bb_codigo,tipo_mes,ruta_archivos_x_inclu,
-                                                                      ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
+        return login_positiva(driver,wait,list_polizas,ba_codigo,bb_codigo,tipo_mes,ruta_archivos_x_inclu,
+                                           ruc_empresa,ejecutivo_responsable,palabra_clave,tipo_proceso,actividad,ramo)
 
     def ejecutar_pacifico():
         logging.info("✅ Compañía: Pacifico")
-        return realizar_solicitud_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
+        return login_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_proceso,palabra_clave,
                                            ruc_empresa,ejecutivo_responsable,bb_codigo,ramo,nombre_cliente)
 
     dispatch = {
@@ -356,7 +352,7 @@ def main():
                 tiempo = 150
             case _:
                 tipo_proc = 'DES'
-                palabra_clave = 'descarga de Constancia'
+                palabra_clave = 'Pendiente'
                 tiempo = 90
 
         ruta_archivos_x_inclu = armar_ruta_archivos(tipo_proc,ba_codigo,bb_codigo,compania_BA,compania_BB,ctx,ctx.salud.poliza,ctx.pension.poliza,ctx.vida.poliza,entorno)
@@ -419,11 +415,10 @@ def main():
                 #contexto_sctr = ctx.salud if ctx.salud.debe_procesarse() else ctx.pension
                 contexto_sctr = ctx.pension if ctx.pension.debe_procesarse() else ctx.salud
 
-                conSCTR, endSCTR, tipoErrorSCTR, detalleErrorSCTR = derivar_compania_sctr(
-                    driver, wait, polizas_sctr, compania_BA, ba_codigo, tipo_mes,
-                    ruta_archivos_x_inclu, ctx.ruc, ctx.correo, tipo_proc,
-                    palabra_clave, ctx.giro, ctx.cliente, contexto_sctr
-                )
+                conSCTR,endSCTR,tipoErrorSCTR,detalleErrorSCTR = derivar_compania_sctr(driver,wait,polizas_sctr,
+                                                                                       compania_BA,ba_codigo,tipo_mes,ruta_archivos_x_inclu,
+                                                                                       ctx.ruc,ctx.correo,tipo_proc,palabra_clave,ctx.giro,
+                                                                                       ctx.cliente,contexto_sctr)
            
             if ctx.vida.debe_procesarse():
 
@@ -431,10 +426,9 @@ def main():
                 logging.info(f"⌛ Procesando {palabra_clave} en VIDA LEY - póliza {ctx.vida.poliza}")
                 logging.info(f"✅ {ctx.vida}")
 
-                conVL, endVL, tipoErrorVL, detalleErrorVL = derivar_compania_vidaley(
-                    driver,wait,[ctx.vida.poliza],compania_BB,ba_codigo,bb_codigo,tipo_mes,
-                    ruta_archivos_x_inclu,ctx.ruc, ctx.correo, palabra_clave,tipo_proc,ctx.cliente,
-                    ctx.giro,ctx.vida)
+                conVL,endVL,tipoErrorVL,detalleErrorVL = derivar_compania_vidaley(driver,wait,[ctx.vida.poliza],compania_BB,
+                                                                                  ba_codigo,bb_codigo,tipo_mes,ruta_archivos_x_inclu,ctx.ruc,
+                                                                                  ctx.correo,palabra_clave,tipo_proc,ctx.cliente,ctx.giro,ctx.vida)
 
                 # if tipoErrorSCTR == "Login Fallido":
 
