@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
-from selenium.common.exceptions import TimeoutException,StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException,StaleElementReferenceException, WebDriverException
 from Tiempo.fechas_horas import get_timestamp,get_fecha_hoy
 from LinuxDebian.Ventana.ventana import esperar_archivos_nuevos
 from selenium.webdriver import ActionChains
@@ -202,6 +202,7 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
     tipoError = ""
     companiaTipoError = ""
     detalleError = ""
+    error = False
 
     try:
 
@@ -349,6 +350,9 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
                 )
             )
 
+            if resultado_poliza is None:
+                raise TimeoutException("No apareció el modal ni la sede del cliente")
+
             if resultado_poliza.get_attribute("id") == "MessageBox":
                 logging.warning(f"⚠️ Apareció el modal con advertencia")
                 span_txt_modal = resultado_poliza.find_element(By.ID, "message").text
@@ -360,14 +364,33 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
             time.sleep(2)
 
             sede_buscada = normalizar(ramo.sede)
+            sedes_disponibles = []
 
             def sede_disponible(driver):
-
+                global sedes_disponibles
                 try:
-                    select_element = driver.find_element(By.ID, "ClientBranchOfficeId")
+                    select_element = driver.find_element(*client)
+
+                    # Activar el combo para que se muestren/carguen las opciones
+                    if not select_element.is_displayed():
+                        return False
+
+                    if not select_element.is_enabled():
+                        return False
+
                     select = Select(select_element)
 
-                    for option in select.options:
+                    opciones = select.options
+
+                    sedes_disponibles = [
+                        option.text.strip()
+                        for option in opciones
+                        if option.get_attribute("value")
+                        and option.get_attribute("value") != "-1"
+                        and option.text.strip()
+                    ]
+
+                    for option in opciones:
                         texto = option.text.strip()
 
                         if normalizar(texto) == sede_buscada:
@@ -375,21 +398,35 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
 
                     return False
 
-                except Exception:
+                except StaleElementReferenceException:
                     return False
 
-            client_branch_office_select = wait.until(sede_disponible)
+            try:
 
-            select = Select(client_branch_office_select)
+                select_element = wait.until(sede_disponible)
+                select = Select(select_element)
 
-            for option in select.options:                                       
-                texto_opcion = option.text.strip()
-                if normalizar(ramo.sede) == normalizar(texto_opcion):
-                    select.select_by_visible_text(texto_opcion)
-                    logging.info(f"🖱️ Opción seleccionada: {texto_opcion}")
-                    break                                                       
-            else:
-                raise Exception("No se encontró ninguna Sede que coincida")
+                opcion_encontrada = next(
+                    option
+                    for option in select.options
+                    if normalizar(option.text.strip()) == sede_buscada
+                )
+
+                select.select_by_value(opcion_encontrada.get_attribute("value"))
+
+                logging.info(f"🖱️ Sede seleccionada: {opcion_encontrada.text.strip()}")
+
+            except TimeoutException:
+                raise Exception(f"No se encontró la sede solicitada: '{ramo.sede}'")
+
+            # for option in select.options:                                       
+            #     texto_opcion = option.text.strip()
+            #     if normalizar(ramo.sede) == normalizar(texto_opcion):
+            #         select.select_by_visible_text(texto_opcion)
+            #         logging.info(f"🖱️ Opción seleccionada: {texto_opcion}")
+            #         break                                                       
+            # else:
+            #     raise Exception("No se encontró ninguna Sede que coincida")
 
             time.sleep(2)
 
@@ -750,10 +787,25 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
             logging.info("-----------------")
             logging.info(f"✅ {palabra_clave} en SANITAS realizada exitosamente")
 
+    except WebDriverException as e:
+        logging.exception(f"⚠️ Error técnico de Selenium: {str(e)}")
+        detalleError = "Problemas Técnicos del Agente"
+        error = True
     except Exception as e:
-        logging.error(f"❌ Error en Sanitas (SCTR) - {tipo_mes}: {e}")
-        tipoError = f"{companiaTipoError.upper()[:4]}-SCTR-{tipo_mes}"
         detalleError = str(e)
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_SCTR_{tipo_mes}")
+        error = True
     finally:
-        return constancia,proforma,tipoError,detalleError
+
+        if error:
+
+            try:
+                tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_SCTR_{tipo_mes}")
+            except Exception:
+                logging.exception("⚠️ No se pudo tomar screenshot")
+
+            logging.error(f"❌ Error en Sanitas {companiaTipoError} (SCTR) - {tipo_mes}: {detalleError}")
+            tipoError = f"{companiaTipoError.upper()[:4]}-SCTR-{tipo_mes}"
+            return constancia,proforma,tipoError,detalleError
+        else:
+            #return True,True,tipoError,detalleError
+            return constancia,proforma,tipoError,detalleError

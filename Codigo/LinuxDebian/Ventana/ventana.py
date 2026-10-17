@@ -53,6 +53,7 @@ def esperar_archivos_nuevos(directorio, archivos_antes, extension, cantidad, tim
     return None
 
 def enviar_puerto_por_ramos(RAMOS):
+
     for r in RAMOS:
 
         ctx_ramo = r["ctx"]

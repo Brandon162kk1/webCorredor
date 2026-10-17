@@ -18,24 +18,23 @@ headers = {
 }
 
 def enviar_aviso_captcha(ramo):
+
     url = f"{API_BASE_URL}/api/plantilla-captcha/movimiento/{ramo.id_poliza}"
+
     payload = {
       "captchaRequerido": True
     }
+
     try:
         response = requests.put(url,json=payload,headers=headers,timeout=30)
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ Aviso de captcha enviado correctamente al Movimiento {ramo.id_poliza}")
-            return True
         else:
             logging.error(f"❌ Error enviando aviso de captcha " f"| Status {response.status_code} | Resp {response.text}")
-            return False
     except Exception as e:
         logging.error(f"❌ Error conectando al API para enviar aviso de captcha | {e}")
-        return False
 
 def enviar_puerto(id_movimiento,puerto):
-
 
     url = f"{API_BASE_URL}/api/movimiento/{id_movimiento}/puerto-host"
 
@@ -48,14 +47,11 @@ def enviar_puerto(id_movimiento,puerto):
 
         if response.status_code in (200, 201, 204):
             logging.info(f"✅ Puerto enviado registrado correctamente | Movimiento {id_movimiento}")
-            return True
         else:
             logging.error(f"❌ Error registrando puerto | Movimiento {id_movimiento} " f"| Status {response.status_code} | Resp {response.text}")
-            return False
 
     except Exception as e:
         logging.error(f"❌ Error conectando al API para registrar puerto | Movimiento {id_movimiento} | {e}")
-        return False
  
 def enviar_estaca(id_movimiento, ramo, afirmacion_constancia,afirmacion_proforma):
 

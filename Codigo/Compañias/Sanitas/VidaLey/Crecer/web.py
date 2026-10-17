@@ -1,4 +1,5 @@
 #   --- Froms ----
+from dataclasses import asdict
 from turtle import clear
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -54,39 +55,39 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         msj = f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía"
         return False,False,f"CREC-VL-{tipo_mes}",msj
 
+    constancia = False
+    factura = False
+    error = False
     tipoError = ""
     detalleError = ""
 
-    driver.get(os.getenv("login_url_crecer_vida_ley"))
-    logging.info("--- Ingresando a Crecer Seguros🌐 ---")
-
-    user_input = wait.until(EC.presence_of_element_located((By.ID, "suser")))
-    user_input.clear()
-    user_input.send_keys(ramo.usuario)
-    logging.info("⌨️ Digitando el Username")
-        
-    pass_input = wait.until(EC.presence_of_element_located((By.ID, "spassword")))
-    pass_input.clear()
-    pass_input.send_keys(ramo.clave)
-    logging.info(f"⌨️ Digitando el Password")
-
-    # Metodo para enviar mensaje al wsp del ejecutivo responsable
-    msj = f"Ingresar al siguiente enlace {url_crecer} para resolver el captcha manualmente de la {palabra_clave}."
-    enviar_msj_wsp(ramo,"notificacion",msj)
-
-    # raise Exception("Agente no disponible en estos momentos")
-
-    # Envio de aviso de captcha al API para que el usuario resuelva el captcha manualmente
-    # if not enviar_aviso_captcha(ramo):
-    #     raise Exception(f"No se pudo avisar para resolver el Captcha")
-
-    # Tiempo estimado para resolver captcha 5 minutos
-    wait_humano = WebDriverWait(driver, 300, poll_frequency=1)
-
     try:
 
+        driver.get(os.getenv("login_url_crecer_vida_ley"))
+        logging.info("--- Ingresando a Crecer Seguros🌐 ---")
+
+        user_input = wait.until(EC.presence_of_element_located((By.ID, "suser")))
+        user_input.clear()
+        user_input.send_keys(ramo.usuario)
+        logging.info("⌨️ Digitando el Username")
+        
+        pass_input = wait.until(EC.presence_of_element_located((By.ID, "spassword")))
+        pass_input.clear()
+        pass_input.send_keys(ramo.clave)
+        logging.info(f"⌨️ Digitando el Password")
+
         if entorno:
+
+            # Envio de aviso de captcha al API para que el usuario resuelva el captcha manualmente
+            enviar_aviso_captcha(ramo)
+
+            mensaje = f"Ingresar al siguiente enlace {url_crecer} para resolver el captcha manualmente de la {palabra_clave}."
+            enviar_msj_wsp(ramo,"notificacion",mensaje)
+
             desbloquear_interaccion()
+
+        # Tiempo estimado para resolver captcha 5 minutos
+        wait_humano = WebDriverWait(driver, 300, poll_frequency=1)
 
         resultado = wait_humano.until(
             EC.any_of(
@@ -102,8 +103,7 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         if "Debe crear una contraseña nueva" in texto:
 
             logging.warning("⚠️ Alerta de contraseña temporal detectada")
-            tomar_capturar(driver, ruta_archivos_x_inclu, "cambiarPassword")
-            raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla manualmente antes de continuar con el proceso automático o comunícate con tu administrador.")
+            raise Exception("El usuario tiene contraseña temporal, es necesario cambiarla antes de continuar  o comunícate con tu administrador")
 
         elif "modal-content" in clase:
 
@@ -118,40 +118,35 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         else:
             logging.info("✅ Login exitoso")
 
-    except TimeoutException:
-        raise Exception("No se pudo iniciar sessión")
-    finally:
         if entorno :
             bloquear_interaccion()
 
-    if tipo_proceso == 'IN':
-
-        try:
+        if tipo_proceso == 'IN':
             inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo)
-            return False,True,tipoError,detalleError
-        except Exception as e:
-            logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
-            return False,False,f"CREC-VL-{tipo_mes}",str(e)
-
-    elif tipo_proceso == 'RE':
-
-        try:
+        elif tipo_proceso == 'RE':
             renovacion_crecer(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,ramo)
-            return False,True,tipoError,detalleError
-        except Exception as e :
-            logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
-            return False,False,f"CREC-VL-{tipo_mes}",str(e)
-
-    elif tipo_proceso == 'NE':
-        raise Exception("Los neteos se realizan de manera manu")
-    else:
-
-        try:
+        else:
             buscar_cuota_y_descargar_constancia(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ramo)
-            return True,False,tipoError,detalleError
-        except Exception as e :
-            logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {e}")
-            return False,False,f"CREC-VL-{tipo_mes}",str(e)
+
+    except Exception as e :
+        error = True
+        detalleError = str(e)
+    except WebDriverException as e :
+        error = True
+        logging.exception(f"⚠️ Error técnico de Selenium | {e}")
+        detalleError = "Problemas Técnicos del Agente"
+    finally:
+
+        if error:
+            try:
+                tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VL_{tipo_mes}")
+            except Exception:
+                logging.exception("⚠️ No se pudo tomar screenshot")
+
+            logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {detalleError}")
+            return constancia,factura,f"CREC-VL-{tipo_mes}",detalleError
+        else:
+            return constancia,factura,tipoError,detalleError
 
 def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
@@ -170,8 +165,8 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
     input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber")))
     input_fullname.clear()
-    input_fullname.send_keys(f"{ramo.poliza}-R1")
-    logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}") #agregar r1 la primera vez
+    input_fullname.send_keys(ramo.poliza)
+    logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
         
     select_ramos = wait.until(EC.element_to_be_clickable((By.ID, "Ramos")))
     select = Select(select_ramos)
@@ -191,7 +186,8 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
 
-    # valdiar que salga modal para mostrar error 
+    # validar que salga modal para mostrar error
+
 
     #Esperar que cargue la tabla con mas de 0 filas y esten visibles
     wait.until(EC.visibility_of_element_located((By.XPATH,"//table[contains(@class, 'table-striped') and contains(@class, 'table-bordered')]//tbody/tr")))
@@ -208,10 +204,8 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
         logging.info("✅ Se ingresó la fecha actual")
     except WebDriverException as e:
         logging.error(f"❌ Ocurrió un error tecnico al ingresar la fecha: {e}")
-        raise Exception(f"Error tecnico al ingresar la fecha: {e}")
     except Exception as e:
         logging.error(f"❌ Ocurrió un error al ingresar la fecha: {e}")
-        raise Exception(f"Error al ingresar la fecha: {e}")
     finally:
         pass
 
@@ -223,7 +217,7 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
     ruta_trama_xlsx_sanitas_vl = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsx"
 
     if not os.path.exists(ruta_trama_xlsx_sanitas_vl):
-        raise FileNotFoundError(f"La ruta {ruta_trama_xlsx_sanitas_vl} no existe")
+        raise FileNotFoundError(f"El Archivo {ramo.poliza}.xlsx no existe")
 
     if subir_trama(input_file,ruta_trama_xlsx_sanitas_vl):               
         time.sleep(3)
@@ -234,9 +228,8 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
     try:
         # Modal de Endoso Retroactivo
         boton_ok = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK')]")))
-        driver.screenshot(os.path.join(ruta_archivos_x_inclu, f"error_subidaTramaCrecer_{ramo.poliza}.png"))
-        boton_ok.click()
-        logging.error(f"🖱️Clic en Ok")
+        # boton_ok.click()
+        # logging.error(f"🖱️Clic en Ok")
         raise  Exception("Mensaje de Endoso Retroactivo")
     except :
         pass
@@ -246,7 +239,6 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_endoso)
     boton_endoso.click()
     logging.info("🖱️ Clic en 'Generar Endoso'")
-
 
     try:
 
@@ -261,7 +253,6 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
         if isinstance(resultado, WebElement):
             # Modal de confirmacion de generación de endoso
-            driver.save_screenshot(os.path.join(ruta_archivos_x_inclu, f"aviso_{ramo.poliza}.png"))
             texto_modal = resultado.text
             logging.warning(f"⚠️ Mensaje de advertencia: {texto_modal}")
             raise Exception (texto_modal)
@@ -327,6 +318,8 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
     except Exception as e:
         logging.error(f"❌ Error durante el proceso de inclusión: {e}")
+    except WebDriverException as e :
+        logging.exception(f"❌ Ocurrió un error tecnico: {e}")
     finally:
         logging.info("📌 Aca nos quedamos para validar")
         input("Esperar")
@@ -344,7 +337,7 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     link.click()
     logging.info("🖱️ Clic en 'Renovación Vida Ley'")
   
-    input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber"))) # visibility_of_element_located
+    input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber")))
     input_fullname.clear()
     input_fullname.send_keys(ramo.poliza)
     logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
@@ -364,7 +357,6 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     if resultado.get_attribute("id") == "swal2-content":
         texto_alerta_poliza = resultado.text
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"{ramo.poliza}_noExiste")
         raise Exception(texto_alerta_poliza)
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
@@ -398,7 +390,7 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         tomar_capturar(driver,ruta_archivos_x_inclu,f"errorTrama_{ramo.poliza}")
         raise Exception(texto_error_poliza)
 
-    boton_validar = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@value="Validar"]'))) # visibility_of_element_located
+    boton_validar = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@value="Validar"]')))
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_validar)
     boton_validar.click()
     logging.info("🖱️ Clic en 'Validar'")
@@ -415,7 +407,6 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     if resultado2.get_attribute("id") == "swal2-content":
         texto_error_modal = resultado2.text
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"modal_renovacion_{ramo.poliza}")
         raise Exception(texto_error_modal)
 
     try:
@@ -469,6 +460,9 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         logging.error(f"❌ Ocurrió un error tecnico: {e}")
     except Exception as e:
         logging.error(f"❌ Ocurrió un error: {e}")
+    finally:
+        logging.info("📌 Aca nos quedamos para validar")
+        input("Esperar")
 
     try:
 
@@ -522,7 +516,8 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     except Exception as e:
         logging.error(f"❌ Ocurrió un error: {e}")
     finally:
-        pass
+        logging.info("📌 Aca nos quedamos para validar")
+        input("Esperar")
 
         #Clic en Pago Efectivo me falta
         #------------------------------------
