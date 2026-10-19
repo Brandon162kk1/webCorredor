@@ -67,12 +67,12 @@ def enviar_puerto_por_ramos(RAMOS):
         logging.info("-----------------------------")
         logging.info(f"⌛ Enviando puerto {puerto} al Id -> {ctx_ramo.id_poliza} de '{ctx_ramo.ramo}'")
 
-        if not enviar_puerto(ctx_ramo.id_poliza, puerto):
-            raise Exception(f"No se pudo enviar puerto {puerto}")
+        # if not enviar_puerto(ctx_ramo.id_poliza, puerto):
+        #     raise Exception(f"No se pudo enviar puerto {puerto}")
 
         time.sleep(1)
 
-        return True
+        #return True
 
     logging.info("ℹ️ No hubo ramos disponibles para enviar puerto")
-    return False
+    #return False
