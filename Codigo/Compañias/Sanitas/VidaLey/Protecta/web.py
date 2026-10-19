@@ -156,15 +156,13 @@ def login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,pa
         # Clic en el label (esto activa el input radio asociado)
         label_tipo_proceso.click()
         logging.info(f"🖱️ Clic en {palabra_clave}")
-        
-        # Esperar a que cargue la nueva página de adjuntar el archivo
-        #time.sleep(8)
 
         file_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='file']")))
         # Hacer scroll hasta el input
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", file_input)
 
-        ruta_trama_protecta = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsm"
+        #ruta_trama_protecta = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsm"
+        ruta_trama_protecta = f"{ruta_archivos_x_inclu}/6000039177.xlsm"
 
         if not os.path.exists(ruta_trama_protecta):
             raise FileNotFoundError(f"El Archivo {ramo.poliza}.xlsm no existe")
@@ -172,20 +170,68 @@ def login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,pa
         file_input.send_keys(ruta_trama_protecta)
         logging.info(f" ✅ Trama '{ramo.poliza}.xlsm' subida para validar'")
 
-        # Click en Validar
-        boton_validar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[span[text()='Validar']]")))
-        boton_validar.click()
-        logging.info(f"🖱️ Clic en Validar Trama")
+        # # Click en Validar
+        # boton_validar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[span[text()='Validar']]")))
+        # boton_validar.click()
+        # logging.info(f"🖱️ Clic en Validar Trama")
 
-        # Aparece un Modal para confirmar
-        btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
-        driver.execute_script("arguments[0].click();", btn_ok)
-        logging.info(f"🖱️ Clic en Aceptar la Validación")
+        # loading_screen = (By.CSS_SELECTOR, "div.loadingScreen")
+
+        # # Esperar hasta que desaparezca la pantalla de carga
+        # wait.until(EC.invisibility_of_element_located(loading_screen))
+
+        # print("✅ La pantalla de carga ha desaparecido")
+
+        # # Aparece un Modal para confirmar
+        # btn_ok = wait.until(
+        #     EC.element_to_be_clickable(
+        #         (By.CSS_SELECTOR, "button.swal2-confirm.swal2-styled")
+        #     )
+        # )
+        # # wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
+        # driver.execute_script("arguments[0].click();", btn_ok)
+        # logging.info(f"🖱️ Clic en Aceptar la Validación")
+
+        loading_screen = (By.CSS_SELECTOR, "div.loadingScreen")
+
+        # 1. Esperar a que desaparezca cualquier pantalla de carga previa
+        wait.until(EC.invisibility_of_element_located(loading_screen))
+
+        # 2. Esperar y hacer clic en Validar
+        boton_validar = wait.until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[.//span[normalize-space()='Validar']]")
+            )
+        )
+
+        boton_validar.click()
+        logging.info("🖱️ Clic en Validar Trama")
+
+        input("Esperar")
+
+        # 3. Esperar a que termine la validación
+        wait.until(EC.invisibility_of_element_located(loading_screen))
+
+        logging.info("✅ La pantalla de carga ha desaparecido")
+
+        # 4. Esperar a que aparezca el modal y su botón OK
+        btn_ok = wait.until(
+            EC.element_to_be_clickable(
+                (By.CSS_SELECTOR, "button.swal2-confirm.swal2-styled")
+            )
+        )
+
+        # 5. Aceptar el modal
+        btn_ok.click()
+        logging.info("🖱️ Clic en Aceptar la Validación")
+
+        input("Esperar")
 
         boton_procesar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[span[text()='PROCESAR']]")))
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", boton_procesar)
+        wait.until(EC.element_to_be_clickable((By.XPATH, "//button[span[text()='PROCESAR']]"))).click()
 
-        #wait.until(EC.element_to_be_clickable((By.XPATH, "//button[span[text()='PROCESAR']]"))).click()
+        input("Esperar")
 
     except Exception as e :
         error = True

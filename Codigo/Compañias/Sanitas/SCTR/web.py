@@ -583,8 +583,6 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
                     span_txtArea_modal = resultado_validar_trama.find_element(By.ID, "message").text
                     raise Exception(span_txtArea_modal)
 
-            input("Esperar")
-
             confirmar_button = wait.until(EC.element_to_be_clickable((By.ID, 'btnConfirm')))
             confirmar_button.click()
             logging.info("🖱️ Clic en Confirmar")
