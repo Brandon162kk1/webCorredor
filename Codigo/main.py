@@ -496,30 +496,31 @@ def main():
             {"ctx": ctx.vida, "constancia": conVL, "proforma": endVL}
         ]
 
-        for r in RAMOS:
+        if entorno :
 
-            try:
+            for r in RAMOS:
 
-                ctx_ramo = r["ctx"]
-                constancia = r["constancia"]
-                proforma = r["proforma"]
-                id_mov = ctx_ramo.id_poliza
+                try:
 
-                if not id_mov:
-                    continue
+                    ctx_ramo = r["ctx"]
+                    constancia = r["constancia"]
+                    proforma = r["proforma"]
+                    id_mov = ctx_ramo.id_poliza
 
-                enviar_estaca_si_aplica(id_mov,ctx_ramo,constancia,proforma)
-                time.sleep(1)
-                tipo_error, detalle_error = obtener_error(ctx_ramo)
+                    if not id_mov:
+                        continue
 
-                if not (tipo_error and detalle_error):
-                    enviar_docs(id_mov,ctx_ramo,constancia,proforma)
+                    enviar_estaca_si_aplica(id_mov,ctx_ramo,constancia,proforma)
                     time.sleep(1)
-                    continue
+                    tipo_error, detalle_error = obtener_error(ctx_ramo)
 
-                const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
+                    if not (tipo_error and detalle_error):
+                        enviar_docs(id_mov,ctx_ramo,constancia,proforma)
+                        time.sleep(1)
+                        continue
 
-                if entorno:
+                    const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
+
                     enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
                     errores_detallados.append(f"{ctx_ramo.ramo.capitalize()} : {detalle_error}")
@@ -555,28 +556,28 @@ def main():
 
                     })
 
-                enviar_docs(id_mov,ctx_ramo,constancia,proforma)
+                    enviar_docs(id_mov,ctx_ramo,constancia,proforma)
 
-            except Exception as e:
-                logging.warning(f"⚠️ Error al procesar los envios para {ctx_ramo.ramo} → {e}")
-            finally:
-                time.sleep(1)
+                except Exception as e:
+                    logging.warning(f"⚠️ Error al procesar los envios para {ctx_ramo.ramo} → {e}")
+                finally:
+                    time.sleep(1)
 
-        if entorno and errores_detallados:
-            try:
-                texto_errores = "\n".join(errores_detallados)
-                enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
-            except Exception as e:
-                logging.warning(f"⚠️ Fallo en registrar notas del movimiento :{e}")
-            finally:
-                time.sleep(1)
+            if errores_detallados:
+                try:
+                    texto_errores = "\n".join(errores_detallados)
+                    enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
+                except Exception as e:
+                    logging.warning(f"⚠️ Fallo en registrar notas del movimiento :{e}")
+                finally:
+                    time.sleep(1)
 
-            try:
-                enviar_error_general(ctx,palabra_clave,detalle_ramos)
-            except Exception as e:
-                logging.warning(f"⚠️ Fallo al enviar correo de notificación :{e}")
-            finally:
-                time.sleep(1)
+                try:
+                    enviar_error_general(ctx,palabra_clave,detalle_ramos)
+                except Exception as e:
+                    logging.warning(f"⚠️ Fallo al enviar correo de notificación :{e}")
+                finally:
+                    time.sleep(1)
 
 if __name__ == "__main__":
     main()

@@ -1680,26 +1680,26 @@ def ejecutar_con_manejo(driver, ruta_archivos_x_inclu, tipo, tipo_mes, funcion):
         # CIERRE DE PESTAÑA
         # Si ChromeDriver tuvo un error técnico, NO hacer más
         # operaciones contra el driver.
-        if not errorTecnico:
+        #if not errorTecnico:
 
-            try:
+        try:
 
-                # Revisar nuevamente si apareció otro alert.
-                manejar_alerta(driver)
+            # Revisar nuevamente si apareció otro alert.
+            manejar_alerta(driver)
 
-                if len(driver.window_handles) > 1:
+            if len(driver.window_handles) > 1:
 
-                    driver.close()
+                driver.close()
 
-                    logging.info(f"✅ Cerrando la pestaña {tipo}")
+                logging.info(f"✅ Cerrando la pestaña {tipo}")
 
-                    driver.switch_to.window(driver.window_handles[0])
+                driver.switch_to.window(driver.window_handles[0])
 
-                    logging.info("🔙 Retornando al menú principal")
+                logging.info("🔙 Retornando al menú principal")
 
-            except Exception:
+        except Exception:
 
-                logging.exception("⚠️ Error cerrando la pestaña")
+            logging.exception("⚠️ Error cerrando la pestaña")
 
         if retorno:
             return retorno
