@@ -233,6 +233,12 @@ def login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,pa
 
         input("Esperar")
 
+        # <button _ngcontent-mog-c12="" style="display: inline-block; position: relative; top: 5px" type="button"><span _ngcontent-mog-c12="">Validar</span></button>
+
+        # <button _ngcontent-mog-c12="" class="full-color ng-star-inserted"><span _ngcontent-mog-c12="">PROCESAR</span></button>
+
+        # <div _ngcontent-mog-c14="" class="btn-pago-efectivo"><label _ngcontent-mog-c14=""><div _ngcontent-mog-c14="" style="position: relative;z-index: 1;"><a _ngcontent-mog-c14="" class="margin-left-10" title="Pago Efectivo"><img _ngcontent-mog-c14="" alt="Pago Efectivo" src="assets/soat/img/pago-efectivo.png" style="cursor: pointer; width: 161px;"></a></div><div _ngcontent-mog-c14="" style="position: relative;top: -35px;right: -100px;width: 100%;cursor: pointer;"><img _ngcontent-mog-c14="" alt="PagoEfectivo" class="cursor: pointer;" height="12" src="assets/soat/img/info.png" title="InformaciÃ³n"></div></label></div>
+
     except Exception as e :
         error = True
         detalleError = str(e)

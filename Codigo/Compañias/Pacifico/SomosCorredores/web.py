@@ -24,7 +24,7 @@ login_exitoso = False
 # --- Variables de Entorno ---
 url_pacifico = os.getenv("url_pacifico")
 
-def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ba_codigo,ramo):
+def solicitud_vl(driver,wait,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ramo):
 
     tab_gestion = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#policyManagement a")))
     driver.execute_script("arguments[0].click();", tab_gestion)
@@ -81,13 +81,14 @@ def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra
         opcion.click()
         logging.info(f"🖱️ clic en {fecha}")
 
-    if tipo_proceso == 'IN':
+    # if tipo_proceso == 'IN':
 
-        seleccionar_fecha(wait,"inclusion-start-date",ramo.f_inicio)
-        time.sleep(3)
-        seleccionar_fecha(wait,"inclusion-end-date",ramo.f_fin)
+    #     seleccionar_fecha(wait,"inclusion-start-date",ramo.f_inicio)
+    #     time.sleep(3)
+    #     seleccionar_fecha(wait,"inclusion-end-date",ramo.f_fin)
 
-    else:
+    # else:
+    if tipo_proceso == 'RE':
 
         tab_renovacion = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'card-header') and .//h3[normalize-space()='Renovación Manual']]")))
         driver.execute_script("arguments[0].click();", tab_renovacion)
@@ -114,7 +115,7 @@ def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra
         )
         logging.info("✅ Input de archivo localizado Renovación")
 
-    file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{list_polizas[0]}.xlsm"))
+    file_path = os.path.abspath(os.path.join(ruta_archivos_x_inclu,f"{ramo.poliza}.xlsm"))
 
     if not os.path.exists(file_path):
        raise FileNotFoundError(f"La ruta {file_path} no existe")
@@ -165,30 +166,45 @@ def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra
 
     logging.info("🖱️ Clic en Siguiente")
 
-    if tipo_proceso == 'IN':
-        btn_incluir = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"button.renewal-manual-summary__btn--incluir")))
-        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", btn_incluir)
-        btn_incluir.click()
-        logging.info("🖱️ Clic en Incluir")
-    else:
-        btn_renovar = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"button.renewal-manual-summary__btn--renovar")))
-        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", btn_renovar)
-        btn_renovar.click()
-        logging.info("🖱️ Clic en Renovar")
+    boton_inc_ren = wait.until(EC.element_to_be_clickable((By.XPATH, f'//button[contains(text(), "{ "Incluir" if tipo_proceso == "IN" else "Renovar" }")]')))
+    driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", boton_inc_ren)
+    time.sleep(2)
+    boton_inc_ren.click()
+    logging.info(f'🖱️ Clic en {"Incluir" if tipo_proceso == "IN" else "Renovar"}')
 
-    # Esperar que aparezca el contenedor
-    contenedor = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.content-documents")))
+    # Esperar a que aparezca el contenedor de documentos descargables
+    contenedor = wait.until(
+        EC.visibility_of_element_located(
+            (By.CSS_SELECTOR, "div.renewal-manual-success__card")
+        )
+    )
 
-    # Obtener SOLO los botones dentro del div
-    botones = contenedor.find_elements(By.TAG_NAME, "button")
+    # Esperar a que aparezca al menos un botón de descarga
+    wait.until(
+        lambda driver: len(
+            contenedor.find_elements(
+                By.CSS_SELECTOR,
+                "button.renewal-manual-success__doc-link"
+            )
+        ) > 0
+    )
 
-    logging.info("Total botones encontrados:", len(botones))
+    # Obtener los botones dentro del contenedor
+    botones = contenedor.find_elements(
+        By.CSS_SELECTOR,
+        "button.renewal-manual-success__doc-link"
+    )
+
+    logging.info(f"Total botones encontrados: {len(botones)}")
 
     # Base común para ambos casos
     mapa_nombres = {
-        "constancia": f"{list_polizas[0]}",
-        "liquidación": f"endoso_{list_polizas[1]}"
+        "constancia": f"{ramo.poliza}"
     }
+
+    # Cambios solo para "liquidación"
+    if tipo_mes == 'MA':
+        mapa_nombres["liquidación"] = f"endoso_{ramo.poliza}"
 
     # Hacerles clic uno por uno
     for boton in botones:
@@ -210,7 +226,8 @@ def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra
         # Si no coinciden, poner un nombre genérico
         if not alias:
             driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,f"docDesconocido_{get_timestamp()}.png"))
-            raise Exception ("Documento desconocido")
+            logging.warning(f"❌ Documento desconocido: {texto}")
+            continue
 
         driver.execute_script("arguments[0].click();", btn)
         logging.info(f"🖱️ Clic en Descargar")
@@ -224,7 +241,7 @@ def solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra
             os.rename(ruta_original, ruta_final)
             logging.info(f"🔄 {texto} renombrado a '{alias}.pdf'")
         else:
-            raise Exception(f"No se descargo ningun archivo")
+            logging.warning(f"❌ No se descargo el documento '{texto}'")
 
     time.sleep(2)
     btn_finalizar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Finalizar']")))
@@ -726,7 +743,7 @@ def login_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
         if tipo_ramo == "SCTR":
             solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,bab_codigo,ramo)
         else:
-            solicitud_vl(driver,wait,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,bab_codigo,ramo)
+            solicitud_vl(driver,wait,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ramo)
 
     except WebDriverException as e:
 
