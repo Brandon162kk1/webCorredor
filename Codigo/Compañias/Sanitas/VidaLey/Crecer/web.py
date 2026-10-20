@@ -35,6 +35,63 @@ entorno = os.getenv("entorno","false").strip().lower() == "true"
 
 url_crecer = f"{url_n8n_base}:{puerto}"
 
+def codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo):
+
+    try:
+        # Esperar que el iframe esté disponible y cambiar contexto
+        wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
+        logging.info("✅ Ya estoy dentro del iframe")
+
+        # Esperar que aparezca el texto indicador
+        wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
+
+        # Ahora obtener el número (solo números largos)
+        cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
+
+        codigo_cip = cip_elemento.text
+        logging.info(f"✅ CIP obtenido: {codigo_cip}")
+
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
+        logging.info("✅ Scroll hasta el codigo para tomar captura")
+
+        cip_elemento.screenshot(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"))
+        logging.info("✅ Captura solo del cip")
+
+        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
+        logging.info("✅ CIP en pdf")
+
+        tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
+        logging.info("✅ Captura toda la pantalla")
+
+        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"codigo_de_pago"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
+        logging.info("✅ Captura en pdf")
+
+    except WebDriverException as e:
+        logging.error(f"❌ Ocurrió un error tecnico: {e}")
+    except Exception as e:
+        logging.error(f"❌ Ocurrió un error: {e}")
+    finally:
+
+        try:
+            # Ingresar teléfono
+            campo_telefono = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[placeholder='Teléfono']")))
+
+            campo_telefono.clear()
+            campo_telefono.send_keys(ramo.celular)
+
+            # Clic en Enviar
+            btn_enviar = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[normalize-space()='Enviar']")))
+            btn_enviar.click()
+
+            logging.info(f"📨 Teléfono '{ramo.celular}' ingresado y clic en Enviar")
+        except Exception as e:
+            logging.error(f"❌ Ocurrió un error al ingresar el teléfono: {e}")
+
+        logging.info("📌 Aca nos quedamos para validar")
+        input("Esperar")
+        driver.switch_to.default_content()
+        logging.info("Saliendo del iframe")
+
 def login_completado(driver):
 
     if driver.find_elements(By.XPATH, "//a[contains(normalize-space(),'Cerrar sesión')]"):
@@ -262,17 +319,10 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
         wait.until(EC.staleness_of(boton_ok))
         wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
 
-        input("Esperar")
-
         btn_pagar_endoso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Pagar Endoso')]")))
         driver.execute_script("arguments[0].scrollIntoView(true);", btn_pagar_endoso)
         btn_pagar_endoso.click()
         logging.info("🖱️ Clic en 'Pagar Endoso'")
-
-        # Enviar por wsp al ejecutivo responsable para decidir que metodo de pago usar
-        #enviar_msj_wsp(ramo,"notificacion",None,palabra_clave,nombre_cliente)
-
-        input("Esperar")
 
         pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
         pago_efectivo_img.click()
@@ -288,41 +338,16 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
         wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
 
-        # Esperar que el iframe esté disponible y cambiar contexto
-        wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
-        logging.info("✅ Ya estoy dentro del iframe")
-
-        # Esperar que aparezca el texto indicador
-        wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
-
-        # Ahora obtener el número (solo números largos)
-        cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
-
-        codigo_cip = cip_elemento.text
-        logging.info(f"💳 CIP obtenido: {codigo_cip}")
-
-        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
-        logging.info("📌 Scroll hasta el codigo para tomar captura")
-
-        cip_elemento.screenshot(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"))
-
-        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
-
-        driver.save_screenshot(os.path.join(ruta_archivos_x_inclu,"cod_cip.png"))
-
-        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"cod_cip.png"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
-
-        # Cuando termines
-        driver.switch_to.default_content()
-        logging.info("🔙 Saliendo del iframe")
-
     except Exception as e:
         logging.error(f"❌ Error durante el proceso de inclusión: {e}")
     except WebDriverException as e :
         logging.exception(f"❌ Ocurrió un error tecnico: {e}")
     finally:
         logging.info("📌 Aca nos quedamos para validar")
-        input("Esperar")
+        time.sleep(60)
+        pass
+
+    codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo)
 
 def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     
@@ -474,94 +499,46 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         email_input.send_keys(correo)
         logging.info("✍️ Correo ingresado correctamente")
 
-        # Esperar botón Guardar Correo
         btn_guardar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Guardar Correo']")))
         btn_guardar.click()
         logging.info("🖱️ Clic en Guardar Correo")
 
     except TimeoutException:
 
-        btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
-        driver.execute_script("arguments[0].click();", btn_ok)
-        logging.info("🖱️ Clic en 'Ok'")
-
-    # Dejar interaccion humana habilitada para que el ejecutivo decida si es codigo de pago , por banco ,etc
-    try:
-        # Esperar que el iframe esté disponible y cambiar contexto
-        wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
-        logging.info("✅ Ya estoy dentro del iframe")
-
-        # Esperar que aparezca el texto indicador
-        wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
-
-        # Ahora obtener el número (solo números largos)
-        cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
-
-        codigo_cip = cip_elemento.text
-        logging.info(f"✅ CIP obtenido: {codigo_cip}")
-
-        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
-        logging.info("✅ Scroll hasta el codigo para tomar captura")
-
-        cip_elemento.screenshot(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"))
-        logging.info("✅ Captura solo del cip")
-
-        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
-        logging.info("✅ CIP en pdf")
-
-        tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
-        logging.info("✅ Captura toda la pantalla")
-
-        imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"codigo_de_pago"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
-        logging.info("✅ Captura en pdf")
-    except WebDriverException as e:
-        logging.error(f"❌ Ocurrió un error tecnico: {e}")
-    except Exception as e:
-        logging.error(f"❌ Ocurrió un error: {e}")
-    finally:
-        logging.info("📌 Aca nos quedamos para validar")
-        input("Esperar")
-
-        #Clic en Pago Efectivo me falta
-        #------------------------------------
-
-        # contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
-        # texto_cip = contenido.text
-        # logging.info(f"Mensaje CIP: {texto_cip}")
-
         # btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
         # driver.execute_script("arguments[0].click();", btn_ok)
         # logging.info("🖱️ Clic en 'Ok'")
 
-        # wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
+        btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
+        driver.execute_script("arguments[0].click();", btn_ok)
+        logging.info("🖱️ Clic en 'Ok'")
 
-        # # 1️⃣ Esperar que el iframe esté disponible y cambiar contexto
-        # wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
-        # logging.info("✅ Ya estoy dentro del iframe")
+    try:
 
-        # # Esperar que aparezca el texto indicador
-        # wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
+        # Clic en Pago Efectivo me falta
+        pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
+        pago_efectivo_img.click()
+        logging.info("🖱️ Clic en 'Pago Efectivo'")
 
-        # # Ahora obtener el número (solo números largos)
-        # cip_elemento = wait.until(EC.visibility_of_element_located((By.XPATH, "//span[normalize-space()[string-length()>=8 and number(.)=number(.)]]")))
+        contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
+        texto_cip = contenido.text
+        logging.info(f"📩 Mensaje CIP: {texto_cip}")
 
-        # codigo_cip = cip_elemento.text
-        # logging.info(f"✅ CIP obtenido: {codigo_cip}")
+        btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
+        driver.execute_script("arguments[0].click();", btn_ok)
+        logging.info("🖱️ Clic en 'Ok'")
 
-        # driver.execute_script("arguments[0].scrollIntoView({block: 'center'});",cip_elemento)
-        # logging.info("Scroll hasta el codigo para tomar captura")
+        wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
 
-        # cip_elemento.screenshot(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"))
+    except Exception as e:
+        logging.error(f"❌ Ocurrió un error durante el proceso de pago: {e}")
+    except WebDriverException as e :
+        logging.exception(f"❌ Ocurrió un error tecnico: {e}")
+    finally:
+        time.sleep(60)
+        pass
 
-        # imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.png"), os.path.join(ruta_archivos_x_inclu,"solo_cod_cip.pdf"))
-
-        # tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
-
-        # imagen_a_pdf(os.path.join(ruta_archivos_x_inclu,"codigo_de_pago"),os.path.join(ruta_archivos_x_inclu,f"endoso_{ramo.poliza}.pdf"))
-
-        # # Cuando termines
-        # driver.switch_to.default_content()
-        # logging.info("Saliendo del iframe")
+    codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo)
 
 def buscar_cuota_y_descargar_constancia(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ramo,cod_pago='346593644'):
 
