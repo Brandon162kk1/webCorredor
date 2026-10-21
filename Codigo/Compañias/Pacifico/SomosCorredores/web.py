@@ -25,6 +25,26 @@ login_exitoso = False
 # --- Variables de Entorno ---
 url_pacifico = os.getenv("url_pacifico")
 
+def seleccionar_fecha(wait, id_boton, fecha):
+
+    try:
+        # Abrir el desplegable
+        wait.until(EC.element_to_be_clickable((By.ID, id_boton))).click()
+        logging.info("🖱️ Abrir desplegable")
+
+        # Seleccionar la fecha deseada
+        opcion = wait.until(
+            EC.element_to_be_clickable((
+                By.XPATH,
+                f"//div[@role='listbox']//button[@value='{fecha}']"
+            ))
+        )
+        logging.info("🖱️ Opciones cargadas")
+        opcion.click()
+        logging.info(f"🖱️ clic en {fecha}")
+    except WebDriverException as e:
+        raise Exception(f"Error al seleccionar la fecha {fecha}")
+
 def solicitud_vl(driver,wait,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,ramo):
 
     tab_gestion = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#policyManagement a")))
@@ -51,37 +71,16 @@ def solicitud_vl(driver,wait,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_p
     driver.execute_script("arguments[0].click();", boton)
     logging.info(f"🖱️ Clic en '{accion}'")
 
-    def seleccionar_fecha(wait, id_boton, fecha):
-
-        try:
-            # Abrir el desplegable
-            wait.until(EC.element_to_be_clickable((By.ID, id_boton))).click()
-            logging.info("🖱️ Abrir desplegable")
-
-            # Seleccionar la fecha deseada
-            opcion = wait.until(
-                EC.element_to_be_clickable((
-                    By.XPATH,
-                    f"//div[@role='listbox']//button[@value='{fecha}']"
-                ))
-            )
-            logging.info("🖱️ Opciones cargadas")
-            opcion.click()
-            logging.info(f"🖱️ clic en {fecha}")
-        except WebDriverException as e:
-            raise Exception(f"Error al seleccionar la fecha {fecha}")
-
     modalidad = tipo_vigencia(ramo.f_inicio,ramo.f_fin)
 
     logging.info(f"📝 Modalidad de vigencia: {modalidad}")
 
-    if tipo_proceso == 'IN' and modalidad.upper() != 'MENSUAL': # poliza que tengas mas de un mes
+    if tipo_proceso == 'IN' and modalidad.upper() != 'MENSUAL':
 
         seleccionar_fecha(wait,"inclusion-start-date",ramo.f_inicio)
         time.sleep(3)
         seleccionar_fecha(wait,"inclusion-end-date",ramo.f_fin)
 
-    #else:
     if tipo_proceso == 'RE':
 
         tab_renovacion = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'card-header') and .//h3[normalize-space()='Renovación Manual']]")))
@@ -175,10 +174,8 @@ def solicitud_vl(driver,wait,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_p
     boton_inc_ren.click()
     logging.info(f'🖱️ Clic en {"Incluir" if tipo_proceso == "IN" else "Renovar"}')
 
-    # Esperar a que aparezca el contenedor de documentos descargables
     contenedor = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.renewal-manual-success__card")))
 
-    # Esperar a que aparezca al menos un botón de descarga
     wait.until(
         lambda driver: len(
             contenedor.find_elements(
@@ -188,22 +185,15 @@ def solicitud_vl(driver,wait,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_p
         ) > 0
     )
 
-    # Obtener los botones dentro del contenedor
     botones = contenedor.find_elements(By.CSS_SELECTOR,"button.renewal-manual-success__doc-link")
-
     logging.info(f"✅ Total botones encontrados: {len(botones)}")
 
-    # Hacerles clic uno por uno
     for boton in botones:
 
         archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
-
-        # Asegurar que es visible y clickeable
         btn = wait.until(EC.element_to_be_clickable(boton))
 
-        # Obtener el texto visible o la descripción del botón
         texto = (boton.text or "").strip()
-
         texto2 = (
             boton.get_attribute("aria-label")
             or boton.get_attribute("title")
@@ -211,22 +201,17 @@ def solicitud_vl(driver,wait,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_p
             or ""
         ).strip()
 
-        # Usar la descripción real para identificar el documento
         documento = texto2 or texto
-
         logging.info(f"🔎 Documento detectado: '{documento}'")
 
-        alias = None  # nombre final para guardar archivo
+        alias = None
 
-        # Constancia
         if "constancia" in documento.lower():
             alias = f"{ramo.poliza}"
 
-        # Liquidación: solamente para tipo_mes MA
         elif "liquidación" in documento.lower() and tipo_mes == "MA":
             alias = f"endoso_{ramo.poliza}"
 
-        # Ignorar otros documentos, como el anexo detallado
         if not alias:
             logging.info(f"⏭️ Documento omitido: {documento}")
             continue
@@ -722,26 +707,6 @@ def login_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
         wait.until(EC.invisibility_of_element_located((By.ID, "ajax-loading")))
         logging.info("⌛ Loader desapareció, continuando...")
 
-    except WebDriverException as e:
-        error = True
-        logging.exception(f"⚠️ Error técnico de Selenium | {e}")
-        detalleError = "Problemas Técnicos del Agente"
-    except Exception as e:
-        error = True
-        detalleError = str(e)
-        logging.error(f"❌ Error en la {palabra_clave} de Pacifico: {str(e)}")
-    finally:
-        if error:
-            try:
-                tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_{tipo_ramo}_{tipo_mes}")
-            except Exception:
-                logging.exception("⚠️ No se pudo tomar screenshot")
-            logging.error(f"❌ Error en Pacifico ({tipo_ramo}) - {tipo_mes}: {detalleError}")
-            return constancia,proforma,f"PACI-{tipo_ramo}-{tipo_mes}",detalleError
-
-    try:
-
-        #if bab_codigo in ['1', '2', '3']:
         if tipo_ramo == "SCTR":
             solicitud_sctr(driver,wait,numero_poliza,list_polizas,ruta_archivos_x_inclu,tipo_mes,palabra_clave,tipo_proceso,bab_codigo,ramo)
         else:
