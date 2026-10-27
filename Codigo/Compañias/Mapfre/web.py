@@ -32,9 +32,22 @@ API_KEY_MAPFRE = os.getenv("API_KEY_MAPFRE")
 def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inclu,ba_codigo,
                       bab_codigo,list_polizas,ejecutivo_responsable,nombre_cliente,tipo_mes,ramo):
 
+    # ramo_opcion = "Vida ley" if bab_codigo == '4' else "SCTR general"
+
+    # opcion = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li[a/div[normalize-space()='{ramo_opcion}']]/a")))
+
     ramo_opcion = "Vida Ley" if bab_codigo == '4' else "SCTR General"
 
-    opcion = wait.until(EC.element_to_be_clickable((By.XPATH, f"//li[a/div[normalize-space()='{ramo_opcion}']]/a")))
+    opcion = wait.until(
+        EC.element_to_be_clickable((
+            By.XPATH,
+            f"//li[a/div[translate(normalize-space(.), "
+            f"'ABCDEFGHIJKLMNOPQRSTUVWXYZ', "
+            f"'abcdefghijklmnopqrstuvwxyz')="
+            f"'{ramo_opcion.lower()}']]/a"
+        ))
+    )
+
     driver.execute_script("arguments[0].click();", opcion)
     logging.info(f"🖱️ Clic en '{ramo_opcion}'")
 
@@ -346,7 +359,7 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
     boton_generar.click()
     logging.info("🖱️ Clic al Modal 'GENERAR'")
 
-    boton_ok = wait.until(EC.presence_of_element_located((By.XPATH, "//button[contains(text(),'OK')]")))
+    boton_ok = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'OK')]")))
     boton_ok.click()
     logging.info("🖱️ Clic en 'Ok'")
 

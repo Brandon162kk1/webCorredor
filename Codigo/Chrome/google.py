@@ -9,6 +9,7 @@ def tomar_capturar(driver, ruta, prefijo):
     nombre = f"{prefijo}_{get_timestamp()}.png"
     ruta_completa = os.path.join(ruta, nombre)
     driver.save_screenshot(ruta_completa)
+    return ruta_completa
 
 def abrirDriver(ruta_archivos_x_inclu):
 
