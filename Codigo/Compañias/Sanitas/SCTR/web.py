@@ -642,16 +642,19 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
             elif tipo_constancia == "SALUD":
                 documentos_a_descargar.append({
                     "nombreDoc": "Constancia Salud - Sanitas Perú S.A.",
-                    "alias": ramo.poliza,
+                    #"alias": ramo.poliza,
+                    "alias": list_polizas[0],
                     "tittle": "Descargar PDF",
                     "impresion": False
                 })
                 constancia = True
 
             elif tipo_constancia == "PENSION":
+                alias = ramo.poliza if ba_codigo == 2 else list_polizas[1]
                 documentos_a_descargar.append({
                     "nombreDoc": "Constancia Pensión - Crecer S.A.",
-                    "alias": ramo.poliza,
+                    #"alias": ramo.poliza,
+                    "alias": alias,
                     "tittle": "Descargar PDF",
                     "impresion": False
                 })
@@ -784,8 +787,7 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
                         logging.info(f"📄 Copia creada como '{list_polizas[0]}.pdf'")
 
                 else:
-                    #Evaluar este caso
-                    logging.warning("⚠️ No hay constancia conjunta, solo salud o pension, pero verificar cual falta para volver a descargar")
+                    logging.warning(f"⚠️ No hay constancia conjunta, solo {tipo_constancia.lower()}, ya que la otra póliza no paso la primeta neta en la emisión")
 
                 break
 

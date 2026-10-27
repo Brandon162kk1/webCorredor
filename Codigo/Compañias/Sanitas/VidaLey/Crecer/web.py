@@ -28,12 +28,223 @@ import os
 import logging
 import zipfile
 import re
+from PIL import Image
 
 url_n8n_base = os.getenv("url_host_prod")
 puerto = os.getenv("puerto")
 entorno = os.getenv("entorno","false").strip().lower() == "true"
 
 url_crecer = f"{url_n8n_base}:{puerto}"
+
+def codigo_banco(driver,wait,ruc,ruta_archivos_x_inclu,ramo):
+
+    # Esperar a que aparezca y esté habilitado el botón
+    boton_generar = wait.until(
+        EC.element_to_be_clickable((
+            By.XPATH,
+            "//div[contains(@class, 'modal-content')]//button[contains(normalize-space(.), 'Generar') and contains(normalize-space(.), 'código de pago')]"
+        ))
+    )
+    boton_generar.click()
+    logging.info("🖱️ Clic en 'Generar código de pago'")
+
+    gestion_cotizacion(driver,wait,ruc,ruta_archivos_x_inclu,ramo)
+
+def gestion_cotizacion(driver,wait,ruc,ruta_archivos_x_inclu,ramo):
+
+    span_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Gestión de Cotización']")))
+    logging.info("🔍 Ubicándose en 'Gestión de Cotización'")
+
+    actions = ActionChains(driver)
+    actions.move_to_element(span_element).click().perform()
+    logging.info("🖱️ Clic en 'Gestión de Cotización'")
+
+    link = wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Bandeja de Evaluación")))
+    link.click()
+    logging.info("🖱️ Clic en 'Bandeja de Evaluación'")
+
+    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
+
+    select_ramos = wait.until(EC.element_to_be_clickable((By.ID, "Ramos")))
+
+    Select(select_ramos).select_by_value("2")
+
+    logging.info("✅ Se seleccionó: Endoso")
+
+    campo_ruc = wait.until(EC.element_to_be_clickable((By.ID, "sfullname")))
+    campo_ruc.clear()
+    campo_ruc.send_keys(ruc)
+
+    logging.info(f"✅ Se ingresó el valor: {ruc}")
+
+    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
+
+    boton_consultar = wait.until(
+        EC.element_to_be_clickable((
+            By.XPATH,
+            "//button[contains(@class, 'btn-outline-info') and contains(., 'Consultar')]"
+        ))
+    )
+
+    boton_consultar.click()
+
+    logging.info("🖱️ Clic en 'Consultar'")
+
+    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
+
+    # 1. Esperar a que aparezca la tabla con los encabezados esperados
+    tabla = wait.until(
+        EC.presence_of_element_located((
+            By.XPATH,
+            "//table[contains(@class, 'table-striped') "
+            "and .//th[normalize-space()='Prima Total'] "
+            "and .//th[contains(normalize-space(), 'Cód. Pago')]]"
+        ))
+    )
+
+    # 2. Esperar a que tenga al menos una fila de datos
+    wait.until(
+        lambda d: len(
+            d.find_element(
+                By.XPATH,
+                "//table[contains(@class, 'table-striped') "
+                "and .//th[normalize-space()='Prima Total'] "
+                "and .//th[contains(normalize-space(), 'Cód. Pago')]]"
+            ).find_elements(By.CSS_SELECTOR, "tbody tr")
+        ) > 0
+    )
+
+    # Volver a localizar la tabla por si se actualizó durante la espera
+    tabla = driver.find_element(
+        By.XPATH,
+        "//table[contains(@class, 'table-striped') "
+        "and .//th[normalize-space()='Prima Total'] "
+        "and .//th[contains(normalize-space(), 'Cód. Pago')]]"
+    )
+
+    # 2. Obtener los índices según los encabezados
+    encabezados = [
+        th.text.strip()
+        for th in tabla.find_elements(By.CSS_SELECTOR, "thead th")
+    ]
+
+    indice_prima = encabezados.index("Prima Total")
+
+    indice_codigo = next(
+        i for i, texto in enumerate(encabezados)
+        if "Cód. Pago" in texto
+    )
+
+    # 3. Obtener siempre la primera fila
+    fila = tabla.find_elements(By.CSS_SELECTOR, "tbody tr")[0]
+    cells = fila.find_elements(By.TAG_NAME, "td")
+
+    prima_total = cells[indice_prima].text.strip()
+    codigo_pago = cells[indice_codigo].text.strip()
+
+    logging.info(f"💰 Prima Total: {prima_total}")
+    logging.info(f"💳 Código de Pago: {codigo_pago}")
+
+    # 4. Capturar la tabla y convertirla a PDF
+    ruta_imagen = tomar_capturar(
+        driver,
+        ruta_archivos_x_inclu,
+        "tabla_resultado"
+    )
+
+    imagen_a_pdf(
+        ruta_imagen,
+        os.path.join(ruta_archivos_x_inclu, "codigo_banco.pdf")
+    )
+
+    # 7. Continuar con la descarga de póliza y constancia
+    archivos_antes = set(os.listdir(ruta_archivos_x_inclu))
+
+    # 5. Hacer clic en el enlace de la celda 9
+    constancias_zip = cells[9]
+
+    link = constancias_zip.find_element(By.TAG_NAME, "a")
+
+    driver.execute_script("arguments[0].click();", link)
+
+    logging.info("🖱️ Clic en el enlace de la primera fila")
+
+    # 6. Esperar a que termine la carga
+    wait.until(EC.invisibility_of_element_located((By.XPATH, "//ngx-spinner")))
+
+    btn_descargar = wait.until(
+        EC.element_to_be_clickable((
+            By.XPATH,
+            "//button[normalize-space()='Descargar Póliza y Constancia']"
+        ))
+    )
+
+    btn_descargar.click()
+
+    logging.info("🖱️ Clic en Descargar Póliza y Constancia")
+
+    zips = esperar_archivos_nuevos(
+        ruta_archivos_x_inclu,
+        archivos_antes,
+        extension=".zip",
+        cantidad=1,
+        timeout=90
+    )
+
+    if not zips:
+        raise Exception("No se descargó ningún ZIP")
+
+    ruta_zip = zips[0]
+    logging.info(f"✅ ZIP detectado: {ruta_zip}")
+
+    if not os.path.exists(ruta_zip):
+        raise Exception(f"No existe el ZIP descargado: {ruta_zip}")
+
+    # 6. Abrir el ZIP y buscar los dos PDF
+    with zipfile.ZipFile(ruta_zip, "r") as z:
+
+        archivos_pdf = [
+            f for f in z.namelist()
+            if f.lower().endswith(".pdf")
+        ]
+
+        pdf_liquidacion = [
+            f for f in archivos_pdf
+            if "liquidacion" in os.path.basename(f).lower()
+            or "liquidación" in os.path.basename(f).lower()
+        ]
+
+        pdf_modelo = [
+            f for f in archivos_pdf
+            if "modelo" in os.path.basename(f).lower()
+        ]
+
+        if not pdf_liquidacion:
+            raise Exception("No se encontró ningún PDF de Liquidación dentro del ZIP")
+
+        if not pdf_modelo:
+            raise Exception("No se encontró ningún PDF de Modelo dentro del ZIP")
+
+        # 7. Extraer y renombrar los documentos
+        documentos = [
+            (pdf_liquidacion[0], f"endoso_{ramo.poliza}.pdf"),
+            (pdf_modelo[0], f"{ramo.poliza}.pdf")
+        ]
+
+        for pdf_interno, nombre_salida in documentos:
+
+            ruta_pdf_salida = os.path.join(
+                ruta_archivos_x_inclu,
+                nombre_salida
+            )
+
+            with z.open(pdf_interno) as archivo_origen:
+                with open(ruta_pdf_salida, "wb") as archivo_destino:
+                    archivo_destino.write(archivo_origen.read())
+
+            logging.info(f"✅ PDF extraído: {pdf_interno} -> {ruta_pdf_salida}")
+
+    logging.info("✅ Se extrajeron correctamente la constancia y liquidación")
 
 def codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo):
 
@@ -178,8 +389,10 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         if entorno :
             bloquear_interaccion()
 
+        #gestion_cotizacion(driver,wait,ruc_empresa,ruta_archivos_x_inclu,ramo)
+
         if tipo_proceso == 'IN':
-            inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo)
+            inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa)
         elif tipo_proceso == 'RE':
             renovacion_crecer(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,ramo)
         else:
@@ -193,6 +406,7 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         logging.exception(f"⚠️ Error técnico de Selenium | {e}")
         detalleError = "Problemas Técnicos del Agente"
     finally:
+        logging.info("Llego aca")
 
         if error:
             try:
@@ -201,11 +415,13 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
                 logging.exception("⚠️ No se pudo tomar screenshot")
 
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {detalleError}")
+            input("Esperar")
             return constancia,factura,f"CREC-VL-{tipo_mes}",detalleError
         else:
+            input("Esperar")
             return constancia,factura,tipoError,detalleError
 
-def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
+def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
 
     span_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Gestión de Endoso']")))
     logging.info("🔍 Ubicándose en 'Gestión de Endoso'")
@@ -222,7 +438,7 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
     input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber")))
     input_fullname.clear()
-    input_fullname.send_keys(ramo.poliza)
+    input_fullname.send_keys(f"{ramo.poliza}-R9")
     logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
         
     select_ramos = wait.until(EC.element_to_be_clickable((By.ID, "Ramos")))
@@ -235,8 +451,6 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
     select2.select_by_value("1")
     logging.info("🖱️ Clic en la opción Inclusión")
 
-    #time.sleep(2)
-
     boton = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Buscar Póliza')]")))
     boton.click()
     logging.info("🖱️ Clic en 'Buscar Póliza")
@@ -245,28 +459,16 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
     # validar que salga modal para mostrar error
 
-
     #Esperar que cargue la tabla con mas de 0 filas y esten visibles
     wait.until(EC.visibility_of_element_located((By.XPATH,"//table[contains(@class, 'table-striped') and contains(@class, 'table-bordered')]//tbody/tr")))
 
-    try:
-        campo_fecha = wait.until(EC.element_to_be_clickable((By.ID, "dFechaInicio1")))
-        # Hacer clic para abrir el calendario
-        actions = ActionChains(driver)
-        actions.move_to_element(campo_fecha).click().perform()
+    campo_fecha = wait.until(EC.element_to_be_clickable((By.ID, "dFechaInicio1")))
 
-        fecha_inicio = ramo.f_inicio
-        fecha_actual = fecha_inicio.strftime('%d/%m/%Y')
-        campo_fecha.send_keys(fecha_actual)
-        logging.info("✅ Se ingresó la fecha actual")
-    except WebDriverException as e:
-        logging.error(f"❌ Ocurrió un error tecnico al ingresar la fecha: {e}")
-    except Exception as e:
-        logging.error(f"❌ Ocurrió un error al ingresar la fecha: {e}")
-    finally:
-        pass
+    actions = ActionChains(driver)
+    actions.move_to_element(campo_fecha).click().perform()
+    campo_fecha.send_keys(ramo.f_inicio)
 
-    #time.sleep(3)
+    logging.info(f"✅ Se ingresó la fecha: {ramo.f_inicio}")
 
     input_file = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Cargar excel')]")))
     driver.execute_script("arguments[0].scrollIntoView(true);", input_file)
@@ -282,11 +484,24 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
     else:
         raise Exception(f"No se pudo subir la trama {ramo.poliza}.xlsx")
 
+    modal_advertencia = (By.ID, "swal2-content")
+
+    resultado_dps_trama = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located(modal_advertencia),
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[contains(., 'Generar Endoso')]")
+            )
+        )
+    )
+
+    if resultado_dps_trama.get_attribute("id") == "swal2-content":
+        texto_error = resultado_dps_trama.text
+        raise Exception(texto_error)
+
     try:
         # Modal de Endoso Retroactivo
         boton_ok = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK')]")))
-        # boton_ok.click()
-        # logging.error(f"🖱️Clic en Ok")
         raise  Exception("Mensaje de Endoso Retroactivo")
     except :
         pass
@@ -299,44 +514,98 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
 
     try:
 
-        modal_advertencia = (By.ID, "swal2-content")
-
         resultado = wait.until(
             EC.any_of(
-                EC.visibility_of_element_located(modal_advertencia),
-                EC.staleness_of(boton_ok)
+                EC.visibility_of_element_located((By.ID, "swal2-title")),
+                EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']"
+                ))
             )
         )
 
-        if isinstance(resultado, WebElement):
-            # Modal de confirmacion de generación de endoso
-            texto_modal = resultado.text
-            logging.warning(f"⚠️ Mensaje de advertencia: {texto_modal}")
-            raise Exception (texto_modal)
-        else:
-            pass
+        if resultado.get_attribute("id") == "swal2-title":
+            texto_modal = resultado.text.strip()
+            logging.warning(f"⚠️ {texto_modal}")
 
-        wait.until(EC.staleness_of(boton_ok))
-        wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+            mensaje_esperado = "evitar futuros bloqueos"
+
+            if mensaje_esperado not in texto_modal.lower():
+                raise Exception(texto_modal)
+
+            boton_ok = wait.until(
+                EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']"
+                ))
+            )
+            boton_ok.click()
+            logging.info(f"🖱 Clic en Ok")
+
+        # aca salemodal de satisfactorio , darle clic ok , si no tiene deuda solo sale ok para compltar satifactorio
+        boton_ok = wait.until(
+            EC.element_to_be_clickable((
+                By.XPATH,
+                "//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']"
+            ))
+        )
+        boton_ok.click()
+        logging.info(f"🖱 Clic en Ok")
+        #--------------------------------------------------------
+        # wait.until(EC.staleness_of(boton_ok))
+        # wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
 
         btn_pagar_endoso = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Pagar Endoso')]")))
         driver.execute_script("arguments[0].scrollIntoView(true);", btn_pagar_endoso)
         btn_pagar_endoso.click()
         logging.info("🖱️ Clic en 'Pagar Endoso'")
 
-        pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
-        pago_efectivo_img.click()
-        logging.info("🖱️ Clic en 'Pago Efectivo'")
+        # Decidir si es pago efectivo, Yape o banco
+        tipo_pago = ramo.tipo_pago
+        tipo_pago = "efectivo"
 
-        contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
-        texto_cip = contenido.text
-        logging.info(f"📩 Mensaje CIP: {texto_cip}")
+        if tipo_pago == "efectivo":
+            pago_img = wait.until(
+                EC.element_to_be_clickable((
+                    By.XPATH, "//img[contains(@src, 'pago_efectivo')]"
+                ))
+            )
 
-        btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
-        driver.execute_script("arguments[0].click();", btn_ok)
-        logging.info("🖱️ Clic en 'Ok'")
+        elif tipo_pago == "yape":
+            pago_img = wait.until(
+                EC.element_to_be_clickable((
+                    By.XPATH, "//img[contains(@src, 'yape.png')]"
+                ))
+            )
 
-        wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
+        elif tipo_pago == "banco":
+            pago_img = wait.until(
+                EC.element_to_be_clickable((
+                    By.XPATH, "//img[contains(@src, 'bcp.png')]"
+                ))
+            )
+
+        else:
+            raise ValueError(f"❌ Tipo de pago no reconocido: {tipo_pago}")
+
+        pago_img.click()
+        logging.info(f"🖱️ Clic en el método de pago: {tipo_pago}")
+
+        if tipo_pago == "efectivo":
+
+            contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
+            texto_cip = contenido.text
+            logging.info(f"📩 Mensaje CIP: {texto_cip}")
+
+            btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
+            driver.execute_script("arguments[0].click();", btn_ok)
+            logging.info("🖱️ Clic en 'Ok'")
+
+            wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
+
+            codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo)
+        else:
+            codigo_banco(driver,wait,ruc_empresa,ruta_archivos_x_inclu,ramo)
 
     except Exception as e:
         logging.error(f"❌ Error durante el proceso de inclusión: {e}")
@@ -345,9 +614,7 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo):
     finally:
         logging.info("📌 Aca nos quedamos para validar")
         time.sleep(60)
-        pass
-
-    codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo)
+        input("Esperar")
 
 def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     
@@ -364,25 +631,25 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
   
     input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber")))
     input_fullname.clear()
-    input_fullname.send_keys(ramo.poliza)
+    input_fullname.send_keys(f"{ramo.poliza}-R9")
     logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
 
     boton = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Busca Póliza')]")))
     boton.click()
-    logging.info("🖱️ Clic en 'Busca Póliza")
+    logging.info("🖱️ Clic en 'Busca Póliza'")
 
-    resultado = wait.until(
-        EC.any_of(
-            EC.visibility_of_element_located((By.ID, "swal2-content")),
-            EC.element_to_be_clickable(
-                (By.XPATH, "//button[contains(., 'Cargar plantilla')]")
-            )
-        )
-    )
+    # resultado = wait.until(
+    #     EC.any_of(
+    #         EC.visibility_of_element_located((By.ID, "swal2-content")),
+    #         EC.element_to_be_clickable(
+    #             (By.XPATH, "//button[contains(., 'Cargar plantilla')]")
+    #         )
+    #     )
+    # )
 
-    if resultado.get_attribute("id") == "swal2-content":
-        texto_alerta_poliza = resultado.text
-        raise Exception(texto_alerta_poliza)
+    # if resultado.get_attribute("id") == "swal2-content":
+    #     texto_alerta_poliza = resultado.text
+    #     raise Exception(texto_alerta_poliza)
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
 
@@ -435,7 +702,9 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     if resultado2.get_attribute("id") == "swal2-content":
         texto_error_modal = resultado2.text
-        raise Exception(texto_error_modal)
+
+        if 'correctamente' not in texto_error_modal:
+            raise Exception(texto_error_modal)
 
     try:
 
@@ -462,9 +731,9 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         driver.execute_script("arguments[0].click();", checkbox)
         logging.info("🖱️ Checkbox marcado correctamente")
 
-        btn_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Aceptar']")))
-        btn_aceptar.click()
-        logging.info("🖱️ Clic en 'Aceptar'")
+        # btn_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Aceptar']")))
+        # btn_aceptar.click()
+        # logging.info("🖱️ Clic en 'Aceptar'")
   
         btn_generar = wait.until(EC.element_to_be_clickable((By.ID, "btngenerate")))
         btn_generar.click()
@@ -488,9 +757,6 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         logging.error(f"❌ Ocurrió un error tecnico: {e}")
     except Exception as e:
         logging.error(f"❌ Ocurrió un error: {e}")
-    finally:
-        logging.info("📌 Aca nos quedamos para validar")
-        input("Esperar")
 
     try:
 
