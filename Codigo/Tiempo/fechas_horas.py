@@ -66,6 +66,9 @@ def tipo_vigencia(fecha_ini_inc, fecha_fin_inc):
     ini = datetime.strptime(fecha_ini_inc, formato)
     fin = datetime.strptime(fecha_fin_inc, formato)
 
+    if fin < ini:
+        raise ValueError("La fecha fin no puede ser anterior a la fecha de inicio")
+
     diff = relativedelta(fin, ini)
     total_meses = diff.years * 12 + diff.months
     dias = diff.days
@@ -73,24 +76,44 @@ def tipo_vigencia(fecha_ini_inc, fecha_fin_inc):
     # ----------- NUEVA REGLA ESPECIAL -----------
     # Si inicia el día 1 y termina el ultimo día del mes → mensual
     ultimo_dia_mes_fin = calendar.monthrange(fin.year, fin.month)[1]
-    if ini.day == 1 and fin.day == ultimo_dia_mes_fin:
+    if (
+        ini.year == fin.year
+        and ini.month == fin.month
+        and ini.day == 1
+        and fin.day == ultimo_dia_mes_fin
+    ):
         return "Mensual"
+    # if ini.day == 1 and fin.day == ultimo_dia_mes_fin:
+    #     return "Mensual"
     # --------------------------------------------
 
-    # Si los dias extra son ≤ 7 → ignorar (normal en polizas)
-    if dias <= 7:
-        if total_meses == 1:
-            return "Mensual"
-        elif total_meses == 2:
-            return "Bimestral"
-        elif total_meses == 3:
-            return "Trimestral"
-        elif total_meses == 6:
-            return "Semestral"
-        elif total_meses == 12:
+    # Ajustar vigencias que abarcan meses completos de calendario
+    if ini.day == 1 and fin.day == ultimo_dia_mes_fin:
+        meses_calendario = (
+            (fin.year - ini.year) * 12
+            + fin.month - ini.month + 1
+        )
+
+        if meses_calendario == 12:
             return "Anual"
-        else:
-            return f"Vigencia fuera de rango estándar ({total_meses} meses {dias} días)"
+
+    # Clasificación por duración
+    if dias <= 7:
+        modalidades = {
+            1: "Mensual",
+            2: "Bimestral",
+            3: "Trimestral",
+            6: "Semestral",
+            12: "Anual",
+        }
+
+        if total_meses in modalidades:
+            return modalidades[total_meses]
+
+        return (
+            f"Vigencia fuera de rango estándar "
+            f"({total_meses} meses {dias} días)"
+        )
 
     # Si supera 7 días → muy irregular
     return f"Vigencia atípica ({total_meses} meses y {dias} días)"
