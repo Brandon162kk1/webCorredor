@@ -438,7 +438,7 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
 
     input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber")))
     input_fullname.clear()
-    input_fullname.send_keys(f"{ramo.poliza}-R9")
+    input_fullname.send_keys(f"{ramo.poliza}")
     logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
         
     select_ramos = wait.until(EC.element_to_be_clickable((By.ID, "Ramos")))
@@ -561,7 +561,7 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
         logging.info("🖱️ Clic en 'Pagar Endoso'")
 
         # Decidir si es pago efectivo, Yape o banco
-        tipo_pago = ramo.tipo_pago
+        #tipo_pago = ramo.tipo_pago
         tipo_pago = "efectivo"
 
         if tipo_pago == "efectivo":
@@ -638,18 +638,18 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     boton.click()
     logging.info("🖱️ Clic en 'Busca Póliza'")
 
-    # resultado = wait.until(
-    #     EC.any_of(
-    #         EC.visibility_of_element_located((By.ID, "swal2-content")),
-    #         EC.element_to_be_clickable(
-    #             (By.XPATH, "//button[contains(., 'Cargar plantilla')]")
-    #         )
-    #     )
-    # )
+    resultado = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located((By.ID, "swal2-content")),
+            EC.element_to_be_clickable(
+                (By.XPATH, "//button[contains(., 'Cargar plantilla')]")
+            )
+        )
+    )
 
-    # if resultado.get_attribute("id") == "swal2-content":
-    #     texto_alerta_poliza = resultado.text
-    #     raise Exception(texto_alerta_poliza)
+    if resultado.get_attribute("id") == "swal2-content":
+        texto_alerta_poliza = resultado.text
+        raise Exception(texto_alerta_poliza)
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
 
