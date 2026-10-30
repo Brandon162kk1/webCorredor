@@ -322,10 +322,6 @@ def login_completado(driver):
 def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_responsable,
                     palabra_clave,ruc_empresa,tipo_mes,ramo):
 
-    if tipo_proceso in ('NE','IN','RE') and entorno:
-        msj = f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía"
-        return False,False,f"CREC-VL-{tipo_mes}",msj
-
     constancia = False
     factura = False
     error = False
@@ -338,6 +334,10 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         logging.info("--- Ingresando a Crecer Seguros🌐 ---")
 
         user_input = wait.until(EC.presence_of_element_located((By.ID, "suser")))
+
+        if tipo_proceso in ('NE','IN','RE') and entorno:
+            raise Exception (f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía")
+
         user_input.clear()
         user_input.send_keys(ramo.usuario)
         logging.info("⌨️ Digitando el Username")
@@ -420,7 +420,6 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {detalleError}")
             tipoError = f"CREC-VL-{tipo_mes}"
 
-        input("Esperar")
         return constancia,factura,tipoError,detalleError
 
 def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):

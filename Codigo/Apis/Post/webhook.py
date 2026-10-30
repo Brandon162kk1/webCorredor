@@ -22,7 +22,7 @@ copias_lista = copia_venv.split(",") if copia_venv else []
 ruta_plantilla = "/app/Codigo/Plantillas/Correo"
 env = Environment(loader=FileSystemLoader(ruta_plantilla))
 
-def enviar_error_general(ctx,palabra_clave,detalle_ramos,tipo_proc):
+def enviar_error_general(ctx,palabra_clave,detalle_ramos,tipo_proc,evidencias_visuales=None):
 
     texto = 'el Neteo' if tipo_proc == 'NE' else f'la {palabra_clave}'
 
@@ -34,7 +34,8 @@ def enviar_error_general(ctx,palabra_clave,detalle_ramos,tipo_proc):
         titulo = f"⚠ Problemas en {texto}",
         cliente=ctx.cliente,
         ruc=ctx.ruc,
-        detalle_ramos=detalle_ramos
+        detalle_ramos=detalle_ramos,
+        evidencias_visuales=evidencias_visuales or []
     )
 
     polizas = ", ".join(

@@ -495,7 +495,7 @@ def login_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_pr
     global ventana_solicitud_mapfre
     global login_exitoso
 
-    ramo_s = "VIDALEY" if bab_codigo == '4' else "SCTR"
+    ramo_s = "VL" if bab_codigo == '4' else "SCTR"
     tipoError = ""
     detalleError = ""
     constancia = False
