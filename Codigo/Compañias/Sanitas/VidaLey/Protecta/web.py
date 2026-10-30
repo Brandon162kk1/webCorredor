@@ -27,10 +27,6 @@ url_protecta = f"{url_n8n_base}:{puerto}"
 
 def login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,palabra_clave,tipo_mes,ramo):
 
-    if tipo_proceso in ('NE','IN','RE') and entorno:
-        msj = f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía"
-        return False,False,f"PROT-VL-{tipo_mes}",msj
-
     constancia = False
     factura = False
     error = False
@@ -43,6 +39,10 @@ def login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,pa
         logging.info("--- Ingresando a Protecta Seguros🌐 ---")
 
         user_input = wait.until(EC.element_to_be_clickable((By.ID, "username")))
+
+        if tipo_proceso in ('NE','IN','RE') and entorno:
+            raise Exception (f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía")
+
         user_input.clear()
         user_input.send_keys(ramo.usuario)
         logging.info("⌨️ Digitando el Username")
@@ -255,6 +255,6 @@ def login_protecta(driver,wait,ruc_empresa,tipo_proceso,ruta_archivos_x_inclu,pa
                 logging.exception("⚠️ No se pudo tomar screenshot")
 
             logging.error(f"❌ Error en Protecta (VL) - {tipo_mes}: {detalleError}")
-            return constancia,factura,f"PROT-VL-{tipo_mes}",detalleError
-        else:
-            return constancia,factura,tipoError,detalleError
+            tipoError = f"PROT-VL-{tipo_mes}"
+
+        return constancia,factura,tipoError,detalleError

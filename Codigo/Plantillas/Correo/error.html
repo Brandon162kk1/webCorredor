@@ -154,13 +154,15 @@
 
     <!-- EVIDENCIAS -->
 
+    {% if evidencias_visuales and evidencias_visuales|length > 0 %}
+
     <h2 style="margin-top:35px;color:#002D72">
 
       Evidencias Visuales
 
     </h2>
 
-    {% for item in detalle_ramos %}
+    {% for item in evidencias_visuales %}
 
     {% if item.imagen %}
 
@@ -169,17 +171,21 @@
       border:1px solid #ddd;
       border-radius:8px;
       padding:15px;
+      background:#ffffff;
       ">
 
       <h3 style="margin-top:0;color:#dc2626">
 
-        {{ item.ramo }}
+        {{ item.titulo }}
 
       </h3>
 
       <img src="data:image/png;base64,{{ item.imagen }}"
+           alt="Evidencia {{ item.titulo }}"
            style="
-        width:100%;
+        display:block;
+        max-width:100%;
+        height:auto;
         border-radius:8px;
         border:1px solid #ddd;
         ">
@@ -189,6 +195,8 @@
     {% endif %}
 
     {% endfor %}
+
+    {% endif %}
 
   </div>
 

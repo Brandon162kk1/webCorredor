@@ -507,7 +507,7 @@ def main():
                         time.sleep(2)
                         continue
 
-                    const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
+                    const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VL")
 
                     enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
@@ -527,11 +527,6 @@ def main():
                             "url": ctx_ramo.trama_97
                         })
 
-                    imagen = obtener_imagenes_para_correo_general(
-                        ruta_archivos_x_inclu,
-                        const
-                    )
-
                     detalle_ramos.append({
                         "ramo": ctx_ramo.ramo.capitalize(),
                         "poliza": ctx_ramo.poliza,
@@ -539,17 +534,15 @@ def main():
                         "compania": ctx_ramo.compania,
                         "sede": ctx_ramo.sede,
                         "error": detalle_error,
-                        "tramas": lista_tramas,
-                        "imagen": imagen
-
+                        "tramas": lista_tramas
                     })
 
-                    #enviar_docs(id_mov,ctx_ramo,constancia,proforma)
+                    enviar_docs(id_mov,ctx_ramo,constancia,proforma)
 
                 except Exception as e:
                     logging.warning(f"⚠️ Error al procesar los envios para {ctx_ramo.ramo} → {e}")
                 finally:
-                    time.sleep(1)
+                    time.sleep(2)
 
             if errores_detallados:
 
@@ -561,8 +554,46 @@ def main():
                 # finally:
                 #     time.sleep(1)
 
+                evidencias_visuales = []
+                tiene_error_sctr = any(r.get("ramo") in ("Salud", "Pension") for r in detalle_ramos)
+                tiene_error_vl = any(r.get("ramo") == "Vidaley" for r in detalle_ramos)
+
+                if tiene_error_sctr:
+                    img_sctr = obtener_imagenes_para_correo_general(ruta_archivos_x_inclu, "SCTR")
+                    if img_sctr:
+                        if ba_codigo == '3':
+                            evidencias_visuales.append({
+                                "titulo": "SCTR",
+                                "imagen": img_sctr
+                            })
+                        elif ba_codigo == '1':
+                            evidencias_visuales.append({
+                                "titulo": "Salud",
+                                "imagen": img_sctr
+                            })
+                        elif ba_codigo == '2':
+                            evidencias_visuales.append({
+                                "titulo": "Pension",
+                                "imagen": img_sctr
+                            })
+                        else:
+                            evidencias_visuales.append({
+                                "titulo": "SCTR",
+                                "imagen": img_sctr
+                            })
+
+                if tiene_error_vl:
+                    img_vl = obtener_imagenes_para_correo_general(ruta_archivos_x_inclu, ("VL", "VIDALEY"))
+                    if img_vl:
+                        evidencias_visuales.append({
+                            "titulo": "Vida Ley",
+                            "imagen": img_vl
+                        })
+                    else:
+                        logging.warning(f"⚠️ No se pudo adjuntar imagen de Vida Ley en evidencias_visuales.")
+
                 try:
-                    enviar_error_general(ctx,palabra_clave,detalle_ramos,tipo_proc)
+                    enviar_error_general(ctx,palabra_clave,detalle_ramos,tipo_proc,evidencias_visuales)
                 except Exception as e:
                     logging.warning(f"⚠️ Fallo al enviar correo de notificación :{e}")
                 finally:

@@ -1526,7 +1526,7 @@ def login_positiva(driver,wait,list_polizas,ba_codigo,bab_codigo,tipo_mes,ruta_a
                     wait.until(EC.element_to_be_clickable(id_usuario))
 
     if not login_exitoso:
-        tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
+        tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VL'}_LOGIN_FALLIDO")
         return False, False, "Login Fallido", ultimo_error
 
     if bab_codigo in ['1', '2', '3']:
@@ -1540,7 +1540,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
     tipo_vl = detectar_tipo_mes(ruta_archivos_x_inclu,ramo)
 
     if not tipo_vl:
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VL_{tipo_mes}")
         logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: No se pudo determinar el tipo (OV/VL)")
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", "No se pudo determinar el tipo (OV/VL)"
 
@@ -1562,7 +1562,7 @@ def solicitud_vidaley_x_tipo_Mes(driver, wait, ruta_archivos_x_inclu, ruc_empres
     funcion = funciones.get(tipo_vl)
 
     if not funcion:
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VIDALEY_{tipo_mes}")
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VL_{tipo_mes}")
         logging.error(f"❌ Error en La Positiva (Vida Ley) - {tipo_mes}: Tipo de Vida Ley inválido")
         return False, False, f"LAPO-VIDALEY-{tipo_mes}", "Tipo de Vida Ley inválido"
 

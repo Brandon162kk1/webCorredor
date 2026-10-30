@@ -11,33 +11,61 @@ from io import StringIO
 nombre_carpeta_descargas = "Downloads"
 download_path = f"/app/{nombre_carpeta_descargas}"
 
+import io
+from PIL import Image
+
+def optimizar_imagen_base64(ruta_archivo, max_width=1280, max_bytes=600000):
+    try:
+        tamano_orig = os.path.getsize(ruta_archivo)
+        if tamano_orig <= max_bytes:
+            with open(ruta_archivo, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+
+        # Si excede el tamaño seguro para correos HTML (p. ej. 1.5MB), la optimizamos
+        with Image.open(ruta_archivo) as img:
+            # Convertir a RGB por si es RGBA y guardamos en JPEG
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            # Redimensionar si es muy ancha
+            if img.width > max_width:
+                proporcion = max_width / float(img.width)
+                alto_nuevo = int(float(img.height) * proporcion)
+                img = img.resize((max_width, alto_nuevo), Image.Resampling.LANCZOS)
+
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=80, optimize=True)
+            data_opt = buffer.getvalue()
+            logging.info(f"⚡ Imagen optimizada para correo: {os.path.basename(ruta_archivo)} ({tamano_orig} -> {len(data_opt)} bytes)")
+            return base64.b64encode(data_opt).decode("utf-8")
+    except Exception as e:
+        logging.warning(f"⚠️ No se pudo optimizar imagen con PIL ({e}), enviando original")
+        with open(ruta_archivo, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+
 def obtener_imagenes_para_correo_general(ruta_carpeta, nombre_error):
 
     try:
+        prefijos = (nombre_error,) if isinstance(nombre_error, str) else tuple(nombre_error)
+        archivos = os.listdir(ruta_carpeta) if os.path.exists(ruta_carpeta) else []
 
-        for archivo in os.listdir(ruta_carpeta):
+        for archivo in archivos:
 
-            if (
-                archivo.startswith(f"ERROR_{nombre_error}")
-                and archivo.lower().endswith(".png")
-            ):
+            if archivo.lower().endswith(".png") and any(archivo.startswith(f"ERROR_{pref}") for pref in prefijos):
 
                 ruta_completa = os.path.join(
                     ruta_carpeta,
                     archivo
                 )
 
-                with open(ruta_completa, "rb") as f:
+                data_b64 = optimizar_imagen_base64(ruta_completa)
+                return data_b64
 
-                    return base64.b64encode(
-                        f.read()
-                    ).decode("utf-8")
+        logging.warning(f"⚠️ No se encontró evidencia visual con prefijo(s) {prefijos} en {ruta_carpeta}")
 
     except Exception as e:
 
-        logging.error(
-            f"❌ Error leyendo imagen: {e}"
-        )
+        logging.error(f"❌ Error leyendo imagen: {e}")
 
     return None
 
@@ -46,16 +74,16 @@ def obtener_imagenes_error_para_nota(ruta_carpeta, const):
     imagenes_payload = []
 
     try:
+        prefijos = (const,) if isinstance(const, str) else tuple(const)
+
         for archivo in os.listdir(ruta_carpeta):
 
-            if archivo.startswith(f"ERROR_{const}") and archivo.lower().endswith(".png"):
+            if archivo.lower().endswith(".png") and any(archivo.startswith(f"ERROR_{pref}") for pref in prefijos):
 
                 ruta_completa = os.path.join(ruta_carpeta, archivo)
-
-                with open(ruta_completa, "rb") as f:
-                    imagen_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-                imagenes_payload.append(imagen_base64)
+                imagen_base64 = optimizar_imagen_base64(ruta_completa)
+                if imagen_base64:
+                    imagenes_payload.append(imagen_base64)
 
     except Exception as e:
         logging.error(f"❌ Error leyendo imágenes de la carpeta: {e}")
