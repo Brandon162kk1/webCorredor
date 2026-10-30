@@ -253,12 +253,13 @@ def solicitud_sctr_vl(driver,wait,palabra_clave,tipo_proceso,ruta_archivos_x_inc
 
     driver.execute_script("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});")
 
+    if not os.path.exists(file_path):
+       raise FileNotFoundError(f"La trama {file_path} no existe")
+
     input_file = wait.until(EC.presence_of_element_located((By.ID, "iImportarPlanilla")))
     input_file.send_keys(file_path)
     logging.info(f"📤 Trama {ramo.poliza}.xls cargada")
     time.sleep(2)
-
-    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     
     if bab_codigo == '4':
         btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(., 'Procesar')]")))
@@ -610,8 +611,20 @@ def login_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_pr
     except Exception as e:
 
         error = True
-        #logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {e}")
-        #tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
+        detalleError = str(e)
+
+    except WebDriverException as e:
+
+        error = True
+        logging.exception(f"⚠️ Error técnico de Selenium | {e}")
+        detalleError = "Problemas Técnicos del Agente"
+
+    finally:
+
+        if error:
+            logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {detalleError}")
+            tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
+            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
 
         try:
 
@@ -641,22 +654,6 @@ def login_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_pr
 
         except TimeoutException:
             pass
-
-        #tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
-        detalleError = str(e)
-
-    except WebDriverException as e:
-
-        error = True
-        logging.exception(f"⚠️ Error técnico de Selenium | {e}")
-        detalleError = "Problemas Técnicos del Agente"
-
-    finally:
-
-        if error:
-            logging.error(f"❌ Error en Mapfre {ramo_s} - {tipo_mes}: {detalleError}")
-            tipoError = f"MAPF-{ramo_s}-{tipo_mes}"
-            tomar_capturar(driver, ruta_archivos_x_inclu, f"ERROR_{ramo_s}_{tipo_mes}")
 
         time.sleep(3)
         link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[span[text()='Constancias SCTR y VL']]")))

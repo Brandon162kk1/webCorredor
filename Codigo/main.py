@@ -499,12 +499,12 @@ def main():
                         continue
 
                     enviar_estaca_si_aplica(id_mov,ctx_ramo,constancia,proforma)
-                    time.sleep(1)
+                    time.sleep(2)
                     tipo_error, detalle_error = obtener_error(ctx_ramo)
 
                     if not (tipo_error and detalle_error):
                         enviar_docs(id_mov,ctx_ramo,constancia,proforma)
-                        time.sleep(1)
+                        time.sleep(2)
                         continue
 
                     const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
@@ -544,7 +544,7 @@ def main():
 
                     })
 
-                    enviar_docs(id_mov,ctx_ramo,constancia,proforma)
+                    #enviar_docs(id_mov,ctx_ramo,constancia,proforma)
 
                 except Exception as e:
                     logging.warning(f"⚠️ Error al procesar los envios para {ctx_ramo.ramo} → {e}")
@@ -552,16 +552,17 @@ def main():
                     time.sleep(1)
 
             if errores_detallados:
-                try:
-                    texto_errores = "\n".join(errores_detallados)
-                    enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
-                except Exception as e:
-                    logging.warning(f"⚠️ Fallo en registrar notas del movimiento :{e}")
-                finally:
-                    time.sleep(1)
+
+                # try:
+                #     texto_errores = "\n".join(errores_detallados)
+                #     enviar_nota_movimiento(id_mov_general,texto_errores,ctx.correo,ruta_archivos_x_inclu,const)
+                # except Exception as e:
+                #     logging.warning(f"⚠️ Fallo en registrar notas del movimiento :{e}")
+                # finally:
+                #     time.sleep(1)
 
                 try:
-                    enviar_error_general(ctx,palabra_clave,detalle_ramos)
+                    enviar_error_general(ctx,palabra_clave,detalle_ramos,tipo_proc)
                 except Exception as e:
                     logging.warning(f"⚠️ Fallo al enviar correo de notificación :{e}")
                 finally:

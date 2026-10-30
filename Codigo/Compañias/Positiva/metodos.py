@@ -74,7 +74,7 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
     logging.info(f"⌛ Esperando documento: {codigo_documento}")
 
     if len(list_polizas) == 1:
-        if ba_codigo == "1":
+        if ba_codigo == '1':
             xpath_lupa = (
                 f"{span_xpath}/following-sibling::span[1]"
                 f"//img[@data-nropolizasalud='{ramo.poliza}']"
