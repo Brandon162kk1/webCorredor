@@ -650,11 +650,11 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
                 constancia = True
 
             elif tipo_constancia == "PENSION":
-                alias = ramo.poliza if ba_codigo == 2 else list_polizas[1]
+                #alias = ramo.poliza if ba_codigo == 2 else list_polizas[1]
                 documentos_a_descargar.append({
                     "nombreDoc": "Constancia Pensión - Crecer S.A.",
-                    #"alias": ramo.poliza,
-                    "alias": alias,
+                    "alias": ramo.poliza,
+                    #"alias": alias,
                     "tittle": "Descargar PDF",
                     "impresion": False
                 })
@@ -787,7 +787,7 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
                         logging.info(f"📄 Copia creada como '{list_polizas[0]}.pdf'")
 
                 else:
-                    logging.warning(f"⚠️ No hay constancia conjunta, solo {tipo_constancia.lower()}, ya que la otra póliza no paso la primeta neta en la emisión")
+                    logging.warning(f"⚠️ No hay constancia conjunta, solo {tipo_constancia.lower()}, ya que la otra póliza no superó la primeta neta en la emisión")
 
                 break
 
@@ -816,7 +816,9 @@ def login_sanitas(driver,wait,list_url_san,list_polizas,tipo_mes,ruta_archivos_x
 
             logging.error(f"❌ Error en Sanitas {companiaTipoError} (SCTR) - {tipo_mes}: {detalleError}")
             tipoError = f"{companiaTipoError.upper()[:4]}-SCTR-{tipo_mes}"
-            return constancia,proforma,tipoError,detalleError
-        else:
-            #return True,True,tipoError,detalleError
-            return constancia,proforma,tipoError,detalleError
+        #     return constancia,proforma,tipoError,detalleError
+        # else:
+        #     #return True,True,tipoError,detalleError
+        #     return constancia,proforma,tipoError,detalleError
+
+        return constancia,proforma,tipoError,detalleError

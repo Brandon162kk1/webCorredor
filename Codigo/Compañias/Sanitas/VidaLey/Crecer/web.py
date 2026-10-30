@@ -253,6 +253,9 @@ def codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo):
         wait.until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, "//iframe[contains(@src,'pagoefectivo.pe')]")))
         logging.info("✅ Ya estoy dentro del iframe")
 
+        tomar_capturar(driver, ruta_archivos_x_inclu, "codigo_de_pago")
+        logging.info("✅ Captura toda la pantalla")
+
         # Esperar que aparezca el texto indicador
         wait.until(EC.visibility_of_element_located((By.XPATH, "//p[contains(text(),'Código de pago')]")))
 
@@ -406,20 +409,19 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         logging.exception(f"⚠️ Error técnico de Selenium | {e}")
         detalleError = "Problemas Técnicos del Agente"
     finally:
-        logging.info("Llego aca")
 
         if error:
+
             try:
                 tomar_capturar(driver,ruta_archivos_x_inclu,f"ERROR_VL_{tipo_mes}")
             except Exception:
                 logging.exception("⚠️ No se pudo tomar screenshot")
 
             logging.error(f"❌ Error en Crecer (VL) - {tipo_mes}: {detalleError}")
-            input("Esperar")
-            return constancia,factura,f"CREC-VL-{tipo_mes}",detalleError
-        else:
-            input("Esperar")
-            return constancia,factura,tipoError,detalleError
+            tipoError = f"CREC-VL-{tipo_mes}"
+
+        input("Esperar")
+        return constancia,factura,tipoError,detalleError
 
 def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
 
@@ -455,9 +457,41 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
     boton.click()
     logging.info("🖱️ Clic en 'Buscar Póliza")
 
-    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
+    modal_advertencia = (By.ID, "swal2-content")
 
-    # validar que salga modal para mostrar error
+    resultado0 = wait.until(
+        EC.any_of(
+            EC.visibility_of_element_located(modal_advertencia),
+            lambda driver: (
+                "overlay_desaparecido"
+                if not driver.find_elements(By.CLASS_NAME, "overlay")
+                or not driver.find_element(By.CLASS_NAME, "overlay").is_displayed()
+                else False
+            ),
+            lambda driver: (
+                "tabla_cargada"
+                if any(
+                    fila.is_displayed()
+                    for fila in driver.find_elements(
+                        By.XPATH,
+                        "//table[contains(@class, 'table-striped') and contains(@class, 'table-bordered')]//tbody/tr"
+                    )
+                )
+                else False
+            )
+        )
+    )
+
+    # Procesar el resultado
+    if hasattr(resultado0, "get_attribute") and resultado0.get_attribute("id") == "swal2-content":
+        texto_error = resultado0.text.strip()
+        raise Exception(texto_error)
+
+    elif resultado0 == "overlay_desaparecido":
+        pass
+
+    elif resultado0 == "tabla_cargada":
+        logging.info("✅ La tabla cargó con filas visibles")
 
     #Esperar que cargue la tabla con mas de 0 filas y esten visibles
     wait.until(EC.visibility_of_element_located((By.XPATH,"//table[contains(@class, 'table-striped') and contains(@class, 'table-bordered')]//tbody/tr")))
@@ -473,18 +507,19 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
     input_file = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Cargar excel')]")))
     driver.execute_script("arguments[0].scrollIntoView(true);", input_file)
 
-    ruta_trama_xlsx_sanitas_vl = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsx"
+    #ruta_trama_xlsx_sanitas_vl = f"{ruta_archivos_x_inclu}/{ramo.poliza}.xlsx"
+    ruta_trama_xlsx_sanitas_vl = f"{ruta_archivos_x_inclu}/810860000190788R9.xlsx"
 
     if not os.path.exists(ruta_trama_xlsx_sanitas_vl):
-        raise FileNotFoundError(f"El Archivo {ramo.poliza}.xlsx no existe")
+        raise FileNotFoundError(f"La trama {ramo.poliza}.xlsx no existe")
 
-    if subir_trama(input_file,ruta_trama_xlsx_sanitas_vl):               
+    if subir_trama(input_file,ruta_trama_xlsx_sanitas_vl):              
         time.sleep(3)
         logging.info(f"✅ Trama {ramo.poliza}.xlsx adjuntada")
     else:
         raise Exception(f"No se pudo subir la trama {ramo.poliza}.xlsx")
 
-    modal_advertencia = (By.ID, "swal2-content")
+    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "overlay")))
 
     resultado_dps_trama = wait.until(
         EC.any_of(
@@ -503,7 +538,7 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
         # Modal de Endoso Retroactivo
         boton_ok = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'OK')]")))
         raise  Exception("Mensaje de Endoso Retroactivo")
-    except :
+    except TimeoutException:
         pass
 
     # Encuentra el botón por su texto
@@ -516,41 +551,64 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
 
         resultado = wait.until(
             EC.any_of(
-                EC.visibility_of_element_located((By.ID, "swal2-title")),
-                EC.element_to_be_clickable((
-                    By.XPATH,
-                    "//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']"
-                ))
+                #EC.visibility_of_element_located((By.ID, "swal2-title")),
+                # EC.element_to_be_clickable((
+                #     By.XPATH,
+                #     "//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']"
+                # )),
+                # Contenido del modal: pagos pendientes
+                EC.visibility_of_element_located(modal_advertencia),
             )
         )
 
-        if resultado.get_attribute("id") == "swal2-title":
+        elemento_id = resultado.get_attribute("id")
+
+        # if elemento_id == "swal2-title":
+        #     texto_modal = resultado.text.strip()
+                
+        #      # Satisfactorio 
+        #      # Se generó el Endoso correctamente. El Endoso se encuentra Pendiente de Aprobación
+
+        #      # Recordatorio: la póliza tiene pago(s) pendientes(s). Regularizar para evitar futuros bloqueos
+
+        #     mensaje_esperado = "evitar futuros bloqueos"
+
+        #     if mensaje_esperado not in texto_modal.lower():
+        #         logging.info(f"Otro Texto: {texto_modal}")
+        #         raise Exception(texto_modal)
+
+        #     logging.warning(f"⚠️ {texto_modal}")
+        #elif elemento_id == "swal2-content":
+        if elemento_id == "swal2-content":
             texto_modal = resultado.text.strip()
-            logging.warning(f"⚠️ {texto_modal}")
+            # Por favor adjuntar el sustento “Vigencia Retroactiva - Carta de No Siniestro” para procesar el trámite con vigencia retroactiva
+            # Recordatorio: El RUC registrado presenta pagos pendientes. Por favor, verifique las deudas y regularícelas antes de continuar.
 
-            mensaje_esperado = "evitar futuros bloqueos"
+            # Recordatorio: la póliza tiene pago(s) pendientes(s). Regularizar para evitar futuros bloqueos
+            # Se generó el Endoso correctamente. El Endoso se encuentra Pendiente de Aprobación
 
-            if mensaje_esperado not in texto_modal.lower():
+            mensajes_error = [
+                "presenta pagos pendientes",
+                "vigencia retroactiva",
+                "se encuentra pendiente"
+            ]
+
+            texto_minuscula = texto_modal.lower()
+
+            if any(mensaje in texto_minuscula for mensaje in mensajes_error):
+                logging.warning(f"⚠️ {texto_modal}")
                 raise Exception(texto_modal)
 
-            boton_ok = wait.until(
-                EC.element_to_be_clickable((
-                    By.XPATH,
-                    "//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']"
-                ))
-            )
-            boton_ok.click()
-            logging.info(f"🖱 Clic en Ok")
+            logging.info(f"⚠️ : {texto_modal}")
+
+        else:
+            logging.info("Se encontró el botón OK del modal")
 
         # aca salemodal de satisfactorio , darle clic ok , si no tiene deuda solo sale ok para compltar satifactorio
-        boton_ok = wait.until(
-            EC.element_to_be_clickable((
-                By.XPATH,
-                "//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']"
-            ))
-        )
+        boton_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class, 'swal2-confirm') and normalize-space()='OK']")))
         boton_ok.click()
         logging.info(f"🖱 Clic en Ok")
+
         #--------------------------------------------------------
         # wait.until(EC.staleness_of(boton_ok))
         # wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
@@ -631,7 +689,7 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
   
     input_fullname = wait.until(EC.element_to_be_clickable((By.ID, "spolizanumber")))
     input_fullname.clear()
-    input_fullname.send_keys(f"{ramo.poliza}-R9")
+    input_fullname.send_keys(f"{ramo.poliza}")
     logging.info(f"✅ Se ingresó la póliza: {ramo.poliza}")
 
     boton = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Busca Póliza')]")))
@@ -679,17 +737,12 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     if resultado1.get_attribute("id") == "swal2-content":
         texto_error_poliza = resultado1.text
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"errorTrama_{ramo.poliza}")
         raise Exception(texto_error_poliza)
 
     boton_validar = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@value="Validar"]')))
     driver.execute_script("arguments[0].scrollIntoView(true);", boton_validar)
     boton_validar.click()
     logging.info("🖱️ Clic en 'Validar'")
-
-    # Validar que salga modal de error de Renovacióno el boton ok presente
-
-    # <div class="swal2-container swal2-center swal2-shown" style="overflow-y: auto;"><div aria-labelledby="swal2-title" aria-describedby="swal2-content" class="swal2-popup swal2-modal swal2-show" tabindex="-1" role="dialog" aria-live="assertive" aria-modal="true" style="display: flex;"><div class="swal2-header"><ul class="swal2-progress-steps" style="display: none;"></ul><div class="swal2-icon swal2-error" style="display: none;"><span class="swal2-x-mark"><span class="swal2-x-mark-line-left"></span><span class="swal2-x-mark-line-right"></span></span></div><div class="swal2-icon swal2-question" style="display: none;"></div><div class="swal2-icon swal2-warning" style="display: none;"></div><div class="swal2-icon swal2-info swal2-animate-info-icon" style="display: flex;"></div><div class="swal2-icon swal2-success" style="display: none;"><div class="swal2-success-circular-line-left" style="background-color: rgb(255, 255, 255);"></div><span class="swal2-success-line-tip"></span> <span class="swal2-success-line-long"></span><div class="swal2-success-ring"></div> <div class="swal2-success-fix" style="background-color: rgb(255, 255, 255);"></div><div class="swal2-success-circular-line-right" style="background-color: rgb(255, 255, 255);"></div></div><img class="swal2-image" style="display: none;"><h2 class="swal2-title" id="swal2-title" style="display: none;"></h2><button type="button" class="swal2-close" aria-label="Close this dialog" style="display: none;">×</button></div><div class="swal2-content"><div id="swal2-content" style="display: block;">Por regla, no se puede generar un endoso retroactivo de más de 45 días.</div><input class="swal2-input" style="display: none;"><input type="file" class="swal2-file" style="display: none;"><div class="swal2-range" style="display: none;"><input type="range"><output></output></div><select class="swal2-select" style="display: none;"></select><div class="swal2-radio" style="display: none;"></div><label for="swal2-checkbox" class="swal2-checkbox" style="display: none;"><input type="checkbox"><span class="swal2-label"></span></label><textarea class="swal2-textarea" style="display: none;"></textarea><div class="swal2-validation-message" id="swal2-validation-message"></div></div><div class="swal2-actions"><button type="button" class="swal2-confirm swal2-styled" aria-label="" style="display: inline-block; border-left-color: rgb(48, 133, 214); border-right-color: rgb(48, 133, 214);">OK</button><button type="button" class="swal2-cancel swal2-styled" aria-label="" style="display: none;">Cancel</button></div><div class="swal2-footer" style="display: none;"></div></div></div>
 
     resultado2 = wait.until(
         EC.any_of(
@@ -706,59 +759,44 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         if 'correctamente' not in texto_error_modal:
             raise Exception(texto_error_modal)
 
-    try:
+    boton_ok = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
+    boton_ok.click()
+    logging.info("🖱️ Clic en 'Ok'")
 
-        boton_ok = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
-        boton_ok.click()
-        logging.info("🖱️ Clic en 'Ok'")
+    wait.until(EC.staleness_of(boton_ok))
+    wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
 
-        wait.until(EC.staleness_of(boton_ok))
-        wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+    checkbox = wait.until(EC.presence_of_element_located((By.ID, "check-amarillo")))
+    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", checkbox)
+    driver.execute_script("arguments[0].click();", checkbox)
+    logging.info("🖱️ Checkbox marcado correctamente")
 
-        # logging.info(f"URL actual: {driver.current_url}")
-
-        # if "check-amarillo" in driver.page_source:
-        #     logging.info("✅ El checkbox existe en el HTML")
-        # else:
-        #     raise Exception("El checkbox NO está en el HTML")
-
-        # checkbox = driver.find_element(By.ID, "check-amarillo")
-        # logging.info(f"Visible: {checkbox.is_displayed()}")
-        # logging.info(f"Habilitado: {checkbox.is_enabled()}")
-
-        checkbox = wait.until(EC.presence_of_element_located((By.ID, "check-amarillo")))
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", checkbox)
-        driver.execute_script("arguments[0].click();", checkbox)
-        logging.info("🖱️ Checkbox marcado correctamente")
-
-        # btn_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Aceptar']")))
-        # btn_aceptar.click()
-        # logging.info("🖱️ Clic en 'Aceptar'")
+    # btn_aceptar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Aceptar']")))
+    # btn_aceptar.click()
+    # logging.info("🖱️ Clic en 'Aceptar'")
   
-        btn_generar = wait.until(EC.element_to_be_clickable((By.ID, "btngenerate")))
-        btn_generar.click()
-        logging.info("🖱️ Clic en 'Renovar'")
+    btn_generar = wait.until(EC.element_to_be_clickable((By.ID, "btngenerate")))
+    btn_generar.click()
+    logging.info("🖱️ Clic en 'Renovar'")
 
-        mensaje_elemento = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "p.mensaje")))
-        texto_mensaje = mensaje_elemento.text
-        match = re.search(r"número\s+(\d+)", texto_mensaje)
+    mensaje_elemento = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "p.mensaje")))
+    texto_mensaje = mensaje_elemento.text
+    match = re.search(r"número\s+(\d+)", texto_mensaje)
 
-        if not match:
-            raise Exception("No se encontró número de cotizacion en la renovación")
+    if not match:
+        raise Exception("No se encontró número de cotizacion en la renovación")
 
-        numero_renovacion = match.group(1)
-        logging.info(f"✅ Renovación generada correctamente con Número de Cotizacion: {numero_renovacion}")
+    numero_renovacion = match.group(1)
+    logging.info(f"✅ Renovación generada correctamente con Número de Cotizacion: {numero_renovacion}")
 
-        btn_cerrar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Cerrar']")))
-        btn_cerrar.click()
-        logging.info("🖱️ Clic en 'Cerrar'")
-
-    except WebDriverException as e:
-        logging.error(f"❌ Ocurrió un error tecnico: {e}")
-    except Exception as e:
-        logging.error(f"❌ Ocurrió un error: {e}")
+    btn_cerrar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Cerrar']")))
+    btn_cerrar.click()
+    logging.info("🖱️ Clic en 'Cerrar'")
 
     try:
+
+        #Tomar Screen para validar si sale el correo
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"modal_correo")
 
         email_input = WebDriverWait(driver,15).until(EC.element_to_be_clickable((By.ID, "semailpolicy")))
         email_input.clear()
@@ -771,38 +809,23 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     except TimeoutException:
 
-        # btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
-        # driver.execute_script("arguments[0].click();", btn_ok)
-        # logging.info("🖱️ Clic en 'Ok'")
-
         btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
         driver.execute_script("arguments[0].click();", btn_ok)
         logging.info("🖱️ Clic en 'Ok'")
 
-    try:
+    pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
+    pago_efectivo_img.click()
+    logging.info("🖱️ Clic en 'Pago Efectivo'")
 
-        # Clic en Pago Efectivo me falta
-        pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
-        pago_efectivo_img.click()
-        logging.info("🖱️ Clic en 'Pago Efectivo'")
+    contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
+    texto_cip = contenido.text
+    logging.info(f"📩 Mensaje CIP: {texto_cip}")
 
-        contenido = wait.until(EC.visibility_of_element_located((By.ID, "swal2-content")))
-        texto_cip = contenido.text
-        logging.info(f"📩 Mensaje CIP: {texto_cip}")
+    btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
+    driver.execute_script("arguments[0].click();", btn_ok)
+    logging.info("🖱️ Clic en 'Ok'")
 
-        btn_ok = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.swal2-confirm")))
-        driver.execute_script("arguments[0].click();", btn_ok)
-        logging.info("🖱️ Clic en 'Ok'")
-
-        wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
-
-    except Exception as e:
-        logging.error(f"❌ Ocurrió un error durante el proceso de pago: {e}")
-    except WebDriverException as e :
-        logging.exception(f"❌ Ocurrió un error tecnico: {e}")
-    finally:
-        time.sleep(60)
-        pass
+    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-popup")))
 
     codigo_pago(driver,wait,ruta_archivos_x_inclu,ramo)
 

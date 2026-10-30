@@ -22,14 +22,16 @@ copias_lista = copia_venv.split(",") if copia_venv else []
 ruta_plantilla = "/app/Codigo/Plantillas/Correo"
 env = Environment(loader=FileSystemLoader(ruta_plantilla))
 
-def enviar_error_general(ctx,palabra_clave,detalle_ramos):
+def enviar_error_general(ctx,palabra_clave,detalle_ramos,tipo_proc):
+
+    texto = 'el Neteo' if tipo_proc == 'NE' else f'la {palabra_clave}'
 
     logging.info("-----------------------------")
 
     template = env.get_template("error.html")
 
     html = template.render(
-        titulo=f"⚠ Problemas en la {palabra_clave}",
+        titulo = f"⚠ Problemas en {texto}",
         cliente=ctx.cliente,
         ruc=ctx.ruc,
         detalle_ramos=detalle_ramos
@@ -43,7 +45,7 @@ def enviar_error_general(ctx,palabra_clave,detalle_ramos):
     payload = {
         "Para": para_lista,
         "Copia": copias_lista,
-        "Asunto": f"Error en la {palabra_clave} - Pólizas: {polizas}",
+        "Asunto": f"Error en {texto} - Pólizas: {polizas}",
         "Mensaje": html
     }
 
