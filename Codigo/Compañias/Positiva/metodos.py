@@ -67,7 +67,7 @@ def validar_modal_error(driver, elemento):
         mensaje = driver.find_element(By.XPATH,"//div[@id='divAlertaErrorGeneral']//p/span[2]").text.strip()
         raise Exception(mensaje)
 
-def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu):
+def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,tipo_mes,ba_codigo,list_polizas,ramo,ruta_archivos_x_inclu,tipo_proc):
 
     span_xpath = f"//span[normalize-space()='{codigo_documento}']"
 
@@ -148,7 +148,7 @@ def descargar_documento_por_codigo(driver,wait,codigo_documento,palabra_clave,ti
         os.rename(archivo_nuevo[0], ruta_final)
         logging.info(f"🔄 Constancia renombrada")
     else:
-        raise Exception(f"No se descargó constancia, buscar en la compañía con el código '{codigo_documento}'")
+        raise Exception(f"No se descargó ningún documento, buscar en la compañía con el código '{codigo_documento}'")
 
     if tipo_mes == 'MA':
 

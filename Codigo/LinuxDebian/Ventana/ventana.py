@@ -114,6 +114,8 @@ def esperar_archivos_nuevos(directorio, archivos_antes, extension, cantidad, tim
 
 def enviar_puerto_por_ramos(RAMOS):
 
+    hubo_ramos = False
+
     for r in RAMOS:
 
         ctx_ramo = r["ctx"]
@@ -124,15 +126,15 @@ def enviar_puerto_por_ramos(RAMOS):
         if ctx_ramo.activo:
             continue
 
+        hubo_ramos = True
+
         logging.info("-----------------------------")
         logging.info(f"⌛ Enviando puerto {puerto} al Id -> {ctx_ramo.id_poliza} de '{ctx_ramo.ramo}'")
 
-        # if not enviar_puerto(ctx_ramo.id_poliza, puerto):
-        #     raise Exception(f"No se pudo enviar puerto {puerto}")
+        enviar_puerto(ctx_ramo.id_poliza, puerto)
 
         time.sleep(1)
 
-        #return True
+    if not hubo_ramos:
+        logging.info("ℹ️ No hubo ramos disponibles para enviar puerto")
 
-    logging.info("ℹ️ No hubo ramos disponibles para enviar puerto")
-    #return False

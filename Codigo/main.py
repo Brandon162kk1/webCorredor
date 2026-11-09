@@ -507,7 +507,7 @@ def main():
                         time.sleep(2)
                         continue
 
-                    const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VL")
+                    const = ("SCTR" if ctx_ramo.ramo in ("SALUD", "PENSION") else "VIDALEY")
 
                     enviar_error_movimiento(id_mov,ctx_ramo,tipo_error,detalle_error,ruta_archivos_x_inclu,const)
 
