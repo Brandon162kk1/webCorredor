@@ -7,7 +7,7 @@ from Compañias.Sanitas.SCTR.web import login_sanitas
 from Compañias.Sanitas.VidaLey.Crecer.web import login_crecer
 from Compañias.Sanitas.VidaLey.Protecta.web import login_protecta
 # from Compañias.Rimac.SCTR.web_PortalWeb import realizar_solicitud_PortalWeb
-from Plantillas.Crecer.generarplantilla import generarConstanciaInReCrecer
+from Plantillas.Crecer.generarplantilla import generarConstanciaInReCrecer,generarConstanciaWordCrecer
 # -- Froms Apis ---
 from Apis.Post.webhook import enviar_error_general
 from Apis.Post.web_corredor import enviar_nota_movimiento
@@ -236,7 +236,8 @@ def derivar_compania_vidaley(driver,wait,list_polizas,compania_BB,ba_codigo,bb_c
 
             logging.info("✅ Tipo: Mes Vencido")
             # Por el momento se utilizara la misma plantilla para Inclusiones y Renovaciones (Ruc solo renovación)
-            return generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo,tipo_proceso)
+            #return generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo,tipo_proceso)
+            return generarConstanciaWordCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_cliente,ruc_empresa,ramo,tipo_proceso)
 
         else:
             logging.info("Tipo: Mes Adelantado")

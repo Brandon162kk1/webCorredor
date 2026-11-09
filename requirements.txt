@@ -4,3 +4,4 @@ pdfkit
 pytz
 reportlab
 Pillow
+docxtpl

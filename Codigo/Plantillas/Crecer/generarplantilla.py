@@ -6,6 +6,8 @@ import logging
 import time
 import os
 import pandas as pd
+import subprocess
+from docxtpl import DocxTemplate
 
 # Apagar completamente logs de weasyprint y fonttools
 logging.getLogger("weasyprint").handlers = []
@@ -151,3 +153,103 @@ def generarConstanciaInReCrecer(ruta_archivos_x_inclu,palabra_clave,nombre_clien
         tipoError = f"CREC-VL-MV"
     finally:
         return constancia,False,tipoError,detalleError
+
+def generarConstanciaWordCrecer(ruta_archivos_x_inclu, palabra_clave, nombre_cliente, ruc, ramo, tipo_proceso):
+    """
+    Genera la constancia de Crecer Seguros utilizando la plantilla Word (.docx)
+    y convirtiéndola a PDF con LibreOffice en modo headless.
+    """
+    tipoError = ""
+    detalleError = ""
+    constancia = True
+
+    try:
+        f_ini = getattr(ramo, 'f_inicio', '')
+        f_fin = getattr(ramo, 'f_fin', '')
+        sede = getattr(ramo, 'sede', '')
+        
+        # Leer asegurados del Excel
+        ruta_excel = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.xlsx")
+        df_raw = pd.read_excel(ruta_excel, engine="openpyxl", dtype={"N° Documento": str})
+        df_raw.columns = df_raw.columns.str.strip()
+        df_raw = df_raw.fillna("")
+
+        datos_tabla = []
+        for _, row in df_raw.iterrows():
+            datos_tabla.append({
+                "paterno": str(row.get("Ap. Paterno", "")).strip(),
+                "materno": str(row.get("Ap. Materno", "")).strip(),
+                "nombre1": str(row.get("Nombre 1", "")).strip(),
+                "nombre2": str(row.get("Nombre 2", "")).strip(),
+                "documento": str(row.get("N° Documento", "")).strip()
+            })
+
+        # Rutas de plantilla y salida
+        ruta_plantilla_base = "/app/Codigo/Plantillas/Crecer"
+        if not os.path.exists(ruta_plantilla_base):
+            ruta_plantilla_base = os.path.dirname(os.path.abspath(__file__))
+
+        ruta_plantilla_docx = os.path.join(ruta_plantilla_base, "plantilla_crecer_base.docx")
+        if not os.path.exists(ruta_plantilla_docx):
+            raise Exception(f"No se encontró la plantilla Word en: {ruta_plantilla_docx}")
+
+        tramite = f"{palabra_clave.upper().capitalize()}"
+
+        contexto = {
+            "fecha_texto": fecha_lima_formateada().replace("Lima, ", "").strip(),
+            "poliza": str(ramo.poliza),
+            "contratante": str(nombre_cliente),
+            "ruc": str(ruc) if ruc else "",
+            "tramite": tramite,
+            "sede": str(sede),
+            "f_inicio": str(f_ini),
+            "f_fin": str(f_fin),
+            "datos_tabla": datos_tabla
+        }
+
+        # 1. Renderizar plantilla Word
+        doc = DocxTemplate(ruta_plantilla_docx)
+        doc.render(contexto)
+
+        ruta_docx_temporal = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.docx")
+        doc.save(ruta_docx_temporal)
+        logging.info(f"✅ Word temporal generado: {ruta_docx_temporal}")
+
+        # 2. Convertir a PDF mediante LibreOffice headless
+        cmd = [
+            "soffice",
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", ruta_archivos_x_inclu,
+            ruta_docx_temporal
+        ]
+        
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+        
+        if proc.returncode != 0:
+            logging.error(f"Error en LibreOffice: {proc.stderr}")
+            raise Exception(f"Error convirtiendo Word a PDF con LibreOffice: {proc.stderr}")
+
+        salida_pdf = os.path.join(ruta_archivos_x_inclu, f"{ramo.poliza}.pdf")
+
+        time.sleep(2)
+
+        if not os.path.exists(salida_pdf):
+            raise Exception(f"No se generó el PDF de la constancia en {salida_pdf}")
+
+        # Eliminar docx temporal si se generó correctamente
+        # try:
+        #     if os.path.exists(ruta_docx_temporal):
+        #         os.remove(ruta_docx_temporal)
+        # except Exception:
+        #     pass
+
+        logging.info("✅ PDF generado correctamente desde Word con LibreOffice")
+
+    except Exception as e:
+        detalleError = str(e)
+        constancia = False
+        logging.error(f"❌ Error en Crecer Word (VL) - MV: {detalleError}")
+        tipoError = f"CREC-VL-MV"
+    finally:
+        return constancia, False, tipoError, detalleError
