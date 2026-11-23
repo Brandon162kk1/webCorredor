@@ -540,14 +540,35 @@ def login_pacifico(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,
 
             driver.get(url_pacifico) 
             logging.info("⌛ Cargando la Web de Pacifico Corredores")
-           
-            mi_portafolio = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Mi portafolio')]")))
-            mi_portafolio.click()
-            logging.info("🖱️ Clic en Portafolio")
 
-            somos_corredores = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), 'Somos Corredores')]")))
-            somos_corredores.click()
-            logging.info("🖱️ Clic en Somos Corredores")
+            cookies = wait.until(EC.element_to_be_clickable((By.ID, "CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll")))
+            cookies.click()
+            logging.info("🖱️ Clic en Aceptar las Cookies")
+
+            ventana_original = driver.current_window_handle
+
+            btn_iniciar_sesion = wait.until(EC.element_to_be_clickable((By.ID, "navigation-corredores-inicia-sesion")))
+            btn_iniciar_sesion.click()
+            logging.info("🖱️ Clic en Iniciar Session")
+
+            # Esperar a que se abra la nueva pestaña
+            wait.until(EC.number_of_windows_to_be(2))
+
+            # Cambiar a la nueva pestaña
+            for ventana in driver.window_handles:
+                if ventana != ventana_original:
+                    driver.switch_to.window(ventana)
+                    break
+
+            # print("URL actual:", driver.current_url)
+
+            # mi_portafolio = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Mi portafolio')]")))
+            # mi_portafolio.click()
+            # logging.info("🖱️ Clic en Portafolio")
+
+            # somos_corredores = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), 'Somos Corredores')]")))
+            # somos_corredores.click()
+            # logging.info("🖱️ Clic en Somos Corredores")
 
             user_input = wait.until(EC.element_to_be_clickable((By.ID, "i0116")))
             user_input.clear()
