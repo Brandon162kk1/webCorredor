@@ -581,7 +581,7 @@ def login_mapfre(driver,wait,list_polizas,tipo_mes,ruta_archivos_x_inclu,tipo_pr
         
         except Exception as e:
             logging.error(f"❌ Error al iniciar sesión en Mapfre: {e}")
-            tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{'SCTR' if bab_codigo != '4' else 'VIDALEY'}_LOGIN_FALLIDO")
+            tomar_capturar(driver, ruta_archivos_x_inclu,f"ERROR_{ramo_s}_LOGIN_FALLIDO")
             return constancia,proforma,"Login Fallido", "Hubo problemas al iniciar sessión en la compañía"
 
         try:

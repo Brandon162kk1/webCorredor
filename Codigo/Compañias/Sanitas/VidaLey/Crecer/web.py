@@ -28,6 +28,7 @@ import os
 import logging
 import zipfile
 import re
+import os
 from PIL import Image
 
 url_n8n_base = os.getenv("url_host_prod")
@@ -335,7 +336,7 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
 
         user_input = wait.until(EC.presence_of_element_located((By.ID, "suser")))
 
-        if tipo_proceso in ('NE','IN','RE') and entorno:
+        if tipo_proceso in ('NE','IN') and entorno:
             raise Exception (f"Agente no disponible para realizar {palabra_clave.lower()} en esta compañía")
 
         user_input.clear()
@@ -397,7 +398,7 @@ def login_crecer(driver,wait,tipo_proceso,ruta_archivos_x_inclu,ejecutivo_respon
         if tipo_proceso == 'IN':
             inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa)
         elif tipo_proceso == 'RE':
-            renovacion_crecer(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,ramo)
+            renovacion_crecer(driver,wait,ruta_archivos_x_inclu,ejecutivo_responsable,ramo,palabra_clave)
         else:
             buscar_cuota_y_descargar_constancia(driver,wait,ruta_archivos_x_inclu,ruc_empresa,ramo)
 
@@ -673,7 +674,7 @@ def inclusion_crecer(driver,wait,ruta_archivos_x_inclu,ramo,ruc_empresa):
         time.sleep(60)
         input("Esperar")
 
-def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
+def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo,palabra_clave):
     
     span_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Gestión de Cotización']")))
     logging.info("🔍 Ubicándose en 'Gestión de Cotización'")
@@ -786,6 +787,7 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
         raise Exception("No se encontró número de cotizacion en la renovación")
 
     numero_renovacion = match.group(1)
+    logging.info(f"✅ Texto : {texto_mensaje}")
     logging.info(f"✅ Renovación generada correctamente con Número de Cotizacion: {numero_renovacion}")
 
     btn_cerrar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Cerrar']")))
@@ -793,14 +795,13 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
     logging.info("🖱️ Clic en 'Cerrar'")
 
     try:
-
-        #Tomar Screen para validar si sale el correo
-        tomar_capturar(driver,ruta_archivos_x_inclu,f"modal_correo")
-
         email_input = WebDriverWait(driver,15).until(EC.element_to_be_clickable((By.ID, "semailpolicy")))
         email_input.clear()
         email_input.send_keys(correo)
         logging.info("✍️ Correo ingresado correctamente")
+
+        #Tomar Screen para validar si sale el correo
+        tomar_capturar(driver,ruta_archivos_x_inclu,f"modal_correo")
 
         btn_guardar = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='button' and @value='Guardar Correo']")))
         btn_guardar.click()
@@ -808,9 +809,12 @@ def renovacion_crecer(driver,wait,ruta_archivos_x_inclu,correo,ramo):
 
     except TimeoutException:
 
-        btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
-        driver.execute_script("arguments[0].click();", btn_ok)
-        logging.info("🖱️ Clic en 'Ok'")
+        try:
+            btn_ok = wait.until(EC.element_to_be_clickable((By.XPATH,"//button[contains(@class,'swal2-confirm') and normalize-space()='OK']")))
+            driver.execute_script("arguments[0].click();", btn_ok)
+            logging.info("🖱️ Clic en 'Ok'")
+        except TimeoutException:
+            raise Exception(f"La {palabra_clave} entró en evaluación")
 
     pago_efectivo_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[contains(@src,'pago_efectivo')]")))
     pago_efectivo_img.click()

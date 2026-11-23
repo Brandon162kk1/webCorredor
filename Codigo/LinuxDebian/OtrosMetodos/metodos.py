@@ -2,6 +2,7 @@
 import time
 import subprocess
 import logging
+import os
 #-- Froms --
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -176,3 +177,42 @@ def descargar_trama():
     except Exception as ex:
         logging.error(f"❌ Error durante la descarga: {ex}")
         return False
+
+def convertir_excel(ruta_archivo, formato_salida):
+
+    if not os.path.exists(ruta_archivo):
+        raise FileNotFoundError(f"No existe el archivo: {ruta_archivo}")
+
+    if formato_salida not in ("xls", "xlsx"):
+        raise ValueError("Formato de salida no válido")
+
+    carpeta = os.path.dirname(ruta_archivo)
+
+    formato = {
+        "xls": "xls:MS Excel 97",
+        "xlsx": "xlsx:Calc MS Excel 2007 XML"
+    }
+
+    comando = [
+        "/usr/bin/soffice",
+        "--headless",
+        "--convert-to", formato[formato_salida],
+        "--outdir", carpeta,
+        ruta_archivo
+    ]
+
+    resultado = subprocess.run(
+        comando,
+        capture_output=True,
+        text=True
+    )
+
+    if resultado.returncode != 0:
+        raise Exception(f"Error al convertir: {resultado.stderr}")
+
+    ruta_salida = os.path.splitext(ruta_archivo)[0] + f".{formato_salida}"
+
+    if not os.path.exists(ruta_salida):
+        raise Exception(f"No se generó el archivo: {ruta_salida}")
+
+    return ruta_salida
